@@ -1,0 +1,8 @@
+.project
+.pydevproject
+.settings/
+*.pyc
+*~
+tests/output*
+*.bak
+*.py.orig
