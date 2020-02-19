@@ -101,9 +101,15 @@ def parse_options(arguments):
     parser.add_option("--need_masking",
                       action = 'store_false', dest = 'need_masking', default = True,
                       help = 'specify if you need to mask the obs or use it as it is;')
-    parser.add_option("--notonlypro",
-                      action = 'store_true', dest = 'notonlypro', default = False,
-                      help = 'read only pro or not')
+    parser.add_option("--readprep",
+                      action = 'store_true', dest = 'readprep', default = False,
+                      help = 'read prep and obs')
+    parser.add_option("--readaux",
+                      action = 'store_true', dest = 'readaux', default = False,
+                      help = 'read auxiliary files')
+    parser.add_option("--readobs",
+                      action = 'store_true', dest = 'readobs', default = False,
+                      help = 'read observation files')
     parser.add_option("--clim",
                       action = 'store_true', dest = 'clim', default = False,
                       help = 'read the clim')
@@ -138,7 +144,13 @@ def set_options(args, pathConf = None):
         conf = read_conf(pathConf)
 
     if 'all' in options.dates:
-        options.dates = conf.assimdates
+
+        # in the case we are pping, last date corresponds to the end of the simulation and is not interesting.
+        if hasattr(conf, 'stopdates'):
+            options.dates = conf.stopdates[0:-1]
+        # otherwise:
+        else:
+            options.dates = conf.assimdates[0:-1]
     elif type(options.dates) is str:
         options.dates = [options.dates]
     return options, conf

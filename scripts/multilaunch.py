@@ -67,7 +67,6 @@ dictOl = {2013: 'art2_OL_2013_t1500@cluzetb',
 # dates['B4,B5'] = dict()
 # dates['B4,B5'][2013] = 'all'
 # dates['B4,B5'][2016] = 'all'
-dirnam = '' if nens == 160 else '{0}/'.format(nens)
 suffixrun = '' if nens == 160 else '_{0}'.format(nens) if 'DEP' not in assimvars else '_{0}_{1}'.format(nens, assimvars)
 suffixrun = '_40_DEP_' + str(neff)
 # generate runs on beaufix
@@ -98,7 +97,7 @@ for year in years:
                 '--fact', fact[run],
                 '--ppvars', 'DEP,SWE',
             ]
-            defaultConf = '/home/cluzetb/article2/{0}s2m_12_{1}.ini'.format(dirnam, year)
+            defaultConf = '/home/cluzetb/article2/{0}/s2m_12_{1}.ini'.format(nens, year)
             options, conf = set_options(args,
                                         pathConf=defaultConf)
             pathNamRun = '/home/cluzetb/article2/tmp/OPTIONS_{0}.nam'.format(xp)
@@ -133,6 +132,7 @@ for year in years:
                    '--nnodes', '{0}'.format(int(nens / 40)),
                    '--walltime', '200',
                    '--writesx',
+                   '--pickleit'
                    '-x', '2016080106']
             print('cmd', ' '.join(cmd))
             if kind == 'fromol':

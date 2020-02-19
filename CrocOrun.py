@@ -45,6 +45,16 @@ class CrocO(object):
                     + '_E' + ''.join(self.options.classesE) + '_A' + ''.join(self.options.classesA) \
                     + '_S' + ''.join(self.options.classesS) + '_N' + str(self.options.noise)
                 self.options.sensor = self.sensor
+
+        elif self.options.sensor is not None:
+            if self.conf.openloop == 'on':
+                self.sensor = self.options.sensor
+            else:
+                if hasattr(self.conf, 'sensor'):
+                    self.sensor = self.conf.sensor
+                    self.options.sensor = self.conf.sensor  # necessary for pp
+        else:  # openloop on X options.sensor is None
+            print('openloop on X options.sensor is None')
         if self.options.nmembers is None:
             self.options.nmembers = int(self.conf.nmembers)
 

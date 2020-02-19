@@ -40,7 +40,8 @@ if pp_kind == 'inflation_effect':
     runs = ['global_40_DEP',
             'global_40_DEP_1',
             ]
-    notonlypro = ''
+    readprep = ''
+    readobs = ''
 elif pp_kind == 'plot_bg':
     years = [2014, ]
     dictmembers = {2014: [122]}
@@ -52,8 +53,8 @@ elif pp_kind == 'plot_bg':
     runs = [            'klocal5_40',
                         'klocal5_40_DEP',
                         ]
-    notonlypro = '--notonlypro'
-
+    readprep = '--readprep'
+    readobs = ''
 elif pp_kind == 'postesdebug':
     years = [2013, ]
     dictmembers = {2013: [66]}
@@ -62,7 +63,8 @@ elif pp_kind == 'postesdebug':
     assimvars  = 'DEP'
     ppvars = 'SWE'
     runs = ['postes_rlocal_40_DEP_7']
-    notonlypro = '--notonlypro'
+    readprep = '--readprep'
+    readobs = '--readobs'
 else:
     years = [2013]
     dictmembers = {2013: [  # 66,
@@ -88,7 +90,8 @@ else:
         SUFFIX_NAME = '_40_DEP_neffstudy'
 
     runs = [r + s for r in runs for s in suffix]
-    notonlypro = '--notonlypro'
+    readprep = '--readprep'
+    readobs = '--readobs'
 
 print(runs)
 RUN = dict()
@@ -109,7 +112,8 @@ for year in years:
                 '--classesE', '1800,2100,2400,2700,3000,3300,3600' if pp_kind != 'postesdebug' else '1200,1500,1800,2100,2400',
                 '--classesS', '0,20' if pp_kind != 'postesdebug' else '0',
                 '--classesA', 'SW,S,SE,E',
-                notonlypro,
+                readprep,
+                readobs,
             ]
             options, conf = set_options(args)
             RUN[xp] = CrocOpp(options, conf)

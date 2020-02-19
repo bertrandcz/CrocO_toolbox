@@ -126,7 +126,6 @@ class Obs(SemiDistributed):
         return gg
 
     def load_raw(self):
-        print(('pp', self.path))
         self.Raw = netCDF4.Dataset(self.path, 'r')
 
     def load_arch(self):
@@ -263,7 +262,6 @@ class Synthetic(Obs):
 class Real(Obs):
     """
     Class describing real obs
-    TODO : pursue implementation
     """
 
     def __init__(self, xpidobsdir, date, options):
@@ -271,8 +269,8 @@ class Real(Obs):
         Constructor
         '''
         Obs.__init__(self, date, options)
-        self.path = xpidobsdir + self.vortexname
-
+        self.path = xpidobsdir
+        self.sodaName = self.path + self.vortexname
         self.dictVarsRead = {name: name for name in options.vars}
         self.dictVarsWrite = self.dictVarsRead
         self.loadDict = self.dictVarsRead

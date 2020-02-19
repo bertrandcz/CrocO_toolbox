@@ -13,11 +13,13 @@ from SemiDistributed import PrepAbs
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-if 'beaufix' not in os.uname()[1]:
-    import seaborn as sns
 from utilcrocO import dictErrors, niceName, niceLabel
 from utilcrocO import setSubsetclasses, cm2inch
 from utilpp import set_itimes
+
+
+if 'beaufix' not in os.uname()[1]:
+    import seaborn as sns
 
 
 class Pie(object):
@@ -199,13 +201,14 @@ class Pie(object):
             elif self.title is not None and self.maketitle is not False:
                 plt.suptitle(self.title, fontsize = 15)
             if savefig:
+                print('im here before saving', os.getcwd())
                 if hasattr(self, 'focusCl'):
                     if len(self.focusCl) == 0:
                         fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '_' + '_' + str(int(self.sdObj.pgd.elev[self.focusCl])) +
                                     '_' + str(int(self.sdObj.pgd.aspect[self.focusCl])) +
                                     '_'      + str(int(np.arctan(self.sdObj.pgd.slope[self.focusCl]) * 180. / np.pi))  + '_' + self.sdObj.date + '.png')
                     else:
-                        fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '.png')
+                        fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '.png', dpi=200)
 
                 else:
                     fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '.png')
@@ -255,7 +258,7 @@ def spaghettiMarie(run, xtimes, ol, truth, an, cl, var, clim=None,
             anexp = np.expand_dims(an, axis=1)
             olexp = np.expand_dims(ol, axis = 1)
             truthexp = np.expand_dims(truth, axis=1)
-            if score is 'spread':
+            if ('sigma' in score) or ('spread' in score):
                 ax.plot(xtimes, spread(
                     anexp), color='royalblue' if color is None else color, lw=2, alpha=0.7)
                 ax.plot(xtimes, spread(
