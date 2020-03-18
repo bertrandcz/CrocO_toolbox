@@ -39,7 +39,8 @@ class CrocOpp(CrocO):
         self.initial_context = os.getcwd()
         # setup + loading
         self.setup()
-        self.read(readprep=self.options.readprep, readaux = self.options.readaux, readobs = self.options.readobs)
+        self.read(readpro = not self.options.notreadpro, readprep=self.options.readprep, readaux = self.options.readaux, readobs = self.options.readobs,
+                  readoper=self.options.readoper)
 
         if 'notebooks' in self.initial_context:
             os.chdir(self.initial_context)
@@ -64,9 +65,6 @@ class CrocOpp(CrocO):
         if str(self.conf.openloop) == 'on':
             self.isOl = True
             self.readOl = True
-            # BC 10/02/20 pffff.
-            self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
-
         else:
             self.isOl = False
             self.read_opts_in_namelist()
@@ -79,14 +77,7 @@ class CrocOpp(CrocO):
                     if not os.path.exists(self.xpidoldir + '/PGD.nc'):
                         os.symlink(self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc',
                                    self.xpidoldir + 'PGD.nc')
-                # set path obs :
-                # if running a synth xp
-                if hasattr(self.conf, 'synth'):
-                    self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.sensor + '/'
-                    self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.sensor + '/'
             else:
-                # if no xpidoldir has been prescribed, obs must be real.
-                self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
                 self.readOl = False
 
     def setDates(self):
@@ -98,25 +89,27 @@ class CrocOpp(CrocO):
         self.conf.begprodates = [self.conf.datedeb] + self.conf.assimdates
         self.conf.endprodates = self.conf.assimdates + [self.conf.datefin]
 
-    def read(self, readprep = False, readaux = False, readobs = False):
+    def read(self, readpro = True, readprep = False, readaux = False, readobs = False, readoper = False):
 
         # set the list of vars
         self.listvar = setlistvars_obs(self.options.ppvars)
         self.dictvarsPro = dictvarsPro()
-
-        self.readEnsPro(readOl = self.readOl, readClim = self.options.clim)
-
-        # truth is not read by default if it is OL.
-        if not self.isOl and self.readOl:
-            self.readTruth()
+        if readpro is True:
+            self.readEnsPro(readOl = self.readOl, readClim = self.options.clim)
         if readprep is True:
             self.readEns()
-
         # read auxiliary files
         if readaux is True:
             self.readAux()
         if readobs is True:
             self.readObs()
+            if hasattr(self.conf, 'synth'):
+
+                # truth is not read by default if it is OL.
+                if not self.isOl and self.readOl:
+                    self.readTruth()
+        if readoper is True:
+            self.readOper()
 
     def readEns(self):
         print('initializing ens')
@@ -163,39 +156,47 @@ class CrocOpp(CrocO):
         except IndexError:
             print('\n\nWARNING : there is no corresponding mbsynth in this openloop not enough members\n looking in the bigger OL xp.\n\n')
             print('loading ' + self.xpidoldir[0:-4] + '/crocO/' + self.options.saverep + '/ensProOl.pkl')
-            with open(self.xpidoldir[0:-4] + '/crocO/' + self.options.saverep + '/ensProOl.pkl', 'rb') as f:
-                gg = self.load_pickle2(f)
+            pathPklBigOl = self.xpidoldir[0:-4] + '/crocO/' + self.options.saverep + '/ensProOl.pkl'
+            gg = self.load_pickle2(pathPklBigOl)
             self.truth = load_from_dict(gg, self.mbsynth)
 
     def loadEnsPrep(self, kind, isOl = False):
 
-        if kind == 'bg':
-            locEns = {dd: PrepEnsBg(self.options, dd,) for dd in self.options.dates}
-        elif kind == 'an':
-            locEns = {dd: PrepEnsAn(self.options, dd,) for dd in self.options.dates}
+        # if local pp (e.g. pp of a run on local machine)
+        if self.options.kind == 'localpp':
+            directFromXp = False
         else:
-            locEns = {dd: PrepEnsOl(self.options, dd, isOl=isOl) for dd in self.options.dates}
+            directFromXp = True
+
+        if kind == 'bg':
+            locEns = {dd: PrepEnsBg(self.options, dd, directFromXp=directFromXp) for dd in self.options.dates}
+        elif kind == 'an':
+            locEns = {dd: PrepEnsAn(self.options, dd, directFromXp=directFromXp) for dd in self.options.dates}
+        else:
+            locEns = {dd: PrepEnsOl(self.options, dd, isOl=isOl, directFromXp=directFromXp) for dd in self.options.dates}
 
         for dd in self.options.dates:
-            pathPkl = kind + '_' + dd + '.pkl'
+            if (kind == 'ol' and isOl is False):
+                pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' +\
+                    kind + '_' + dd + '.pkl'
+            else:
+                pathPkl = kind + '_' + dd + '.pkl'
             pathpklbeauf = pathPkl + '.foo'
-            if not os.path.islink(pathPkl):
+            if not os.path.islink(pathPkl) or not os.path.exists(pathPkl):
                 if os.path.exists(pathpklbeauf):
                     try:
                         os.symlink(pathpklbeauf, pathPkl)
                     except FileExistsError:
                         pass
-            if not os.path.exists(pathPkl):
-                print(('loading ' + kind + ' ens for date : ', dd))
-                locEns[dd].stackit()
-                with open(pathPkl, 'wb') as f:
-                    print(('saaving ' + kind + ' to pickle !'))
-                    pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
+                else:
+                    print(('loading ' + kind + ' ens for date : ', dd))
+                    locEns[dd].stackit()
+                    with open(pathPkl, 'wb') as f:
+                        print(('saaving ' + kind + ' to pickle !'))
+                        pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
             else:
-                with open(pathPkl, 'rb') as f:
-                    print(('loading ' + kind + ' from pickle !', dd))
-                    locEns[dd].stack = self.load_pickle2(f)
-                    locEns[dd].isstacked = True
+                locEns[dd].stack = self.load_pickle2(pathPkl)
+                locEns[dd].isstacked = True
         return locEns
 
     def loadEnsPro(self, kind, catPro = False, isOl = False):
@@ -258,8 +259,10 @@ class CrocOpp(CrocO):
                         f = s + 'pro/' + 'PRO_' + self.conf.datedeb.strftime("%Y%m%d%H") + '_' + self.conf.datefin.strftime("%Y%m%d%H") + '.nc'
 
                 # read
+                print('fffileeaf', f)
                 datahtn = prosimu(str(f))
                 if iS == 0:
+                    print('llistvars', self.listvar)
                     for var in self.listvar:
                         if 'B' not in var:
                             locPro[var] = np.expand_dims(datahtn.read(self.dictvarsPro[var]), axis=2)
@@ -282,20 +285,21 @@ class CrocOpp(CrocO):
                 pickle.dump(locPro, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         else:
-            with open(pathPkl, 'rb') as f:
-                print(('loading ensPro' + kind + ' from pickle !'))
-                locPro = self.load_pickle2(f)
+            locPro = self.load_pickle2(pathPkl)
 
         return locPro
 
-    def load_pickle2(self, f):
+    def load_pickle2(self, pathPkl):
         '''
         BC Feb 2020
         pickle files can be generated by python2 on beaufix.
         When reading it with python 3.7.2+, use encoding = 'latin1' for compatibility
         https://stackoverflow.com/questions/28218466/unpickling-a-python-2-object-with-python-3
         '''
-        return pickle.load(f, encoding = 'latin1')
+        with open(pathPkl, 'rb') as f:
+            print(('loading from pickle ! ', pathPkl))
+            gg = pickle.load(f, encoding = 'latin1')
+        return gg
 
     def getProFiles(self):
         """
@@ -325,25 +329,87 @@ class CrocOpp(CrocO):
         os.chdir(gg)
 
     def readObs(self):
-        if hasattr(self.conf, 'synth'):
-            print('reading synthetic assimilated obs. in ' + self.pathArch)
-            self.obsArch = {dd: FromXp(self.pathArch, dd, self.options) for dd in self.options.dates}
-            self.obsSynth = {dd: FromXp(self.pathSynth, dd, self.options) for dd in self.options.dates}
-            for dd in self.options.dates:
-                self.obsArch[dd].load()
-                self.obsSynth[dd].load()
+        # paths settings (ol or not, real obs or not).
+        # if performing localpp, it is after a locla run and obs are properly archived.
+        if self.options.kind == 'localpp':
+            if self.options.synth is not None:
+                print('xxxx', self.xpiddir)
+                self.pathArch = self.xpiddir + '/crocO/ARCH/' + self.sensor + '/'
+                self.pathSynth = self.xpiddir + '/crocO/SYNTH/' + self.sensor + '/'
+            else:
+                self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
+
         else:
-            print('reading real assimilated obs. in ' + self.pathReal)
-            self.obsReal = {dd: Real(self.pathReal, dd, self.options) for dd in self.options.dates}
-            for dd in self.options.dates:
-                self.obsReal[dd].load()
+            if str(self.conf.openloop) == 'on':
+                if hasattr(self.conf, 'synth'):
+                    self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.sensor + '/'
+                    self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.sensor + '/'
+                else:
+                    self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
+            else:
+                if hasattr(self.options, 'xpidoldir'):
+                    if hasattr(self.conf, 'synth'):
+                        self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.sensor + '/'
+                        self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.sensor + '/'
+                    else:
+                        self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
+
+                else:
+                    # if no xpidoldir has been prescribed, obs must be real.
+                    self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
+
+        # proper loading (synth or real)
+        if self.options.kind == 'localpp':
+            if self.options.synth is not None:
+                print('reading synthetic assimilated obs. in ' + self.pathArch)
+                self.obsArch = {dd: FromXp(self.pathArch, dd, self.options) for dd in self.options.dates}
+                self.obsSynth = {dd: FromXp(self.pathSynth, dd, self.options) for dd in self.options.dates}
+                for dd in self.options.dates:
+                    self.obsArch[dd].load()
+                    self.obsSynth[dd].load()
+            else:
+                print('reading real assimilated obs. in ' + self.pathReal)
+                self.obsReal = {dd: Real(self.pathReal, dd, self.options) for dd in self.options.dates}
+                for dd in self.options.dates:
+                    self.obsReal[dd].load()
+
+        else:
+            if hasattr(self.conf, 'synth'):
+                print('reading synthetic assimilated obs. in ' + self.pathArch)
+                self.obsArch = {dd: FromXp(self.pathArch, dd, self.options) for dd in self.options.dates}
+                self.obsSynth = {dd: FromXp(self.pathSynth, dd, self.options) for dd in self.options.dates}
+                for dd in self.options.dates:
+                    self.obsArch[dd].load()
+                    self.obsSynth[dd].load()
+            else:
+                print('reading real assimilated obs. in ' + self.pathReal)
+                self.obsReal = {dd: Real(self.pathReal, dd, self.options) for dd in self.options.dates}
+                for dd in self.options.dates:
+                    self.obsReal[dd].load()
+                print('reading observation timeseries (pickle from csv file)')
+                pathObsTs = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor +\
+                    '/obs_{0}_{1}_2013010106_2018123106.pkl'.format(self.sensor, self.options.vconf)
+                if not os.path.exists(pathObsTs):
+                    os.symlink(self.options.vortexpath + '/s2m/' + self.options.vconf +
+                               '/obs/all/obs_all_{0}_2013010106_2018123106.pkl'.format(self.options.vconf), pathObsTs)
+                self.obsTs = self.load_pickle2(pathObsTs)
+
+    def readOper(self):
+        # add an optio one day...
+        if self.options.kind != 'localpp':
+            pathOper = self.options.vortexpath + '/s2m/' + self.options.vconf + '/oper_{0}/crocO/beaufix/oper.pkl'.format(self.conf.begprodates[0].strftime('%Y'))
+            self.oper = self.load_pickle2(pathOper)
 
     def read_opts_in_namelist(self):
         n = NamelistParser()
-        if os.path.exists(self.options.xpiddir + 'conf/namelist.surfex.foo'):
-            N = n.parse(self.options.xpiddir + 'conf/namelist.surfex.foo')
+        if self.options.kind != 'localpp':
+            if os.path.exists(self.options.xpiddir + 'conf/namelist.surfex.foo'):
+                N = n.parse(self.options.xpiddir + 'conf/namelist.surfex.foo')
+            else:
+                N = n.parse(self.options.xpiddir + '/conf/OPTIONS.nam')
         else:
-            N = n.parse(self.options.xpiddir + '/conf/OPTIONS.nam')
+            print('cwdededed', os.getcwd())
+            N = n.parse(self.options.dates[0] + '/OPTIONS.nam')
         if hasattr(N['NAM_ASSIM'], 'NLOC_PF'):
             self.options.nloc_pf = N['NAM_ASSIM'].NLOC_PF
             self.options.neff_pf = N['NAM_ASSIM'].NEFF_PF

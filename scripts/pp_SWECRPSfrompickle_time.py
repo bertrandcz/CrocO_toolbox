@@ -23,26 +23,31 @@ from utilpp import RMSE, spread
 
 
 start_time = time.time()
-years = [2013, 2014, 2015, 2016]
-dictmembers = {2013: [66, 12, 122, 149],
+years = [2016,
+         # 2014, 2015, 2016
+         ]
+dictmembers = {2013: [66,
+                      # 12, 122, 149
+                      ],
                2014: [69, 28, 2, 122],
                2015: [92, 97, 14, 141],
-               2016: [50,
-                      153,
-                      90,
-                      117
-                      ]}
+               2016: [  # 50,
+    # 153,
+    90,
+    # 117
+]}
 
-nens = 40
-assimvars = 'DEP'
+nens = 160
+assimvars = 'B4,B5'
+#Neff = []
 Neff = ['7']  # ['1', '10', '7']
-runs = ['global', 'klocal1', 'rlocal']
-# kind = 'fromol'
-kind = 'postes'
+runs = ['global', 'klocal5', 'rlocal']
+kind = 'fromol'
+#kind = 'postes'
 score = 'CRPS'
 aggrClasses = False
 aggrTime = True
-savefig = False
+savefig = True
 suffix = '' if nens == 160 else '_{0}'.format(nens) if 'DEP' not in assimvars else '_{0}_{1}'.format(nens, assimvars)
 if len(Neff) > 0 and kind != 'postes':
     suffixs = [suffix + '_' + n  if n is not '7' else suffix for n in Neff]
@@ -57,7 +62,6 @@ elif kind == 'postes':
 
 runssuf = [r + s for r in runs for s in suffix]
 # aggregated scores.
-
 if score == 'rankdiag':
     aggrClasses = True
     aggrTime = True
@@ -113,7 +117,7 @@ for year in years:
                 os.mkdir(options.xpiddir + '/crocO/' + options.saverep)
             os.chdir(options.xpiddir + '/crocO/' + options.saverep)
             # BC 07/01/20 dirty dirty
-            os.chdir('/home/cluzetb/notebooks/articleGMD//pie/')
+            os.chdir('/home/cluzetb/pie/')
             if score == 'CRPS' or score == 'rankdiag':
                 if ik == 0:
                     # remove beginning of the season and hours different from 12 and 29 feb if any

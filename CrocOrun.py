@@ -30,7 +30,8 @@ class CrocO(object):
         self.xpiddir = options.xpiddir
         if not os.path.exists(self.xpiddir):
             raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
-
+        if not hasattr(self.conf, 'openloop'):
+            self.conf.openloop = 'off'
         # set the observations dir
         if self.options.sensor is None and str(self.conf.openloop) == 'off':
             if hasattr(self.conf, 'sensor'):
@@ -53,8 +54,10 @@ class CrocO(object):
                 if hasattr(self.conf, 'sensor'):
                     self.sensor = self.conf.sensor
                     self.options.sensor = self.conf.sensor  # necessary for pp
-        else:  # openloop on X options.sensor is None
-            print('openloop on X options.sensor is None')
+                else:
+                    self.sensor = self.options.sensor
+        else:  # openloop on and options.sensor is None
+            print('openloop on and options.sensor is None')
         if self.options.nmembers is None:
             self.options.nmembers = int(self.conf.nmembers)
 
@@ -76,6 +79,25 @@ class CrocO(object):
         else:
             self.exesurfex = None
 
+    def prepare_obs(self, date):
+        """
+        """
+        if self.options.synth is not None:
+            # synthetic obs is generated from mbsynth at time date
+            self.obs = Synthetic(self.xpiddir, date, self.options)
+            # first, a (noisy) copy of the member is archived without any mask
+            # it will be used for post-processing
+            self.obs.prepare(archive_synth = self.options.archive_synth)
+
+        else:
+            # real obs are obtained in xpidobs
+            # BC 24/02 dirty dirty
+            gg = self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/super_PGD_' + area(self.options.vconf) + '.nc'
+            print('gaqgr', gg)
+            self.obs = Real(self.options.xpidobsdir, date, self.options,
+                            pgdPath=gg)
+            self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking)
+
 
 class CrocOrun(CrocO):
     '''
@@ -86,9 +108,7 @@ class CrocOrun(CrocO):
 
         self.options = options
         # /!\before calling mother init, in case of synthetical assimilation, we need to remove the synthetical member !!!!
-        if self.options.synth is None:
-            self.mblist = list(range(1, self.options.nmembers + 1))
-        else:
+        if self.options.synth is not None:
             self.mblist = list(range(1, self.options.nmembers))
             # draw the synthetical member
             if self.options.synth == 0:
@@ -99,6 +119,8 @@ class CrocOrun(CrocO):
         # then, call mother init
         CrocO.__init__(self, self.options, conf)
 
+        if self.options.synth is None:
+            self.mblist = list(range(1, self.options.nmembers + 1))
         # setup all dirs
         if setup is True:
             self.setup()
@@ -174,21 +196,6 @@ class CrocOrun(CrocO):
 #                 os.remove('SURFOUT' + str(imb + 1) + '.nc')
 #             else:
 #                 pass
-
-    def prepare_obs(self, date):
-        """
-        """
-        if self.options.synth is not None:
-            # synthetic obs is generated from mbsynth at time date
-            self.obs = Synthetic(self.xpiddir, date, self.options)
-            # first, a (noisy) copy of the member is archived without any mask
-            # it will be used for post-processing
-            self.obs.prepare(archive_synth = self.options.archive_synth)
-
-        else:
-            # real obs are obtained in xpidobs
-            self.obs = Real(self.xpidobsdir, date, self.options)
-            self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking )
 
     def run(self):
         """spawn soda in each date repertory"""

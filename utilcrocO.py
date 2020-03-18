@@ -40,7 +40,6 @@ def setSubsetclasses(pgd, selE, selA, selS):
     """
     subsetClass = []
     dictElev = {'all': np.unique(pgd.elev)}
-
     dictAsp, _ = dictsAspect()
     dictAsp['all'] = np.unique(pgd.aspect)
     dictSlope = {'all': ['0', '20', '40']}
@@ -60,7 +59,6 @@ def setSubsetclasses(pgd, selE, selA, selS):
         classesA = dictAsp['all']
 
     classesS = []
-    # print(classesE, classesA, classesS)
     if type(selS) is str:
         selS = [selS]
     if 'all' not in selS:
@@ -141,12 +139,18 @@ class Pgd(object):
     def __init__(self, pathPGD):
 
         pgd = netCDF4.Dataset(pathPGD)
+        self.path = pathPGD
         self.elev = np.squeeze(pgd.variables['MIN_ZS'][:])  # lower altitude
         self.slope = np.squeeze(pgd.variables['SSO_SLOPE'][:])
         self.aspect = np.squeeze(pgd.variables['SSO_DIR'][:])
         self.npts = self.elev.size
         self.lat = np.squeeze(pgd.variables['XY'][:])
         self.lon = np.squeeze(pgd.variables['XX'][:])
+        # in the case of postes geometries, a "SUPER" PGD (enhanced with numposts ('station') and type of postes) is put at pathPGD
+        if 'station' in pgd.variables.keys():
+            self.station = np.squeeze(pgd.variables['station'][:])
+            self.type = np.squeeze(pgd.variables['type'][:])
+            self.massif = np.squeeze(pgd.variables['massif'][:])
         pgd.close()
 
 
@@ -228,7 +232,7 @@ def read_conf(pathconf):
         if os.path.exists(pathconf[0:-4] + '.foo'):
             shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
         else:
-            raise Exception('no conf file for this experiment :', pathconf)
+            print('no conf file for this experiment :', pathconf)
     iniparser = GenericConfigParser(pathconf)
     thisconf  = iniparser.as_dict(merged=False)
     updconf = thisconf.get('defaults', dict())
@@ -300,7 +304,6 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     - check consistency between the prescribed assim vars and what is written in the namelist
     - check and change LWRITE_TOPO to .FALSE.
     """
-    pass
     n = NamelistParser()
     if pathIn is None:
         N = n.parse('OPTIONS_base.nam')
@@ -361,6 +364,20 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     namSURFEX.close()
 
 
+def todates(dataset):
+    """
+    inspired on dbazin (forum.marine.copernicus.eu)
+    returns the netCDF4 variable and the corresponding dates.
+    """
+    dtime = dataset.variables['time'][:]
+    dtime_units = dataset.variables['time'].units
+    try:
+        dtime_cal = dataset.variables['time'].calendar
+    except AttributeError:
+        dtime_cal = u'gregorian'
+    return dtime, netCDF4.num2date(dtime, units = dtime_units, calendar = dtime_cal)
+
+
 def ftpconnect(machine):
     """
     copy from Carlo Carmagnola PEARP_get.py
@@ -371,6 +388,16 @@ def ftpconnect(machine):
     ftp.set_debuglevel(1)
     ftp.login(username, password)
     return ftp
+
+
+def get_trailing_number(s):
+    m = re.search(r'\d+$', s)
+    return str(int(m.group())) if m else None
+
+
+def get_leading_number(s):
+    m = re.search(r'^\d+', s)
+    return str(int(m.group())) if m else None
 
 
 def ftp_upload(localfile, remotefile, ftp):

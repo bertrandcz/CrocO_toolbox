@@ -15,7 +15,10 @@ import sys
 import time
 
 from CrocOrun import CrocOrun
+from postes.utilpostes import set_conf_everydate
 from utilcrocO import read_conf
+
+
 usage = 'crocO --opts'
 
 
@@ -110,6 +113,12 @@ def parse_options(arguments):
     parser.add_option("--readobs",
                       action = 'store_true', dest = 'readobs', default = False,
                       help = 'read observation files')
+    parser.add_option("--readoper",
+                      action = 'store_true', dest = 'readoper', default = False,
+                      help = 'read ooper pickle file')
+    parser.add_option("--notreadpro",
+                      action = 'store_true', dest = 'notreadpro', default = False,
+                      help = 'read observation files')
     parser.add_option("--clim",
                       action = 'store_true', dest = 'clim', default = False,
                       help = 'read the clim')
@@ -136,15 +145,25 @@ def set_options(args, pathConf = None):
         options.vortexpath = os.environ['VORTEXPATH']
     if options.xpid is not None:
         options.xpiddir = options.vortexpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpid + '/'
+    if options.xpidobs is not None:
+        options.xpidobsdir = options.vortexpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.xpidobs + '/'
     if options.xpidol is not None:
         options.xpidoldir = options.vortexpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpidol + '/'
     if pathConf is None:
-        conf = read_conf(options.xpiddir + '/conf/' + options.vapp + '_' + options.vconf + '.ini')
+        try:
+            confPath = options.xpiddir + '/conf/' + options.vapp + '_' + options.vconf + '.ini'
+            conf = read_conf(confPath)
+        except ValueError as e:
+            # if no conf file can be found, fake it
+            print('faking a new conf file.')
+            if not os.path.exists(options.xpiddir + '/conf'):
+                os.makedirs(options.xpiddir + '/conf', exist_ok = True)
+            ok = set_conf_everydate(2013, 1, confPath, nens = 40, endY = 2018)
+            conf = read_conf(confPath)
     else:
         conf = read_conf(pathConf)
 
     if 'all' in options.dates:
-
         # in the case we are pping, last date corresponds to the end of the simulation and is not interesting.
         if hasattr(conf, 'stopdates'):
             options.dates = conf.stopdates[0:-1]

@@ -460,7 +460,17 @@ def plot_pie_fromstack(run, kind, date, mb, listvar, ptinom='crpsa', focusCl=Non
     return sdObj, Pie(sdObj, focusCl=focusCl, focusColors=focusColors)
 
 
-def plot_part_cesar(pb, pa, obsReal, cl, varName, alpha = None):
+def plot_part_cesar_from_run(run, cl, varName, date, savefig = False, kindobs = 'Real'):
+    if kindobs == 'Real':
+        plot_part_cesar(run.ensBg[date], run.ensAn[date], run.obsReal[date], cl, varName, run.alpha[date], savefig = savefig)
+    elif kindobs == 'Arch':
+        plot_part_cesar(run.ensBg[date], run.ensAn[date], run.obsArch[date], cl, varName, run.alpha[date], savefig = savefig)
+
+    else:
+        plot_part_cesar(run.ensBg[date], run.ensAn[date], run.obsSynth[date], cl, varName, run.alpha[date], savefig = savefig)
+
+
+def plot_part_cesar(pb, pa, obsReal, cl, varName, alpha = None, savefig = False):
 
     # version without color
     x_AN = 3
@@ -470,7 +480,9 @@ def plot_part_cesar(pb, pa, obsReal, cl, varName, alpha = None):
     yBG = np.ma.masked_invalid(pb.stack[varName][cl, :])
     yAN = np.ma.masked_invalid(pa.stack[varName][cl, :])
     yOBS = np.ma.masked_invalid(obsReal.data[varName][cl])
-    alpha = alpha[cl]
+    # only length-1 for global:
+    if not isinstance(alpha, float):
+        alpha = alpha[cl]
 
     # f varName == 'SWE':
     # plt.fill_between((0,5),yOBS-errObs,yOBS+errObs,color='m',alpha=0.1)
@@ -502,5 +514,5 @@ def plot_part_cesar(pb, pa, obsReal, cl, varName, alpha = None):
 
     plt.ylabel(varName)
     plt.xticks([])
-
-    plt.savefig('../pie/PartFilter.png')
+    if savefig:
+        plt.savefig('../pie/PartFilter.png')

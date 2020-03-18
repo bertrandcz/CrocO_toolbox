@@ -24,7 +24,7 @@ def read_part(options):
         else:  # =='beaufixpp'
             filename = options.xpiddir + 'workSODA/PART_' + dd + '.txt.foo'
         gg3[dd] = np.genfromtxt(
-            open(filename, 'r'),
+            open(filename, 'rb'),
             delimiter = ',',
             usecols = list(range(0, options.nmembers)))
     return gg3
@@ -178,32 +178,51 @@ def old_read_truth(run, var, baseline = False):
         return truth, itimes
 
 
-def RMSE(ens, truth, aggrTime = False):
+def RMSE(ens, truth, aggrTime = False, aggrDomain = True):
     """
-    time-variant RMSE of an ensemble median over a domain.
+    (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble median over a domain. 
+    (aggrtime = True, aggrDomain = False): domain variant, time averaged RMSE
+
     IN: ens (ndate, npts, nmembers)
         truth    (ndate, npts)
     OUT: RMSE(ndate)
     """
-    if not aggrTime:
-        return np.sqrt(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 1))
+    if aggrDomain:
+        if not aggrTime:
+            return np.sqrt(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 1))
+        else:
+            return np.sqrt(np.mean(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 1)))
     else:
-        return np.sqrt(np.mean(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 1)))
+        if not aggrTime:
+            return np.sqrt(np.square(np.mean(ens, axis = 2) - truth))
+        else:
+            return np.sqrt(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 0))
 
 
-def spread(ens, aggrTime = False):
+def spread(ens, aggrTime = False, aggrDomain = True):
     """
     time-variant spread of an ensemble over a domain.
     IN: ENSEMBLE (ndate, npts, nmembers)
     OUT: spread(ndate)
     """
-    if not aggrTime:
-        return np.sqrt(np.mean(np.array(
-            [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
-             for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
-        ), axis = 0))
+    if aggrDomain:
+        if not aggrTime:
+            return np.sqrt(np.mean(np.array(
+                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
+            ), axis = 0))
+        else:
+            return np.sqrt(np.mean(np.mean(np.array(
+                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
+            ), axis = 0)))
     else:
-        return np.sqrt(np.mean(np.mean(np.array(
-            [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
-             for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
-        ), axis = 0)))
+        if not aggrTime:
+            return np.sqrt(np.array(
+                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
+            )).T
+        else:
+            return np.sqrt(np.array(np.mean(
+                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)], axis=1))).T

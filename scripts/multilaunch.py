@@ -9,7 +9,7 @@ import re
 
 from crocO import set_options
 from tasks.vortex_kitchen import vortex_conf_file
-from utilcrocO import check_namelist_soda
+from utilcrocO import check_namelist_soda, get_trailing_number
 
 
 # ########## PARAMS ##########################
@@ -20,17 +20,6 @@ neff = 7
 kind = 'postes'
 assimvars = 'DEP'
 years = [2013, 2014, 2015, 2016]
-
-
-def get_trailing_number(s):
-    m = re.search(r'\d+$', s)
-    return str(int(m.group())) if m else None
-
-
-def get_leading_number(s):
-    m = re.search(r'^\d+', s)
-    return str(int(m.group())) if m else None
-
 
 fact = {r: '1' if 'k' not in r else (get_trailing_number(r)) for r in runs}
 # ############################################
@@ -101,7 +90,7 @@ for year in years:
             options, conf = set_options(args,
                                         pathConf=defaultConf)
             pathNamRun = '/home/cluzetb/article2/tmp/OPTIONS_{0}.nam'.format(xp)
-            check_namelist_soda(options, pathIn = '/home/cluzetb/ggg.nam', pathOut = pathNamRun)
+            check_namelist_soda(options, pathIn = '/home/cluzetb/article2/OPTIONS_MOTHER.nam', pathOut = pathNamRun)
             print(options.dates)
             if 'all' in options.dates:
                 pathConfRun = defaultConf
