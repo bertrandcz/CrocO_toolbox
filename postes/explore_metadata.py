@@ -13,6 +13,7 @@ import netCDF4
 
 import xml.etree.ElementTree as ET
 
+metadatapath = os.environ['CRAMPONPATH'] + '/snowtools_git/DATA/METADATA.xml'
 
 def find_metadata(filepath = '/home/cluzetb/snowtools_git/DATA/METADATA.xml', massifs = [12]):
     '''
@@ -41,7 +42,7 @@ def find_metadata(filepath = '/home/cluzetb/snowtools_git/DATA/METADATA.xml', ma
     return listp, listpnb, listpname
 
 
-def find_name_station(station, filepath = '/home/cluzetb/snowtools_git/DATA/METADATA.xml'):
+def find_name_station(station, filepath=metadatapath):
     '''
     BC 17/02/20
     find the string name of a station ID
