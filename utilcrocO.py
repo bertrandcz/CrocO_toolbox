@@ -12,7 +12,7 @@ from ftplib import FTP
 from netrc import netrc
 import os
 import shutil
-
+import re
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import netCDF4
 
