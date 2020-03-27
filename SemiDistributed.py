@@ -7,15 +7,15 @@ Module for preparing/faking/ observations within crocO framework
 
 '''
 import os
-
-import netCDF4
-
-import numpy as np
 from utilcrocO import Pgd, convertdate
 from utilcrocO import area
 from utilcrocO import setlistvars_obs, setlistvars_var, setSubsetclasses,\
     dictvarsPrep
 from utils.prosimu import prosimu
+
+import netCDF4
+
+import numpy as np
 
 
 class SemiDistributed(object):
@@ -69,9 +69,9 @@ class Obs(SemiDistributed):
         # first,  if it doesn't already exist, create an archive version (/!\ without classesMask).
         # BC 24/02 archive versio is not necessary for real obs.
         if isinstance(self, Real):
-            self.prepare_realmask()
-            print('mmaskpath', self.maskpath)
-            self.create_new(self.Raw, self.maskpath, self.options, fromArch=True, maskit = True)
+            if need_masking:
+                self.prepare_realmask()
+                self.create_new(self.Raw, self.maskpath, self.options, fromArch=True, maskit = True)
         else:
             archOk = self.prepare_archive(archive_synth=archive_synth)
             if need_masking:
