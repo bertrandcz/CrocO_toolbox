@@ -7,19 +7,20 @@ Created on 6 févr. 2019
 utils suited for crocO interface only
 '''
 
+from bronx.datagrip.namelist import NamelistParser
 import datetime
 from ftplib import FTP
 from netrc import netrc
 import os
-import shutil
 import re
+import shutil
+from vortex.layout.nodes import ConfigSet
+from vortex.util.config import GenericConfigParser
+
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import netCDF4
 
-from bronx.datagrip.namelist import NamelistParser
 import numpy as np
-from vortex.layout.nodes import ConfigSet
-from vortex.util.config import GenericConfigParser
 
 
 def dictsAspect():
@@ -283,8 +284,7 @@ def set_factors(argsoda, fact):
     - if only one value (default or lazy case), apply it to all variables
     - if list of values (exhaustive): ok
     '''
-    print('ffact', fact)
-    print('aarg', argsoda)
+
     if type(fact) is list:
         return list(map(float, fact))
     if len(argsoda) == len([fact]):  # default with 1 var, lazy with 1 var, exhaustive

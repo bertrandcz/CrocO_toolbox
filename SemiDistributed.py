@@ -64,17 +64,17 @@ class Obs(SemiDistributed):
             self.isloaded = True
 
     def prepare(self, archive_synth = False, need_masking = True):
-        self.load_raw()
-        self.check_format()
-        # first,  if it doesn't already exist, create an archive version (/!\ without classesMask).
-        # BC 24/02 archive versio is not necessary for real obs.
-        if isinstance(self, Real):
-            if need_masking:
+        if need_masking:
+
+            self.load_raw()
+            self.check_format()
+            # first,  if it doesn't already exist, create an archive version (/!\ without classesMask).
+            # BC 24/02 archive versio is not necessary for real obs.
+            if isinstance(self, Real):
                 self.prepare_realmask()
                 self.create_new(self.Raw, self.maskpath, self.options, fromArch=True, maskit = True)
-        else:
-            archOk = self.prepare_archive(archive_synth=archive_synth)
-            if need_masking:
+            else:
+                archOk = self.prepare_archive(archive_synth=archive_synth)
                 if not archOk:
                     Arch = self.create_new(self.Raw, self.archpath, self.options, maskit = False)
                     # add noise to it and close.
@@ -129,12 +129,9 @@ class Obs(SemiDistributed):
         return gg
 
     def load_raw(self):
-        print('loadrawpath', self.path)
         self.Raw = netCDF4.Dataset(self.path, 'r')
 
     def load_arch(self):
-        print('loadarchpath', self.archpath)
-        print(self.options.sensor)
         self.Arch = netCDF4.Dataset(self.archpath, 'r')
 
     def check_format(self):
