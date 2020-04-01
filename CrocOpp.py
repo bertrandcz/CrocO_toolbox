@@ -5,21 +5,21 @@ Created on 12 juin 2019
 @author: cluzetb
 '''
 
-import datetime
-import os
-
 from CrocOrun import CrocO
 from Ensemble import PrepEnsBg, PrepEnsAn
 from Ensemble import PrepEnsOl
 from SemiDistributed import FromXp, Real
 from bronx.datagrip.namelist import NamelistParser
-import numpy as np
-import pickle as pickle
+import datetime
+import os
 from utilcrocO import Pgd, setlistvars_obs, dictvarsPro
 from utilcrocO import ftpconnect, area
 from utilpp import read_alpha, read_part, read_mask, read_BG
 from utils.dates import check_and_convert_date
 from utils.prosimu import prosimu
+
+import numpy as np
+import pickle as pickle
 
 
 class CrocOpp(CrocO):
@@ -200,10 +200,10 @@ class CrocOpp(CrocO):
         return locEns
 
     def loadEnsPro(self, kind, catPro = False, isOl = False):
-        if kind is 'Cl':
+        if kind == 'Cl':
             pathPkl = self.xpiddir + '../clim/crocO/clim.pkl'
             print(pathPkl)
-        elif (kind is 'Ol' and isOl is False):
+        elif (kind == 'Ol' and isOl is False):
             if not os.path.exists(self.xpidoldir + '/crocO/' + self.options.saverep + '/'):
                 os.makedirs(self.xpidoldir + '/crocO/' + self.options.saverep + '/')
             pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' + 'ensPro' + kind + '.pkl'
