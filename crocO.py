@@ -9,14 +9,15 @@ perform local tests/dev of SODA based on :
     - opt : set of REAL observations OR generate synthetical observations.
 
 '''
+from CrocOparallel import CrocOparallel
+from CrocOpp import CrocOpp
+from CrocOrun import CrocOpf
 from optparse import OptionParser
 import os
 import sys
 import time
-
-from CrocOrun import CrocOrun
-from postes.utilpostes import set_conf_everydate
 from utilcrocO import read_conf
+from utilcrocO import set_conf_everydate
 
 
 usage = 'crocO --opts'
@@ -38,9 +39,6 @@ def parse_options(arguments):
     parser.add_option("-d",
                       type = 'string', action = 'callback', callback = callvars, dest='dates', default = None,
                       help = "specify assimilation dates to try (yyyymmddhh) or all for all conf.assimdates.")
-    # parser.add_option("--evid",
-    #                   action="store", type="string", dest="evid", default="",
-    #                   help="xpev (useful for pickle save")
     parser.add_option("--kind",
                       action="store", type="string", dest="kind", default='beaufixpp',
                       help='kind of the run run to perform (beaufixpp for CrocOpp')
@@ -77,14 +75,14 @@ def parse_options(arguments):
     parser.add_option("--classesId", type = 'string', action="callback", callback=callvars, default = None,
                       help="specify analyzed ids of classes separated by commas ex : 145,146,147")
     parser.add_option("-o",
-                      action = 'store', type = 'string', dest='saverep', default = "",
+                      action = 'store', type = 'string', dest='saverep', default = "local",
                       help= 'name of the postproc/type_of_anal/ without /')
 #     parser.add_option("--mpi",
 #                       action = 'store_true', dest = 'mpi', default = False,
 #                       help='activate MPI for soda')
     parser.add_option("--pf",
                       action = 'store', dest = 'pf', default = 'global', type = 'string',
-                      help='choose pf agorithm : global, rlocal, klocal')
+                      help='choose pf algorithm : global, rlocal, klocal')
     parser.add_option("--nloc_pf", action = 'store', dest = 'nloc_pf', default = 0, type = int,
                       help='set the localization radius (1->+oo) or the k-localization counter (1->+oo)')
     parser.add_option("--neff", action = 'store', dest = 'neff', default = 0, type = int,
@@ -102,7 +100,7 @@ def parse_options(arguments):
                       action = 'store_true', dest = 'archive_synth', default = False,
                       help = 'specify if you want to archive the synthetical obs with its mask or not.')
     parser.add_option("--need_masking",
-                      action = 'store_false', dest = 'need_masking', default = True,
+                      action = 'store_true', dest = 'need_masking', default = False,
                       help = 'specify if you need to mask the obs or use it as it is;')
     parser.add_option("--readprep",
                       action = 'store_true', dest = 'readprep', default = False,
@@ -122,6 +120,32 @@ def parse_options(arguments):
     parser.add_option("--clim",
                       action = 'store_true', dest = 'clim', default = False,
                       help = 'read the clim')
+    # new opts for parallel run
+    parser.add_option("--arch",
+                      type="string", action="store", dest="arch", default=None,
+                      help=" absolute path to the archive (default=xpid)")
+    parser.add_option("-n",
+                      type = 'string', dest = 'namelist',
+                      default = os.environ['SNOWTOOLS_CEN'] + '/DATA/OPTIONS_V81_NEW_OUTPUTS_NC.nam')
+    parser.add_option("-b", "--begin",
+                      action="store", type="string", dest="datedeb", default=None,
+                      help="Date to start the simulation (YYYYMMDD): MANDATORY OPTION")
+
+    parser.add_option("-e", "--end",
+                      action="store", type="string", dest="datefin", default=None,
+                      help="Date to finish the simulation (YYYYMMDD): MANDATORY OPTION (unless --oper)")
+
+    parser.add_option("-f", "--forcing",
+                      action="store", type="string", dest="forcing", default=None,
+                      help="path of the forcing file or of the directory with the forcing files - default: None")
+
+    parser.add_option("--escroc",
+                      action="store", type="string", dest="escroc", default=None,
+                      help="ESCROC subensemble")
+    parser.add_option("--spinup",
+                      action='store', type='string', dest = 'spinup', default=None,
+                      help='path to the pgd and prep files')
+
     (options, args) = parser.parse_args(arguments)
 
     del args
@@ -136,7 +160,7 @@ def callvars(option, opt, value, parser):
         setattr(parser.values, option.dest, value)
 
 
-def set_options(args, pathConf = None):
+def set_options(args, pathConf = None, useVortex = True):
     options = parse_options(args)
 
     if 'VORTEXPATH' not in list(os.environ.keys()):
@@ -152,16 +176,16 @@ def set_options(args, pathConf = None):
     if pathConf is None:
         try:
             confPath = options.xpiddir + '/conf/' + options.vapp + '_' + options.vconf + '.ini'
-            conf = read_conf(confPath)
-        except ValueError as e:
+            conf = read_conf(confPath, useVortex = useVortex)
+        except ValueError as _:
             # if no conf file can be found, fake it
             print('faking a new conf file.')
             if not os.path.exists(options.xpiddir + '/conf'):
                 os.makedirs(options.xpiddir + '/conf', exist_ok = True)
-            ok = set_conf_everydate(2013, 1, confPath, nens = 40, endY = 2018)
-            conf = read_conf(confPath)
+            _ = set_conf_everydate(2013, 1, confPath, nens = 40, endY = 2018)
+            conf = read_conf(confPath, useVortex = useVortex)
     else:
-        conf = read_conf(pathConf)
+        conf = read_conf(pathConf, useVortex=useVortex)
 
     if 'all' in options.dates:
         # in the case we are pping, last date corresponds to the end of the simulation and is not interesting.
@@ -169,7 +193,7 @@ def set_options(args, pathConf = None):
             options.dates = conf.stopdates[0:-1]
         # otherwise:
         else:
-            options.dates = conf.assimdates[0:-1]
+            options.dates = conf.assimdates
     elif type(options.dates) is str:
         options.dates = [options.dates]
     return options, conf
@@ -177,18 +201,17 @@ def set_options(args, pathConf = None):
 
 def execute(args):
     options, conf = set_options(args)
-    run = CrocOrun(options, conf)
-    if options.todo in ['corr', 'load', 'generobs']:
-        pass
-    elif options.todo in ['pf', 'pfpython']:
+    if options.todo == 'parallel':
+        run = CrocOparallel(options, conf)
         run.run()
+        _ = CrocOpp(options, conf)
 
-        run.post_proc(options)
-    elif options.todo is not None:
-        pb = run.post_proc(options)
-        return pb
     else:
-        run.run()
+        run = CrocOpf(options, conf)
+        if options.todo in ['corr', 'load', 'generobs']:
+            pass
+        else:
+            run.run()
 
 
 if __name__ == '__main__':

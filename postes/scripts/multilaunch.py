@@ -4,15 +4,15 @@ Created on 15 oct. 2019
 
 @author: cluzetb
 '''
-import os
-import re
-
 from crocO import set_options
-from postes.utilpostes import set_conf_everydate
+import os
 from tasks.vortex_kitchen import vortex_conf_file
 from utilcrocO import Pgd
 from utilcrocO import check_namelist_soda
 from utilcrocO import get_trailing_number
+from utilcrocO import set_conf_everydate
+
+
 # ########## PARAMS ##########################
 pruns = ['noX_global']  # 'ol' for openloop, prefix with 'noX for assim run with the whole massif (without exclusion of posts)
 pnens = 40

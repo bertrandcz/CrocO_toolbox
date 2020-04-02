@@ -95,6 +95,10 @@ class Obs(SemiDistributed):
                     synth = self.create_new(self.Arch, self.synthpath, self.options, fromArch =True, maskit=True)
                     synth.close()
                 self.close()
+        else:
+            # if no masking/modif is needed, just link the file:
+            if not os.path.exists or not os.path.islink(self.sodaName):
+                os.symlink(self.path, self.sodaName)
 
     def prepare_realmask(self):
         self.maskpath = self.options.xpidobsdir + '/../' + self.options.sensor + '/' + self.vortexname
@@ -187,7 +191,6 @@ class Obs(SemiDistributed):
                 var = Raw.variables[readName]
                 tmpvar = var[:]
             elif readName == 'SWE_TOT':
-                # dd = prosimu()
                 var = Raw.variables['WSN_VEG1']  # for the reading of attributes
                 tmpvar = np.nansum([Raw.variables['WSN_VEG' + str(i + 1)] /
                                     np.cos(np.arctan(self.pgd.slope[:]))
@@ -272,16 +275,22 @@ class Real(Obs):
     Class describing real obs
     """
 
-    def __init__(self, xpidobsdir, date, options, pgdPath = 'PGD.nc'):
+    def __init__(self, xpidobsdir, xpiddir, date, options, pgdPath = 'PGD.nc'):
         '''
         Constructor
         '''
         Obs.__init__(self, date, options, pgdPath = pgdPath)
         if self.options.todo == 'generobs':
+            # BC 30/03/20 aaaaaaargh this is SOOO UGLY
             self.sodaName = xpidobsdir + 'obs_' + options.xpidobs + '_' + area(options.vconf) + '_' + date + '.nc'
         else:
-            self.sodaName = xpidobsdir + self.vortexname
-        self.path = self.sodaName
+            # BC 30/03/20 change that will cause bugs
+            # self.sodaName = xpidobsdir + self.vortexname
+            self.sodaName = xpiddir + '/' + date + '/workSODA/' + self.sodaName
+            self.vortexname = xpidobsdir + self.vortexname
+        # BC30/03/20 idem
+        # self.path = self.sodaName
+        self.path = self.vortexname
         self.dictVarsRead = {name: name for name in options.vars}
         self.dictVarsWrite = self.dictVarsRead
         self.loadDict = self.dictVarsRead
@@ -365,7 +374,7 @@ class PrepBg(Prep):
             self.sodaName = date + '/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
         else:
             # self.sodaName = '../../../test_160_OL@cluzetb/' + 'mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
-            self.sodaName = options.xpiddir + 'mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
+            self.sodaName = options.xpiddir + '/mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
 
 
 class PrepOl(Prep):
@@ -379,7 +388,7 @@ class PrepOl(Prep):
             if isOl:
                 self.sodaName = '../../' + 'mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
             else:
-                self.sodaName = options.xpidoldir + 'mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
+                self.sodaName = options.xpidoldir + '/mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
 
 
 class PrepAn(Prep):
@@ -391,7 +400,7 @@ class PrepAn(Prep):
         if not directFromXp:
             self.sodaName = date + '/SURFOUT' + str(mbid) + '.nc'
         else:
-            self.sodaName = options.xpiddir + 'mb{0:04d}'.format(mbid) + '/an/PREP_' + date + '.nc'
+            self.sodaName = options.xpiddir + '/mb{0:04d}'.format(mbid) + '/an/PREP_' + date + '.nc'
 
 
 class PrepAbs(Prep):

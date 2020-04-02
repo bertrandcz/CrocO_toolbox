@@ -8,6 +8,7 @@ utils suited for crocO interface only
 '''
 
 from bronx.datagrip.namelist import NamelistParser
+from configparser import ConfigParser
 import datetime
 from ftplib import FTP
 from netrc import netrc
@@ -21,6 +22,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import netCDF4
 
 import numpy as np
+import pandas as pd
 
 
 def dictsAspect():
@@ -109,8 +111,8 @@ def niceLabel(var, score = None, printunits=True):
         sc = ''
     else:
         sc = score
-    units = {'SWE': '[$\mathrm{\mathsf{kgm^{-2}}}$]',
-             'DEP': '[$\mathrm{\mathsf{m}}$]',
+    units = {'SWE': r'[$\mathrm{\mathsf{kgm^{-2}}}$]',
+             'DEP': r'[$\mathrm{\mathsf{m}}$]',
              'B5': '',
              'B4': '',
              }
@@ -224,7 +226,113 @@ def area(geometry):
     return area
 
 
-def read_conf(pathconf):
+def unpack_conf(arg):
+    """
+    BC 01/04/20
+    supported types:
+    arg = aa,bb,cc : return ['aa','bb','cc']
+    arg = 'aa','bb','cc' : return ['aa','bb','cc']
+    arg = "'toto'" or '"toto"' : return 'toto'
+    arg = '2' : return 2
+    arg = '2.3' : return 2.3
+    arg = 'toto.nam' :'return toto.nam'
+    arg = '2.2,2.3' : return [2.2,2.3]
+    arg = None : return None (NoneType)
+
+    /!| tricky case:
+    arg='2016080106' (YYYYmmddHH format) : return '2016080106' (and not 2016080106)
+    arg=rangex(start: a end: b) : return list(range(a,b+1)) (a vortex type...)
+    arg=rangex(start:a end:b): return list(range(a,b+1))
+    exception cases :
+    - badly formatted str
+    - mixed types in lists
+    """
+    # first deal with the vortex case
+    if "rangex" in arg:
+        try:
+            start = int(re.search(r"start: (\d+)", arg).group(1))
+        except AttributeError:
+            start = int(re.search(r"start:(\d+)", arg).group(1))
+        try:
+            end = int(re.search(r"end: (\d+)", arg).group(1))
+        except AttributeError:
+            end = int(re.search(r"end:(\d+)", arg).group(1))
+        ret = list(range(start, end + 1))
+    elif arg == 'None':
+        ret = None
+    else:
+        if "," in arg:
+            ret = list(map(unpack_conf, arg.split(',')))
+        # unpack strings:
+        elif arg.startswith("'") or arg.startswith('"'):
+            if arg[0] == arg[-1]:
+                ret = arg[1:-1]
+            else:
+                raise ValueError(arg + ': badly formatted string.')
+        elif '.' in arg:
+            try:
+                ret = float(arg)
+            except ValueError:  # must be a path ^^
+                ret = arg
+        else:
+            try:
+                _ = datetime.datetime.strptime(arg, '%Y%m%d%H')
+                ret = arg
+            except ValueError:
+                try:
+                    ret = int(arg)
+                except ValueError:
+                    ret = arg
+    if isinstance(ret, list):
+        if all(isinstance(r, type(ret[0])) for r in ret):
+            return ret
+        else:
+            raise TypeError('unconsistent types in list: {0}'.format(ret))
+    else:
+        return ret
+
+
+class ConfObj1L(dict):
+    def __init__(self, **kwargs):
+        self.__dict__.update(self, **kwargs)
+        for name, val in kwargs.items():
+            super().__setitem__(name, val)
+
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+    def __setattr__(self, name, val):
+        self[name] = val
+        super().__setitem__(name, val)  # useful for object description
+        self.__dict__[name] = val  # useful for iteration over self.__dict__
+
+    def __str__(self):
+        return '<ConfObj1L(' + ', '.join(['{0}:{1}'.format(key, val) for key, val in self.__dict__.items()]) + ')>'
+
+    def __repr__(self):
+        return '<ConfObj1L(' + ', '.join(['{0}:{1}'.format(key, val) for key, val in self.__dict__.items()]) + ')>'
+
+
+def conf2obj(conf):
+    '''
+    BC 01/04/20
+    convert a ConfParser to a one-level dict then a one level dot.dict.
+    '''
+
+    dict1 = dict()
+    default_sec = conf.default_section
+    for k in conf[default_sec]:
+        dict1[k] = unpack_conf(conf[default_sec][k])
+    for k in conf._sections:
+        for kk in conf[k]:
+            dict1[kk] = unpack_conf(conf[k][kk])
+    return ConfObj1L(**dict1)
+
+
+def read_conf(pathconf, useVortex=True):
     '''
     B. Cluzet
     duplicated from evalSODA.util
@@ -234,12 +342,16 @@ def read_conf(pathconf):
             shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
         else:
             print('no conf file for this experiment :', pathconf)
-    iniparser = GenericConfigParser(pathconf)
-    thisconf  = iniparser.as_dict(merged=False)
-    updconf = thisconf.get('defaults', dict())
-    conf = ConfigSet()
-    conf.update(updconf)
-
+    if useVortex is True:
+        iniparser = GenericConfigParser(pathconf)
+        thisconf  = iniparser.as_dict(merged=False)
+        updconf = thisconf.get('defaults', dict())
+        conf = ConfigSet()
+        conf.update(updconf)
+    else:
+        conf = ConfigParser()
+        conf.read(pathconf)
+        conf = conf2obj(conf)
     return conf
 
 
@@ -419,3 +531,46 @@ def ftp_upload(localfile, remotefile, ftp):
         return
     fp.close()
     print("after upload " + localfile + " to " + remotefile)
+
+
+def set_conf_everydate(startY, assimilate_every, filepath, nens=40, endY = None):
+    '''
+    BC 08/02/20
+    on beaufix, generate  conf file with the appropriate assimilation dates (for ex. every 7 days)
+
+    '''
+    if endY is None:
+        endY = startY + 1
+
+    # assimilate between october and june
+    startDate = datetime.datetime(startY, 10, 1, 6, 0, 0)
+    endDate = datetime.datetime(endY, 6, 30, 6, 0, 0)
+
+    datelist = pd.date_range(startDate, periods=(endDate - startDate).days).tolist()
+    stringdates = ','.join([d.strftime('%Y%m%d%H')for d in datelist[::assimilate_every]])
+
+    # members Id copied from the previous experiments (always the same for reproducibility)
+    membersId = [168, 429, 524, 1460, 1568, 698, 1084, 162, 1159, 872, 466, 1646, 1550, 1582, 403, 165, 1, 540,
+                 632, 1309, 1665, 1863, 1787, 270, 79, 1188, 385, 1782, 1271, 1380, 864, 880, 971, 54, 609, 289, 1279, 415,
+                 1754, 612, 1431, 696, 1215, 1861, 313, 734, 1813, 1710, 567, 1161, 1792, 653, 326, 73, 182, 1428, 453, 628,
+                 78, 906, 720, 527, 1212, 1717, 386, 655, 1909, 1352, 1100, 151, 515, 595, 784, 1284, 477, 675, 110, 99, 1052,
+                 444, 397, 1697, 284, 1699, 1394, 1585, 715, 193, 848, 1324, 59, 1015, 687, 255, 1491, 7, 1235, 879, 18, 1744,
+                 929, 1597, 1183, 384, 1157, 1223, 39, 1641, 1622, 1644, 1648, 1446, 1709, 1653, 888, 1095, 214, 483, 1337,
+                 1075, 455, 1009, 1742, 95, 1840, 250, 1407, 189, 1928, 1099, 916, 412, 361, 112, 423, 194, 843, 1857, 439,
+                 1294, 71, 1872, 451, 332, 322, 543, 23, 1008, 1856, 1371, 1822, 1884, 1409, 788, 1011, 1277, 1573, 665, 390,
+                 77
+                 ]
+    membersId = list(map(str, membersId))
+
+    # if not os.path.exists(filepath):
+    f = open(filepath, 'w')
+    f.write('[DEFAULT]')
+    f.write('\n')
+    f.write('assimdates=' + stringdates)
+    f.write('\n')
+    f.write('nmembers=' + str(nens))
+    f.write('\n')
+    f.write('membersId=' + ','.join(membersId[0:nens]))
+    f.write('\n')
+    f.close()
+    return 0

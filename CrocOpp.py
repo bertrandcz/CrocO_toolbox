@@ -32,10 +32,14 @@ class CrocOpp(CrocO):
         self.conf = conf
         CrocO.__init__(self, options, conf)
 
+        # set dirs. Croco os the root for the pf xps.
+        self.crocodir = self.xpiddir + '/crocO/'
         self.mblist = list(range(1, options.nmembers + 1))
         if hasattr(self.conf, 'synth'):
-            self.mbsynth = int(self.conf.synth) - 1  # be careful to id offset
-
+            # April 2020 when reading a conf file from local parallel run,
+            # conf.synth is None by def.
+            if self.conf.synth is not None:
+                self.mbsynth = int(self.conf.synth) - 1  # be careful to id offset
         self.initial_context = os.getcwd()
         # setup + loading
         self.setup()
@@ -47,7 +51,7 @@ class CrocOpp(CrocO):
 
     def setup(self):
         if not os.path.exists(self.crocodir):
-            os.mkdir(self.crocodir)
+            os.makedirs(self.crocodir)
         os.chdir(self.crocodir)
         if not os.path.exists(self.options.saverep):
             os.mkdir(self.options.saverep)
@@ -55,8 +59,8 @@ class CrocOpp(CrocO):
         if not os.path.exists('PGD.nc'):
             os.symlink(self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
         self.pgd = Pgd('PGD.nc')
-        # set subdirs
-        self.subdirs = [self.xpiddir + 'mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
+        # set subdirs (overwrite mother class)
+        self.subdirs = [self.xpiddir + '/mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
         self.mbdirs = ['mb{0:04d}/'.format(mb) for mb in self.mblist]
         # set dates
         self.setDates()
@@ -81,8 +85,15 @@ class CrocOpp(CrocO):
                 self.readOl = False
 
     def setDates(self):
-        self.conf.datedeb = datetime.datetime.strptime(str(self.conf.datedeb), "%Y-%m-%d %H:%M:%S")
-        self.conf.datefin = datetime.datetime.strptime(str(self.conf.datefin), "%Y-%m-%d %H:%M:%S")
+
+        try:
+            # beaufix case
+            self.conf.datedeb = datetime.datetime.strptime(str(self.conf.datedeb), "%Y-%m-%d %H:%M:%S")
+            self.conf.datefin = datetime.datetime.strptime(str(self.conf.datefin), "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            # local parallel case
+            self.conf.datedeb = datetime.datetime.strptime(str(self.conf.datedeb), "%Y%m%d%H")
+            self.conf.datefin = datetime.datetime.strptime(str(self.conf.datefin), "%Y%m%d%H")
         self.conf.stopdates = list(map(check_and_convert_date, self.conf.stopdates)) if hasattr(self.conf, 'stopdates') else list(map(check_and_convert_date, self.conf.assimdates + [self.conf.datefin.strftime('%Y%m%d%H')]))
         self.conf.assimdates = list(map(check_and_convert_date, self.conf.assimdates))
 
@@ -403,10 +414,14 @@ class CrocOpp(CrocO):
     def read_opts_in_namelist(self):
         n = NamelistParser()
         if self.options.kind != 'localpp':
-            if os.path.exists(self.options.xpiddir + 'conf/namelist.surfex.foo'):
-                N = n.parse(self.options.xpiddir + 'conf/namelist.surfex.foo')
+            if os.path.exists(self.options.xpiddir + '/conf/namelist.surfex.foo'):
+                N = n.parse(self.options.xpiddir + '/conf/namelist.surfex.foo')
             else:
-                N = n.parse(self.options.xpiddir + '/conf/OPTIONS.nam')
+                try:
+                    # local parallel case
+                    N = n.parse(self.options.xpiddir + '/conf/OPTIONS_base.nam')
+                except FileNotFoundError:
+                    N = n.parse(self.options.xpiddir + '/conf/OPTIONS.nam')
         else:
             print('cwdededed', os.getcwd())
             N = n.parse(self.options.dates[0] + '/OPTIONS.nam')

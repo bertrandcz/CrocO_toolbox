@@ -5,11 +5,11 @@ Created on 5 févr. 2019
 @author: cluzetb, inspired on SodaXP, test_PF.py and snowtools_git/tasks/runs.py from Lafaysse
 '''
 from ParticleFilter import ParticleFilter
-from PostCroco import PostCroco
 from SemiDistributed import Synthetic, Real
 import os
 import random
 import shutil
+import subprocess
 from utilcrocO import convertdate, area, check_namelist_soda
 
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # import numpy as np
 class CrocO(object):
     '''
-    Class for local soda test
+    Mother class for local soda test and post-processing
     '''
 
     def __init__(self, options, conf):
@@ -26,11 +26,13 @@ class CrocO(object):
         self.options = options
         self.conf = conf
 
-        self.rootdir = options.vortexpath + '/' + options.vapp + '/' + options.vconf + '/'
         self.xpiddir = options.xpiddir
         if not os.path.exists(self.xpiddir):
-            raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
-        if not hasattr(self.conf, 'openloop'):
+            if self.options.todo != 'parallel':
+                raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
+            else:
+                os.makedirs(self.xpiddir)
+        if not hasattr(self.conf, 'openloop'):  # BC to clean
             self.conf.openloop = 'off'
         # set the observations dir
         if self.options.sensor is None and str(self.conf.openloop) == 'off':
@@ -61,8 +63,6 @@ class CrocO(object):
         if self.options.nmembers is None:
             self.options.nmembers = int(self.conf.nmembers)
 
-        # set dirs
-        self.crocodir = self.xpiddir + 'crocO/'
         self.machine = os.uname()[1]
         if type(self.conf.assimdates) is str:
             self.conf.assimdates = [str(self.conf.assimdates)]
@@ -73,11 +73,22 @@ class CrocO(object):
                 self.conf.stopdates = [str(self.conf.stopdates)]
             else:
                 self.conf.stopdates = list(map(str, self.conf.stopdates))
-
+        else:  # parallel case
+            self.stopdates = self.conf.assimdates + [self.options.datefin]
         if 'sxcen' not in self.machine:
             self.exesurfex = os.environ['EXESURFEX']
         else:
             self.exesurfex = None
+
+    def prepare_namelist(self):
+        """
+        Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
+        """
+        print('copying namelist', os.getcwd())
+        if not os.path.exists('OPTIONS.nam'):
+            nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
+            namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
+            shutil.copyfile(namelist, 'OPTIONS_base.nam')
 
     def prepare_obs(self, date):
         """
@@ -93,14 +104,14 @@ class CrocO(object):
             # real obs are obtained in xpidobs
             # BC 24/02 dirty dirty
             gg = self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/super_PGD_' + area(self.options.vconf) + '.nc'
-            self.obs = Real(self.options.xpidobsdir, date, self.options,
+            self.obs = Real(self.options.xpidobsdir, self.xpiddir, date, self.options,
                             pgdPath=gg)
             self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking)
 
 
-class CrocOrun(CrocO):
+class CrocOpf(CrocO):
     '''
-    class meant to perform LOCAL runs of the pf and post-process it
+    class meant to perform LOCAL runs of the pf.
     '''
 
     def __init__(self, options, conf, setup = True):
@@ -117,7 +128,11 @@ class CrocOrun(CrocO):
 
         # then, call mother init
         CrocO.__init__(self, self.options, conf)
-
+        # set dirs. Croco os the root for the pf xps.
+        if self.options.todo == 'parallel':
+            self.crocodir = self.xpiddir
+        else:
+            self.crocodir = self.xpiddir + 'crocO/'
         if self.options.synth is None:
             self.mblist = list(range(1, self.options.nmembers + 1))
         # setup all dirs
@@ -127,47 +142,36 @@ class CrocOrun(CrocO):
     def setup(self):
         if not os.path.exists(self.crocodir):
             os.mkdir(self.crocodir)
-        os.chdir(self.crocodir)
-        if not os.path.exists(self.options.saverep):
-            os.mkdir(self.options.saverep)
-        os.chdir(self.options.saverep)
         for dd in self.options.dates:
             if dd in self.conf.assimdates:
-                if os.path.exists(dd):
-                    # pass
-                    shutil.rmtree(dd)
-                os.mkdir(dd)
+                print('##############################################')
+                print(dd)
+                print('##############################################')
+                if os.path.exists(self.xpiddir + dd + '/workSODA'):
+                    shutil.rmtree(self.xpiddir + dd + '/workSODA')
+                os.makedirs(self.xpiddir + dd + '/workSODA')
                 self.prepare_sodaenv(dd)
             else:
-                print(('prescribed date ' + dd + 'does not exist in the experiment, remove it.'))
-                self.options.dates.remove(dd)
+                raise Exception("prescribed observation dates (-d) must be in conf.assimdates")
+#         if hasattr(self.options, 'datefin'):
+#             if os.path.exists(self.xpiddir + self.options.datefin + '/workSODA'):
+#                 shutil.rmtree(self.xpiddir + self.options.datefin + '/workSODA')
+#             os.makedirs(self.xpiddir + self.options.datefin + '/workSODA')
+#             self.prepare_sodaenv(self.options.datefin)
 
-    def prepare_sodaenv(self, path):
+    def prepare_sodaenv(self, date):
         """
-        set soda environment for each date (=path): -PGD, links to preps, namelist, ecoclimap etc.
+        set soda environment for each date : -PGD, links to preps, namelist, ecoclimap etc.
         """
 
-        os.chdir(path)
-        # Prepare the PGD and PREP for assim
-        dateAssSoda = convertdate(path).strftime('%y%m%dH%H')
-        for mb in self.mblist:
-            if self.options.synth is not None:
-                if mb < self.options.synth:
-                    self.build_link(mb, mb, path, dateAssSoda)
-                else:
-                    self.build_link(mb + 1, mb, path, dateAssSoda)
-            else:
-                self.build_link(mb, mb, path, dateAssSoda)
-        if not os.path.exists('PREP.nc'):
-            os.symlink('PREP_' + dateAssSoda + '_PF_ENS1.nc', 'PREP.nc')
-        if not os.path.exists('PGD.nc'):
-            os.symlink(self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
+        os.chdir(self.xpiddir + '/' + date + '/workSODA')
+        self.prepare_namelist()
 
-        # Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
-        if not os.path.exists('OPTIONS.nam'):
-            shutil.copyfile(self.xpiddir + 'conf/namelist.surfex.foo', 'OPTIONS_base.nam')
-        check_namelist_soda(self.options)
-
+        # in the parallel case, the namelist is checed by CrocOparallel class
+        if self.options.todo != 'parallel':
+            check_namelist_soda(self.options)
+        else:
+            os.rename('OPTIONS_base.nam', 'OPTIONS.nam')
         if 'sxcen' not in self.machine:
             # prepare ecoclimap binaries
             if not os.path.exists('ecoclimapI_covers_param.bin'):
@@ -177,32 +181,59 @@ class CrocOrun(CrocO):
                 os.symlink(self.exesurfex + '/../MY_RUN//DATA/CROCUS/drdt_bst_fit_60.nc', 'drdt_bst_fit_60.nc')
             if not os.path.exists('soda.exe'):
                 os.symlink(self.exesurfex + '/SODA', 'soda.exe')
-
+            if not os.path.exists('PGD.nc'):
+                if self.options.spinup is None:  # in parallel, should not be None
+                    os.symlink(self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
+                else:
+                    os.symlink(self.xpiddir + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
         # prepare (get or fake) the obs
-        self.prepare_obs(path)
+        self.prepare_obs(date)
+
+        # prepare the pgd and prep files.
+        # in ocal parallel sequence, must be done only once the corresponding escroc run has produced the files
+        if self.options.todo != 'parallel':
+            self.prepare_preps(date)
         os.chdir('..')
 
-    def build_link(self, mb, imb, path, dateAssSoda):
-        try:
-            os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb)  + '/bg/PREP_' + path + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
-        except Exception:
-            os.remove('PREP_' + path + '_PF_ENS' + str(imb + 1) + '.nc')
-            os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb) + '/bg/PREP_' + path + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
-#         try:
-#             os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb)  + '/an/PREP_' + path + '.nc', 'SURFOUT' + str(imb) + '.nc')
-#         except:
-#             if os.path.exists('SURFOUT' + str(imb + 1) + '.nc'):
-#                 os.remove('SURFOUT' + str(imb + 1) + '.nc')
-#             else:
-#                 pass
+    def prepare_preps(self, date):
+        '''
+        Prepare the PREP files for SODA.
+        '''
+        dateAssSoda = convertdate(date).strftime('%y%m%dH%H')
+        for mb in self.mblist:
+            if self.options.synth is not None:
+                if mb < self.options.synth:
+                    self.build_link(mb, mb, date, dateAssSoda)
+                else:
+                    self.build_link(mb + 1, mb, date, dateAssSoda)
+            else:
+                self.build_link(mb, mb, date, dateAssSoda)
+        # a link fro PREP...1.nc to PREP.nc is also necessary for SODA
+        if not os.path.exists('PREP.nc'):
+            os.symlink('PREP_' + dateAssSoda + '_PF_ENS1.nc', 'PREP.nc')
+
+    def build_link(self, mb, imb, date, dateAssSoda):
+        if self.options.todo != 'parallel':
+            try:
+                os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb)  + '/bg/PREP_' + date + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
+            except Exception:
+                os.remove('PREP_' + date + '_PF_ENS' + str(imb + 1) + '.nc')
+                os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb) + '/bg/PREP_' + date + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
+        else:  # in parallel mode, bg and an reps do not exist.
+            try:
+                os.symlink(self.xpiddir + date + '/mb{0:04d}'.format(mb)  + '/SURFOUT.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
+            except Exception:
+                os.remove('PREP_' + date + '_PF_ENS' + str(imb + 1) + '.nc')
+                os.symlink(self.xpiddir + date + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
 
     def run(self):
-        """spawn soda in each date repertory"""
+        """spawn soda in each date directory"""
         os.system('ulimit -s unlimited')
         for dd in self.options.dates:
             os.chdir(dd)
-            if self.options.todo is not 'pfpython':
-                os.system('./soda.exe')
+            if self.options.todo != 'pfpython':
+                # os.system('./soda.exe')
+                os.system('watch -n 3 "echo toto"')
             else:
                 plot = True
                 if plot:
@@ -217,11 +248,14 @@ class CrocOrun(CrocO):
                     plt.show()
             os.chdir('..')
 
-    def post_proc(self, options):
-        if self.options.todo is 'pfpython':
-            postp = PostCroco(self.xpiddir, self.xpiddir, options, pf = self.pf)
-            pb = postp.run()
-            return pb
-        else:
-            postp = PostCroco(self.xpiddir, self.xpiddir, options)
-            postp.run()
+    def run_parallel(self, date):
+        """
+        This method allows to run soda inside a parallelized assimilation sequence.
+        /!\ soda is not parallelized (NOMPI mode).
+        """
+        os.chdir(self.xpiddir + date + '/workSODA')
+        self.prepare_preps(date)
+        print('launching SODA on ', date)
+        with open('soda.out', 'w') as f:
+            p = subprocess.call('./soda.exe', stdout=f)
+        os.chdir('..')
