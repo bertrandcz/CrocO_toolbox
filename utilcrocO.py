@@ -45,7 +45,7 @@ def setSubsetclasses(pgd, selE, selA, selS):
     dictAsp['all'] = np.unique(pgd.aspect)
     dictSlope = {'all': ['0', '20', '40']}
 
-    if type(selE) is np.ndarray:
+    if isinstance(selE, np.ndarray):
         selE = np.ndarray.tolist(selE)
     if 'all' not in selE:
         classesE = list(map(int, selE))
@@ -60,7 +60,7 @@ def setSubsetclasses(pgd, selE, selA, selS):
         classesA = dictAsp['all']
 
     classesS = []
-    if type(selS) is str:
+    if isinstance(selS, str):
         selS = [selS]
     if 'all' not in selS:
         classesS = selS
