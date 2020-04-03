@@ -5,17 +5,16 @@ Created on 15 oct. 2019
 
 full eval on SWE, aggrclasses + time
 '''
-from snowtools_git.scores.ensemble import EnsembleScores
-import sys
-import time
-
-
 from CrocOpp import CrocOpp
 from crocO import set_options
-import numpy as np
-import pandas as pd
+from scores.ensemble import EnsembleScores
+import sys
+import time
 from utilcrocO import setSubsetclasses
 from utilpp import set_itimes, RMSE, spread
+
+import numpy as np
+import pandas as pd
 
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -27,7 +26,7 @@ start_time = time.time()
 aggrClasses = True
 aggrTime = True
 
-years = [2013, 2014, 2015]
+years = [2013, 2014, 2015, 2016]
 dictmembers = {2013: [66, 12, 122, 149],
                2014: [69, 28, 2, 122],
                2015: [92, 97, 14, 141],
@@ -41,9 +40,8 @@ ppvars = 'DEP,SWE'
 k = 'SWE'
 # Neff = ['1', '10', '7']
 Neff = ['7']
-# kind = 'fromol'
-kind = 'postes'
-scores = ['CRPS', 'RMSE']
+kind = 'fromol'
+scores = ['CRPS']
 # ###############################################
 suffix = '' if nens == 160 else '_{0}'.format(nens) if 'DEP' not in assimvars else '_{0}_{1}'.format(nens, assimvars)
 if len(Neff) > 0 and kind != 'postes':
@@ -55,7 +53,7 @@ elif kind == 'postes':
     suffix = suffixs
     SUFFIX_NAME = ''
 # SUFFIX_NAME = 'k2013_2014'
-runs = ['global', 'klocal1', 'rlocal']
+runs = ['global', 'klocal5', 'rlocal']
 # runs = ['klocal5', 'klocal1', 'klocal10']
 
 runs = [r + s for r in runs for s in suffix]
@@ -91,7 +89,7 @@ for year in years:
         '-d', 'all',
         '--vars', assimvars,
         '--ppvars', ppvars,
-        '-o', 'compar2to3',
+        '-o', 'commitGMDtest',
         '--classesE', '1800,2100,2400,2700,3000,3300,3600',
         '--classesS', '0,20',
         '--classesA', 'SW,S,SE,E',
@@ -173,7 +171,7 @@ for year in years:
                 '-d', 'all',
                 '--vars', 'B4,B5,SCF' if kind != 'postes' else 'SCF',
                 '--ppvars', 'B4,B5,DEP,SWE'if kind != 'postes' else 'DEP,SWE',
-                '-o', 'compar2to3',
+                '-o', 'commitGMDtest',
                 '--classesE', '1800,2100,2400,2700,3000,3300,3600'if kind != 'postes' else '1200,1500,1800,2100,2400',
                 '--classesS', '0,20' if kind != 'postes' else '0',
                 '--classesA', 'SW,S,SE,E',

@@ -7,11 +7,10 @@ Purpose: laod numerous expireiences for exploring purposes.
 '''
 
 
-import sys
-import time
-
 from CrocOpp import CrocOpp
 from crocO import set_options
+import sys
+import time
 
 
 start_time = time.time()
@@ -85,7 +84,7 @@ else:
             # 'rlocal', 'klocal'
             ]
     if len(Neff) > 0:
-        suffixs = [suffix + '_' + n  if n is not '7' else suffix for n in Neff]
+        suffixs = [suffix + '_' + n if n is not '7' else suffix for n in Neff]
         suffix = suffixs
         SUFFIX_NAME = '_40_DEP_neffstudy'
 
