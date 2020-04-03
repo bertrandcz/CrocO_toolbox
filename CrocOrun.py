@@ -201,7 +201,7 @@ class CrocOrun(CrocO):
         os.system('ulimit -s unlimited')
         for dd in self.options.dates:
             os.chdir(dd)
-            if self.options.todo is not 'pfpython':
+            if self.options.todo != 'pfpython':
                 os.system('./soda.exe')
             else:
                 plot = True
@@ -218,7 +218,7 @@ class CrocOrun(CrocO):
             os.chdir('..')
 
     def post_proc(self, options):
-        if self.options.todo is 'pfpython':
+        if self.options.todo == 'pfpython':
             postp = PostCroco(self.xpiddir, self.xpiddir, options, pf = self.pf)
             pb = postp.run()
             return pb

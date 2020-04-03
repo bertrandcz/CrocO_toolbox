@@ -36,9 +36,12 @@ def dictsAspect():
 def setSubsetclasses(pgd, selE, selA, selS):
     """
     BC 5/02/19
-    duplicate from SodaXP.setSubset classes with some midfs
-    mask is True when the class is whithin the subset
-    """
+    Returns a list of point ids and a mask corresponding to the selection of topographic classes (selE,selA, selS
+    params:
+    - selE : string or list of string for elevations (['1800,'2100', ...]. 'all' for all elevation bands
+    - selA : string or list of strings for aspects (['N, 'NW', ...]), 'all' for all.
+    - selS : string or list of strings for slopes (degrees) (['0,20',]), 'all' for all. 
+       """
     subsetClass = []
     dictElev = {'all': np.unique(pgd.elev)}
     dictAsp, _ = dictsAspect()
@@ -47,6 +50,8 @@ def setSubsetclasses(pgd, selE, selA, selS):
 
     if isinstance(selE, np.ndarray):
         selE = np.ndarray.tolist(selE)
+    elif isinstance(selE, str):
+        selE = [selE]
     if 'all' not in selE:
         classesE = list(map(int, selE))
     else:
