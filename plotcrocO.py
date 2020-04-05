@@ -42,7 +42,10 @@ class Pie(object):
         if not self.sdObj.isloaded:
             self.sdObj.load()  # -> it is not always loaded (ex. of synth obs)
         self.sel = np.unique(self.sdObj.pgd.elev)
-        self.ssl = sdObj.options.classesS
+        if isinstance( sdObj.options.classesS, str):
+            self.ssl = [sdObj.options.classesS]
+        else:
+            self.ssl = sdObj.options.classesS
         self.sas = 'all'
         self.rmax = float(np.max(self.sdObj.pgd.elev)) + 300.
 

@@ -11,6 +11,7 @@ from bronx.datagrip.namelist import NamelistParser
 import datetime
 from ftplib import FTP
 from netrc import netrc
+from optparse import Values
 import os
 import re
 import shutil
@@ -33,14 +34,30 @@ def dictsAspect():
     return gg1, {v: k for k, v in list(gg1.items())}
 
 
+def parse_classes(options):
+    """
+    BC, april 2020
+    This function parses option arguments classesE, classesA, and classesS into explicit conditions matching the options.pgd features
+    classesE = 'all' -> classesE = ['600',...'3600']
+    classesA = 'all' -> classesA = ['N','NW',...]
+    """
+    if options.classesE == 'all' or options.classesE is None:
+        options.classesE = np.unique(options.pgd.elev)
+    if options.classesA == 'all' or options.classesE is None:
+        options.classesA = list(dictsAspect()[0].keys())
+    if options.classesS == 'all' or options.classesS is None:
+        options.classesS = ['0', '20', '40']
+    return options
+
+
 def setSubsetclasses(pgd, selE, selA, selS):
     """
     BC 5/02/19
-    Returns a list of point ids and a mask corresponding to the selection of topographic classes (selE,selA, selS
+    Returns a list and a mask corresponding to points whose topographic conditions match any combination of the selection (selE,selA, selS)
     params:
-    - selE : string or list of string for elevations (['1800,'2100', ...]. 'all' for all elevation bands
-    - selA : string or list of strings for aspects (['N, 'NW', ...]), 'all' for all.
-    - selS : string or list of strings for slopes (degrees) (['0,20',]), 'all' for all. 
+    - selE : string or list of string for elevations (['1800','2100', ...]. 'all' for all elevation bands
+    - selA : string or list of strings for aspects (['N', 'NW', ...]), 'all' for all.
+    - selS : string or list of strings for slopes (degrees) (['0','20',]), 'all' for all.
        """
     subsetClass = []
     dictElev = {'all': np.unique(pgd.elev)}
@@ -136,7 +153,16 @@ def cm2inch(w, h):
     return(0.393701 * w, 0.393701 * h)
 
 
-class Pgd(object):
+class ImmutableOpt(Values):
+    def __init__(self, **kwargs):
+        for name, val in kwargs.items():
+            Values.__setattr__(self, name, val)
+
+    def __setattr__(self, name, value):
+        raise Exception('This class is immutable.')
+
+
+class Pgd:
     """
     class to read a semi-distributed PGD file
     slope is the TANGENT of the angle of slope.
@@ -238,7 +264,7 @@ def read_conf(pathconf):
         if os.path.exists(pathconf[0:-4] + '.foo'):
             shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
         else:
-            print('no conf file for this experiment :', pathconf)
+            raise FileNotFoundError('no conf file at this path :', pathconf)
     iniparser = GenericConfigParser(pathconf)
     thisconf  = iniparser.as_dict(merged=False)
     updconf = thisconf.get('defaults', dict())

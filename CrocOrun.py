@@ -8,7 +8,7 @@ from ParticleFilter import ParticleFilter
 from PostCroco import PostCroco
 from SemiDistributed import Synthetic, Real
 import os
-import random
+
 import shutil
 from utilcrocO import convertdate, area, check_namelist_soda
 
@@ -21,58 +21,20 @@ class CrocO(object):
     Class for local soda test
     '''
 
-    def __init__(self, options, conf):
+    def __init__(self, options):
 
         self.options = options
-        self.conf = conf
 
         self.rootdir = options.vortexpath + '/' + options.vapp + '/' + options.vconf + '/'
         self.xpiddir = options.xpiddir
+        self.mblist = list(range(1, options.nmembers + 1))
+
         if not os.path.exists(self.xpiddir):
             raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
-        if not hasattr(self.conf, 'openloop'):
-            self.conf.openloop = 'off'
-        # set the observations dir
-        if self.options.sensor is None and str(self.conf.openloop) == 'off':
-            if hasattr(self.conf, 'sensor'):
-                self.sensor = self.conf.sensor
-                self.options.sensor = self.conf.sensor  # necessary for pp
-            else:
-                try:
-                    mb = 'mb{0:04d}'.format(self.options.synth)
-                except TypeError:
-                    raise Exception('if you dont specify obs, please specify a synth member to draw')
-                self.sensor = mb + '_v' + ''.join(self.options.vars)  \
-                    + '_E' + ''.join(self.options.classesE) + '_A' + ''.join(self.options.classesA) \
-                    + '_S' + ''.join(self.options.classesS) + '_N' + str(self.options.noise)
-                self.options.sensor = self.sensor
-
-        elif self.options.sensor is not None:
-            if self.conf.openloop == 'on':
-                self.sensor = self.options.sensor
-            else:
-                if hasattr(self.conf, 'sensor'):
-                    self.sensor = self.conf.sensor
-                    self.options.sensor = self.conf.sensor  # necessary for pp
-                else:
-                    self.sensor = self.options.sensor
-        else:  # openloop on and options.sensor is None
-            print('openloop on and options.sensor is None')
-        if self.options.nmembers is None:
-            self.options.nmembers = int(self.conf.nmembers)
 
         # set dirs
         self.crocodir = self.xpiddir + 'crocO/'
         self.machine = os.uname()[1]
-        if type(self.conf.assimdates) is str:
-            self.conf.assimdates = [str(self.conf.assimdates)]
-        else:
-            self.conf.assimdates = list(map(str, self.conf.assimdates))
-        if hasattr(self.conf, 'stopdates'):
-            if type(self.conf.stopdates) is str:
-                self.conf.stopdates = [str(self.conf.stopdates)]
-            else:
-                self.conf.stopdates = list(map(str, self.conf.stopdates))
 
         if 'sxcen' not in self.machine:
             self.exesurfex = os.environ['EXESURFEX']
@@ -91,10 +53,7 @@ class CrocO(object):
 
         else:
             # real obs are obtained in xpidobs
-            # BC 24/02 dirty dirty
-            gg = self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/super_PGD_' + area(self.options.vconf) + '.nc'
-            self.obs = Real(self.options.xpidobsdir, date, self.options,
-                            pgdPath=gg)
+            self.obs = Real(self.options.xpidobsdir, date, self.options)
             self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking)
 
 
@@ -103,23 +62,10 @@ class CrocOrun(CrocO):
     class meant to perform LOCAL runs of the pf and post-process it
     '''
 
-    def __init__(self, options, conf, setup = True):
+    def __init__(self, options, setup = True):
 
-        self.options = options
-        # /!\before calling mother init, in case of synthetical assimilation, we need to remove the synthetical member !!!!
-        if self.options.synth is not None:
-            self.mblist = list(range(1, self.options.nmembers))
-            # draw the synthetical member
-            if self.options.synth == 0:
-                self.options.synth = random.choice(list(range(1, options.nmembers + 1)))
-            # reduce nmembers by 1
-            self.options.nmembers -= 1
+        CrocO.__init__(self, options)
 
-        # then, call mother init
-        CrocO.__init__(self, self.options, conf)
-
-        if self.options.synth is None:
-            self.mblist = list(range(1, self.options.nmembers + 1))
         # setup all dirs
         if setup is True:
             self.setup()
@@ -132,7 +78,7 @@ class CrocOrun(CrocO):
             os.mkdir(self.options.saverep)
         os.chdir(self.options.saverep)
         for dd in self.options.dates:
-            if dd in self.conf.assimdates:
+            if dd in self.options.dates:
                 if os.path.exists(dd):
                     # pass
                     shutil.rmtree(dd)
@@ -188,13 +134,6 @@ class CrocOrun(CrocO):
         except Exception:
             os.remove('PREP_' + path + '_PF_ENS' + str(imb + 1) + '.nc')
             os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb) + '/bg/PREP_' + path + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
-#         try:
-#             os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb)  + '/an/PREP_' + path + '.nc', 'SURFOUT' + str(imb) + '.nc')
-#         except:
-#             if os.path.exists('SURFOUT' + str(imb + 1) + '.nc'):
-#                 os.remove('SURFOUT' + str(imb + 1) + '.nc')
-#             else:
-#                 pass
 
     def run(self):
         """spawn soda in each date repertory"""

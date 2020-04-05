@@ -138,13 +138,10 @@ class Obs(SemiDistributed):
         pass
 
     def create_new(self, Raw, newFile, options, fromArch = False, maskit = False):
-        print('aergqerg', newFile)
         New = netCDF4.Dataset(newFile, 'w')
         if (not options.distr) and maskit:
             print('masking into', newFile)
             subset, mask = self.subset_classes(self.pgd, options)
-            print('subset classes', subset)
-            print('fromArch', fromArch)
             self.copydimsvars(Raw, New, self.listvar, fromArch = fromArch, mask=mask)
             self.computeratio(Raw, New, self.listvar, mask=mask)
         else:
@@ -163,7 +160,6 @@ class Obs(SemiDistributed):
             else:
                 subset = options.classesId
                 mask = np.array([True if i in list(map(int, options.classesId)) else False for i in range(self.pgd.npts)])
-                print(('summask', np.sum(mask)))
         return subset, mask
 
     def copydimsvars(self, Raw, New, nameVars, fromArch = False, mask = None):
@@ -204,12 +200,8 @@ class Obs(SemiDistributed):
                         tmp[0, mask] = tmpvar[0, mask]
                         tmp[0, np.invert(np.squeeze(mask))] = var.getncattr('_FillValue')  # _FillValue is 1e+20 in the PREP files, MUST be equal XUNDEF.
                     else:
-                        print('erageag')
                         tmp[mask] = tmpvar[mask]
                         tmp[np.invert(mask)] = var.getncattr('_FillValue')
-                        print(mask)
-                        print(tmpvar[mask])
-                        print(tmp[:])
             else:
                 raise Exception('the var ' + readName + ' does not exist in the ref file')
 
@@ -249,13 +241,6 @@ class Synthetic(Obs):
             self.path = xpiddir + 'mb{0:04d}'.format(options.synth) + '/bg/PREP_' + date + '.nc'
             self.ptinom = 'synth' + 'mb{0:04d}'.format(options.synth)
             self.member = options.synth
-#         else:
-#             # randomly draw a member
-#             draw = random.choice(range(1, options.nmembers + 1))
-#             self.path = xpiddir + 'mb{0:04d}'.format(draw) + '/bg/PREP_' + date + '.nc'
-#             self.ptinom = 'synth' + 'mb{0:04d}'.format(draw)
-#             self.member = draw
-
         self.dictVarsRead = dictvarsPrep()
         self.dictVarsWrite = {name: name for name in self.listvar}
         self.loadDict = self.dictVarsWrite

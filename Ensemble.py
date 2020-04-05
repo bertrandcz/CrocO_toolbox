@@ -98,7 +98,7 @@ class PrepEnsAn(PrepEns):
 
 class PrepEnsAbs(PrepEns):
 
-    def __init__(self, options, date):
+    def __init__(self, options, date, pgdPath = 'PGD.nc'):
         PrepEns.__init__(self, options, date)
         for mb in range(1, self.nmembers + 1):
-            self.ens[mb] = PrepAbs(date, options, ptinom = 'abs' + str(mb))
+            self.ens[mb] = PrepAbs(date, options, ptinom = 'abs' + str(mb), pgdPath = pgdPath)
