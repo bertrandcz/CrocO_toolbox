@@ -167,7 +167,7 @@ class CrocOpf(CrocO):
         os.chdir(self.xpiddir + '/' + date + '/workSODA')
         self.prepare_namelist()
 
-        # in the parallel case, the namelist is checed by CrocOparallel class
+        # in the parallel case, the namelist is checked by CrocOparallel class
         if self.options.todo != 'parallel':
             check_namelist_soda(self.options)
         else:

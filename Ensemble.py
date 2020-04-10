@@ -19,8 +19,8 @@ class Ensemble(object):
 
 class PrepEns(Ensemble):
     """
-    ensemble of prep. bofibof, la donnée est stockée deux fois
-    idée : ne stocker que le stacked ? (moins facile d'accès que le dict...?)
+    ensemble of prep. 
+    Data is stored twice and instanciating takes time : to ameliorate in the future.
     """
     _abstract = True
 
