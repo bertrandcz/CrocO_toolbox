@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 Created on 8 févr. 2019
-
+Objects manipulating ensemble of Prep files
 @author: cluzetb
 '''
 
@@ -46,14 +46,13 @@ class PrepEnsOperator(EnsOperator):
     basic class for operations on PrepEns objects
     '''
 
-    def __init__(self, ens1, ens2=None, sdObj = None, pgdPath = 'PGD.nc'):
+    def __init__(self, ens1, ens2=None, sdObj = None):
         '''
         Constructor
         '''
         EnsOperator.__init__(self)
         self.ens1 = ens1
         self.ens1.stackit()
-        self.pgdPath = pgdPath
         if not hasattr(self.ens1, 'listvar'):
             self.ens1.listvar = list(self.ens1.stack.keys())
         if ens2 is not None:
@@ -67,7 +66,7 @@ class PrepEnsOperator(EnsOperator):
 
     def m2mdiff(self):
         # first, stack ensembles (more natural for computations)
-        diff = PrepEnsAbs(self.ens1.options, self.ens1.dates, pgdPath = self.pgdPath)
+        diff = PrepEnsAbs(self.ens1.options, self.ens1.dates)
         diff.listvar = self.ens1.listvar
         for var in self.diff:
             diff.stack[var] = self.ens1.stack[var] - self.ens2.stack[var]
@@ -79,7 +78,7 @@ class PrepEnsOperator(EnsOperator):
         fact = 1
         if reverse:
             fact = -1
-        self.ens2 = PrepEnsAbs(self.ens1.options, self.ens1.date, pgdPath = self.pgdPath)
+        self.ens2 = PrepEnsAbs(self.ens1.options, self.ens1.date)
         self.ens2.listvar = self.ens1.listvar
         for var in self.ens2.listvar:
             self.ens2.stack[var] = fact * (self.ens1.stack[var] - self.sdObj.data[var])
@@ -123,7 +122,7 @@ class PrepEnsOperator(EnsOperator):
             else:
                 return corr
         else:
-            corr_cl = PrepAbs(self.ens1.date, self.ens1.options, ptinom='corr_', pgdPath = self.pgdPath)
+            corr_cl = PrepAbs(self.ens1.date, self.ens1.options, ptinom='corr_')
             corr_cl.data = dict()
             for var in self.ens1.listvar:
                 corr_cl.data[var] = np.ma.empty((np.shape(self.ens1.stack[var])[0]))

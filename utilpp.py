@@ -11,7 +11,6 @@ import calendar
 import copy
 import datetime
 import pickle
-from utilcrocO import read_conf
 
 import numpy as np
 
@@ -19,7 +18,7 @@ import numpy as np
 def read_part(options):
     gg3 = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'localpp' or options.todo == 'pf':
             filename = dd + '/PART'
         else:  # =='beaufixpp'
             filename = options.xpiddir + 'workSODA/PART_' + dd + '.txt.foo'
@@ -34,7 +33,7 @@ def read_mask(options):
     npts = 187
     imask = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'localpp' or options.todo == 'pf':
             filename = dd + '/IMASK'
         else:  # =='beaufixpp'
             filename = options.xpiddir + 'workSODA/IMASK_' + dd + '.txt.foo'
@@ -69,7 +68,7 @@ def read_BG(options):
 
     bg = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'localpp' or options.todo == 'pf':
             filename = dd + '/BG_CORR'
         else:  # =='beaufixpp'
             filename = options.xpiddir + 'workSODA/BG_CORR_' + dd + '.txt.foo'
@@ -86,7 +85,7 @@ def read_BG(options):
 def read_alpha(options):
     alpha = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'localpp' or options.todo == 'pf' or options.todo == 'pf':
             filename = dd + '/ALPHA'
         else:  # =='beaufixpp'
             filename = options.xpiddir + 'workSODA/ALPHA_' + dd + '.txt.foo'
@@ -100,12 +99,6 @@ def read_alpha(options):
     return alpha
 
 
-def effweights_from_part(part):
-    '''
-    compute approximation of effweights from the particle sample.
-    '''
-
-
 def set_itimes(run, clim =False, fromOl = False):
     '''
     return a mask of valid dates (after sept of starting year + only midday)
@@ -115,14 +108,14 @@ def set_itimes(run, clim =False, fromOl = False):
         ttttimes = run.ensProOl['time']
     else:
         ttttimes = run.ensProAn['time']
-    times = [not((t.year == run.conf.datedeb.year and t.month <= 9) or t.hour != 0 or (t.year == run.conf.datefin.year and t.month > 6))
+    times = [not((t.year == run.datedeb.year and t.month <= 9) or t.hour != 0 or (t.year == run.datefin.year and t.month > 6))
              for t in ttttimes]
     itimes = [i for i, t in enumerate(times) if t]
 
     if clim is False:
         return itimes
     else:
-        if calendar.isleap(run.conf.datefin.year):
+        if calendar.isleap(run.datefin.year):
             start_year = 2015
         else:
             start_year = 2001
@@ -160,40 +153,31 @@ def old_read_truth(run, var, baseline = False):
             truth = run.ensProOl[var][:, :, run.mbsynth]
         except Exception:
             print('\n\nWARNING : there is no corresponding mbsynth in this openloop not enough members\n looking in the bigger OL xp.\n\n')
-            print('loading ' + run.xpidoldir[0:-4] + '/crocO/' + run.options.saverep + '/ensProOl.pkl')
-            with open(run.xpidoldir[0:-4] + '/crocO/' + run.options.saverep + '/ensProOl.pkl', 'rb') as f:
+            print('loading ' + run.xpidoldir[0:-4] + '/crampon/' + run.options.saverep + '/ensProOl.pkl')
+            with open(run.xpidoldir[0:-4] + '/crampon/' + run.options.saverep + '/ensProOl.pkl', 'rb') as f:
                 gg = pickle.load(f)
             truth = gg[var][:, :, run.mbsynth]
         return truth
     else:
-        """
-        try:
-            print('trying to read truth in pickle')
-            with open('{0}baseline_{1}/crocO/{2}/ensProOl.pkl'.format(run.rootdir, run.conf.assimdates[0].strftime('%Y'), run.options.saverep), 'rb') as f:
-                gg = pickle.load(f)
-            truth = gg[var]
-        except Exception:
-        """
-        import CrocOpp
+        import CramponPp
 
-        # bc do not use prev. block bceause need to set itimes
+        # bc do not use prev. block because need to set itimes
         opts = copy.copy(run.options)
         print('doesnot work, read in file')
-        opts.xpid = 'baseline_{0}'.format(run.conf.assimdates[0].strftime('%Y')) + '/'
-        opts.xpiddir = opts.vortexpath + '/' + opts.vapp + '/' + opts.vconf + '/' + opts.xpid
+        opts.xpid = 'baseline_{0}'.format(run.assimdates[0].strftime('%Y')) + '/'
+        opts.xpiddir = opts.cramponpath + '/' + opts.vapp + '/' + opts.vconf + '/' + opts.xpid
         opts.nmembers = 1
-        conf = read_conf('{0}baseline_{1}/conf/s2m_12.ini'.format(run.rootdir, run.conf.assimdates[0].strftime('%Y')))
-        base = CrocOpp.CrocOpp(opts, conf)
+        base = CramponPp.CramponPp(opts, pathConf='{0}baseline_{1}/conf/s2m_12.ini'.format(run.rootdir, run.assimdates[0].strftime('%Y')))
         truth = base.ensProOl[var]
         itimes = set_itimes(base, fromOl = True)
         if truth.shape[-1] > 1:
-            raise Exception('youre not readin a truth my dear')
+            raise Exception('youre not readin a truth.')
         return truth, itimes
 
 
 def RMSE(ens, truth, aggrTime = False, aggrDomain = True):
     """
-    (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble median over a domain. 
+    (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble median over a domain.
     (aggrtime = True, aggrDomain = False): domain variant, time averaged RMSE
 
     IN: ens (ndate, npts, nmembers)

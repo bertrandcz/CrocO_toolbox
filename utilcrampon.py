@@ -4,7 +4,7 @@ Created on 6 févr. 2019
 
 @author: cluzetb
 
-utils suited for crocO interface only
+utils suited for crampon interface only
 '''
 
 from bronx.datagrip.namelist import NamelistParser
@@ -15,10 +15,7 @@ from optparse import Values
 import os
 import re
 import shutil
-from vortex.layout.nodes import ConfigSet
-from vortex.util.config import GenericConfigParser
 
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import netCDF4
 
 import numpy as np
@@ -37,16 +34,22 @@ def dictsAspect():
 def parse_classes(options):
     """
     BC, april 2020
-    This function parses option arguments classesE, classesA, and classesS into explicit conditions matching the options.pgd features
-    classesE = 'all' -> classesE = ['600',...'3600']
-    classesA = 'all' -> classesA = ['N','NW',...]
+    This function parses option arguments classes_e, classes_a, and classes_s into explicit conditions matching the options.pgd features
+    classes_e = 'all' -> classes_e = ['600',...'3600']
+    classes_a = 'all' -> classes_a = ['N','NW',...]
     """
-    if options.classesE == 'all' or options.classesE is None:
-        options.classesE = np.unique(options.pgd.elev)
-    if options.classesA == 'all' or options.classesE is None:
-        options.classesA = list(dictsAspect()[0].keys())
-    if options.classesS == 'all' or options.classesS is None:
-        options.classesS = ['0', '20', '40']
+
+    # check for conf file (not necessarily defined in old conf files
+    for attr in ['classes_e', 'classes_a', 'classes_s']:
+        if not hasattr(options, attr):
+            options.__setattr__(attr, None)
+
+    if options.classes_e == 'all' or options.classes_e is None:
+        options.classes_e = sorted(np.unique(list(map(str, map(int, options.pgd.elev)))))
+    if options.classes_a == 'all' or options.classes_a is None:
+        options.classes_a = sorted(list(dictsAspect()[0].keys()))
+    if options.classes_s == 'all' or options.classes_s is None:
+        options.classes_s = ['0', '20', '40']
     return options
 
 
@@ -70,29 +73,29 @@ def setSubsetclasses(pgd, selE, selA, selS):
     elif isinstance(selE, str):
         selE = [selE]
     if 'all' not in selE:
-        classesE = list(map(int, selE))
+        classes_e = list(map(int, selE))
     else:
-        classesE = dictElev['all']
+        classes_e = dictElev['all']
 
-    classesA = []
+    classes_a = []
     if 'all' not in selA:
         for cl, asp in enumerate(selA):
-            classesA.append(dictAsp[asp])
+            classes_a.append(dictAsp[asp])
     else:  # avoid having a list of list
-        classesA = dictAsp['all']
+        classes_a = dictAsp['all']
 
-    classesS = []
+    classes_s = []
     if isinstance(selS, str):
         selS = [selS]
     if 'all' not in selS:
-        classesS = selS
+        classes_s = selS
     else:  # avoid having a list of list
-        classesS = dictSlope['all']
+        classes_s = dictSlope['all']
     mask = []
     for cl in range(pgd.npts):
-        if pgd.elev[cl] in classesE and (
-                (str(int(np.arctan(pgd.slope[cl]) * 180. / np.pi)) in classesS and pgd.aspect[cl] in classesA) or
-                (pgd.slope[cl] < 0.01 and ('0' in classesS))):
+        if pgd.elev[cl] in classes_e and (
+                (str(int(np.arctan(pgd.slope[cl]) * 180. / np.pi)) in classes_s and pgd.aspect[cl] in classes_a) or
+                (pgd.slope[cl] < 0.01 and ('0' in classes_s))):
 
             subsetClass.append(cl)
             mask.append(True)
@@ -108,7 +111,7 @@ def dictvarsPrep():
             'B7': 'SPM_VEG7',
             'SCF': 'WSN_VEG1',  # computing of SCF requires to read SWE_tot
             'R53': 'R53', 'R52': 'R52', 'R51': 'R51', 'R54': 'R54', 'R21': 'R21', 'R23': 'R23', 'R24': 'R24',
-            'DEP': 'DEP_TOT', 'SWE': 'SWE_TOT'}
+            'DEP': 'DEP', 'SWE': 'SWE'}  # caution : DEP_TOT is the depth of the previous timestep !!
 
 
 def dictvarsPro():
@@ -120,43 +123,23 @@ def dictvarsPro():
             'DEP': 'DSN_T_ISBA', 'SWE': 'WSN_T_ISBA'}
 
 
-def niceName(pgd, cl, tolist = False):
-    _, revdictAsp = dictsAspect()
-    return str(int(pgd.elev[cl])) + '_' + revdictAsp[pgd.aspect[cl]] + '_' + str(int(np.arctan(pgd.slope[cl]) * 180. / np.pi))
+class Opt(Values):
+    """
+    Opt is an object representing options of a command.
+    This class is initialized with a dict.
+    """
 
-
-def niceLabel(var, score = None, printunits=True):
-
-    if score is None:
-        sc = ''
-    else:
-        sc = score
-    units = {'SWE': '[$\mathrm{\mathsf{kgm^{-2}}}$]',
-             'DEP': '[$\mathrm{\mathsf{m}}$]',
-             'B5': '',
-             'B4': '',
-             }
-    if printunits:
-        u = units[var]
-    else:
-        u = ''
-
-    ddict = {'SWE': 'SWE {0} {1}'.format(sc, u),
-             'DEP': 'HS {0} {1}'.format(sc, u),
-             'B5': 'Band 5 {0} {1}'.format(sc, u),
-             'B4': 'Band 4 {0} {1}'.format(sc, u),
-             }
-    return ddict[var]
-
-
-def cm2inch(w, h):
-    return(0.393701 * w, 0.393701 * h)
-
-
-class ImmutableOpt(Values):
     def __init__(self, **kwargs):
         for name, val in kwargs.items():
-            Values.__setattr__(self, name, val)
+            # pydev editor show an error for Values.__setattr__
+            super(Opt, self).__setattr__(name, val)
+
+
+class ImmutableOpt(Opt):
+    """
+    This class is initialized with a dict.
+    Once instanciated, the object is immutable
+    """
 
     def __setattr__(self, name, value):
         raise Exception('This class is immutable.')
@@ -171,6 +154,9 @@ class Pgd:
     def __init__(self, pathPGD):
 
         pgd = netCDF4.Dataset(pathPGD)
+        bugfix = pgd.variables['BUG']
+        if bugfix == 0:
+            raise Exception(' Version of your PGD is deprecated (BUG==0) please update it by rerunning a spinup so that BUG>=1')
         self.path = pathPGD
         self.elev = np.squeeze(pgd.variables['MIN_ZS'][:])  # lower altitude
         self.slope = np.squeeze(pgd.variables['SSO_SLOPE'][:])
@@ -178,11 +164,7 @@ class Pgd:
         self.npts = self.elev.size
         self.lat = np.squeeze(pgd.variables['XY'][:])
         self.lon = np.squeeze(pgd.variables['XX'][:])
-        # in the case of postes geometries, a "SUPER" PGD (enhanced with numposts ('station') and type of postes) is put at pathPGD
-        if 'station' in pgd.variables.keys():
-            self.station = np.squeeze(pgd.variables['station'][:])
-            self.type = np.squeeze(pgd.variables['type'][:])
-            self.massif = np.squeeze(pgd.variables['massif'][:])
+
         pgd.close()
 
 
@@ -209,7 +191,7 @@ def colorbar(mappable):
 def setlistvars_obs(arg):
     """
     BC 6/02/19
-    convert a crocO argument options.vars into a list of OBS variables names in soda format
+    convert a crampon argument options.vars into a list of OBS variables names in soda format
     """
 
     if arg == 'all':
@@ -224,7 +206,7 @@ def setlistvars_obs(arg):
 def setlistvars_var(arg):
     """
     BC 6/02/19
-    convert a crocO argument options.vars into a list of VAR variables names in soda format
+    convert a crampon argument options.vars into a list of VAR variables names in soda format
     TODO : same stuff for DEP/ SCF etc.
     """
     if arg == 'all':
@@ -265,6 +247,11 @@ def read_conf(pathconf):
             shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
         else:
             raise FileNotFoundError('no conf file at this path :', pathconf)
+    try:
+        from vortex.layout.nodes import ConfigSet
+        from vortex.util.config import GenericConfigParser
+    except ImportError:
+        raise Exception("vortex is necessary to parse conf files.")
     iniparser = GenericConfigParser(pathconf)
     thisconf  = iniparser.as_dict(merged=False)
     updconf = thisconf.get('defaults', dict())
@@ -272,20 +259,6 @@ def read_conf(pathconf):
     conf.update(updconf)
 
     return conf
-
-
-def colorbar(mappable, ax = None):
-    """
-    from http://joseph-long.com/writing/colorbars/
-    """
-    if ax is None:
-        ax = mappable.axes
-    else:
-        ax = ax
-    fig = ax.figure
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    return fig.colorbar(mappable, cax=cax)
 
 
 def dictErrors():
@@ -328,6 +301,31 @@ def set_factors(argsoda, fact):
             return list(map(float, [fact])) * len(argsoda)
         else:
             raise Exception('you should either apply the same fact to all vars or specify it for each one')
+
+
+def read_opts_in_namelist(options):
+    """
+    read pf parameters in namelist
+    """
+    n = NamelistParser()
+    if hasattr(options, 'kind'):
+        if options.todo != 'localpp':
+            try:
+                N = n.parse(options.xpiddir + 'conf/namelist.surfex.foo')
+                print(' read the PF params in namelist:',
+                      options.xpiddir + 'conf/namelist.surfex.foo')
+            except FileNotFoundError:
+                N = n.parse(options.xpiddir + '/conf/OPTIONS.nam')
+                print(' read the PF params in namelist:', options.xpiddir + '/conf/OPTIONS.nam')
+    else:
+        N = n.parse(options.dates[0] + '/OPTIONS.nam')
+        print(' read the PF params in namelist:', options.dates[0] + '/OPTIONS.nam')
+    try:
+        options.nloc_pf = N['NAM_ASSIM'].NLOC_PF
+        options.neff_pf = N['NAM_ASSIM'].NEFF_PF
+        options.pf_crocus = N['NAM_ASSIM'].CPF_CROCUS
+    except AttributeError:
+        raise Exception('Some of the PF parameters are not defined in the namelist.')
 
 
 def check_namelist_soda(options, pathIn= None, pathOut = None):

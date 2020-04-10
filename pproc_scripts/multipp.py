@@ -1,16 +1,18 @@
 '''
 Created on 15 oct. 2019
-
 @author: cluzetb
-
-full eval on SWE, aggrclasses + time
+This pproc_scripts:
+- post processes the raw outputs of CRAMPON simulations into pickle files ( if they don't exist)
+- loads these pickle files
+- compute scores into pandas dataframe.
 '''
-from CrocOpp import CrocOpp
-from crocO import set_options
+from CramponPp import CramponPp
+from consts import CRAMPON
+from crampon import set_options
 from scores.ensemble import EnsembleScores
 import sys
 import time
-from utilcrocO import setSubsetclasses
+from utilcrampon import setSubsetclasses
 from utilpp import set_itimes, RMSE, spread
 
 import numpy as np
@@ -40,12 +42,12 @@ ppvars = 'DEP,SWE'
 k = 'SWE'
 # Neff = ['1', '10', '7']
 Neff = ['7']
-kind = 'fromol'
+kind = 'fromol'  # postes for fig.9 analysis
 scores = ['CRPS']
 # ###############################################
 suffix = '' if nens == 160 else '_{0}'.format(nens) if 'DEP' not in assimvars else '_{0}_{1}'.format(nens, assimvars)
 if len(Neff) > 0 and kind != 'postes':
-    suffixs = [suffix + '_' + n  if n is not '7' else suffix for n in Neff]
+    suffixs = [suffix + '_' + n if n is not '7' else suffix for n in Neff]
     suffix = suffixs
     SUFFIX_NAME = '_40_DEP_neffstudy'
 elif kind == 'postes':
@@ -84,24 +86,24 @@ itimesC = dict()
 for year in years:
     xp = 'art2_OL_{0}_t1500'.format(year)
     args = [
-        '/home/cluzetb/assim/crocO.py',
+        CRAMPON + '/crampon.py',
         '--xpid', xp,
         '-d', 'all',
         '--vars', assimvars,
         '--ppvars', ppvars,
         '-o', 'commitGMDtest',
-        '--classesE', '1800,2100,2400,2700,3000,3300,3600',
-        '--classesS', '0,20',
-        '--classesA', 'SW,S,SE,E',
+        '--classes_e', '1800,2100,2400,2700,3000,3300,3600',
+        '--classes_s', '0,20',
+        '--classes_a', 'SW,S,SE,E',
         # '--clim'
     ]
-    options, conf = set_options(args)
+    options = set_options(args)
 
-    OL[year] = CrocOpp(options, conf)  # full loading, expensive but necessary in exploration mode.
+    OL[year] = CramponPp(options)  # full loading, expensive but necessary in exploration mode.
     pgd = OL[year].pgd
     # set time and focus selection
-    focusCl = setSubsetclasses(pgd, options.classesE,
-                               options.classesA, options.classesS)[0]
+    focusCl = setSubsetclasses(pgd, options.classes_e,
+                               options.classes_a, options.classes_s)[0]
     nfocusCl = [p for p in range(pgd.npts) if p not in focusCl ]
 
     itimes[year], itimesC[year] = set_itimes(OL[year], clim = True)
@@ -166,19 +168,19 @@ for year in years:
                                       rr)
             print('xp', xp)
             args = [
-                '/home/cluzetb/snowtools_git/assim/crocO.py',
+                CRAMPON + '/crampon.py',
                 '--xpid', xp,
                 '-d', 'all',
                 '--vars', 'B4,B5,SCF' if kind != 'postes' else 'SCF',
                 '--ppvars', 'B4,B5,DEP,SWE'if kind != 'postes' else 'DEP,SWE',
                 '-o', 'commitGMDtest',
-                '--classesE', '1800,2100,2400,2700,3000,3300,3600'if kind != 'postes' else '1200,1500,1800,2100,2400',
-                '--classesS', '0,20' if kind != 'postes' else '0',
-                '--classesA', 'SW,S,SE,E',
+                '--classes_e', '1800,2100,2400,2700,3000,3300,3600'if kind != 'postes' else '1200,1500,1800,2100,2400',
+                '--classes_s', '0,20' if kind != 'postes' else '0',
+                '--classes_a', 'SW,S,SE,E',
             ]
-            options, conf = set_options(args)
+            options = set_options(args)
             # try:
-            run = CrocOpp(options, conf)
+            run = CramponPp(options)
             # except Exception:
             # print('bug with xp {0}, maybe it doesnot exist'.format(xp))
             # continue

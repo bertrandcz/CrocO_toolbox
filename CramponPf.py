@@ -5,35 +5,32 @@ Created on 5 févr. 2019
 @author: cluzetb, inspired on SodaXP, test_PF.py and snowtools_git/tasks/runs.py from Lafaysse
 '''
 from ParticleFilter import ParticleFilter
-from PostCroco import PostCroco
 from SemiDistributed import Synthetic, Real
 import os
-
 import shutil
-from utilcrocO import convertdate, area, check_namelist_soda
+from utilcrampon import convertdate, area, check_namelist_soda
 
 import matplotlib.pyplot as plt
 
 
 # import numpy as np
-class CrocO(object):
+class Crampon(object):
     '''
-    Class for local soda test
+    Mother class for CRAMPON pf local tests, local CRAMPON runs and post-processing
     '''
 
     def __init__(self, options):
 
         self.options = options
 
-        self.rootdir = options.vortexpath + '/' + options.vapp + '/' + options.vconf + '/'
+        self.rootdir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/'
         self.xpiddir = options.xpiddir
-        self.mblist = list(range(1, options.nmembers + 1))
 
         if not os.path.exists(self.xpiddir):
             raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
 
         # set dirs
-        self.crocodir = self.xpiddir + 'crocO/'
+        self.crampondir = self.xpiddir + 'crampon/'
         self.machine = os.uname()[1]
 
         if 'sxcen' not in self.machine:
@@ -57,23 +54,25 @@ class CrocO(object):
             self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking)
 
 
-class CrocOrun(CrocO):
+class CramponPf(Crampon):
     '''
-    class meant to perform LOCAL runs of the pf and post-process it
+    class meant to perform LOCAL runs of the pf
     '''
 
     def __init__(self, options, setup = True):
 
-        CrocO.__init__(self, options)
-
+        Crampon.__init__(self, options)
+        # for the local soda PF, it is safer if mblist is a continous range (no removal of the synth mb but one mb less.
+        # handling of the synth member is done in prepare_soda_env
+        self.mblist = list(range(1, options.nmembers + 1))
         # setup all dirs
         if setup is True:
             self.setup()
 
     def setup(self):
-        if not os.path.exists(self.crocodir):
-            os.mkdir(self.crocodir)
-        os.chdir(self.crocodir)
+        if not os.path.exists(self.crampondir):
+            os.mkdir(self.crampondir)
+        os.chdir(self.crampondir)
         if not os.path.exists(self.options.saverep):
             os.mkdir(self.options.saverep)
         os.chdir(self.options.saverep)
@@ -106,8 +105,9 @@ class CrocOrun(CrocO):
                 self.build_link(mb, mb, path, dateAssSoda)
         if not os.path.exists('PREP.nc'):
             os.symlink('PREP_' + dateAssSoda + '_PF_ENS1.nc', 'PREP.nc')
+
         if not os.path.exists('PGD.nc'):
-            os.symlink(self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
+            os.symlink(self.options.pathPgd, 'PGD.nc')
 
         # Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
         if not os.path.exists('OPTIONS.nam'):
@@ -143,6 +143,10 @@ class CrocOrun(CrocO):
             if self.options.todo != 'pfpython':
                 os.system('./soda.exe')
             else:
+                # BC April 2020
+                # nice but not maintaned and deprecated class
+                # which allowed to test and develop locally python version of the PF
+                # before implementing it into fortran.
                 plot = True
                 if plot:
                     plt.figure()
@@ -156,11 +160,27 @@ class CrocOrun(CrocO):
                     plt.show()
             os.chdir('..')
 
-    def post_proc(self, options):
-        if self.options.todo == 'pfpython':
-            postp = PostCroco(self.xpiddir, self.xpiddir, options, pf = self.pf)
-            pb = postp.run()
-            return pb
-        else:
-            postp = PostCroco(self.xpiddir, self.xpiddir, options)
-            postp.run()
+
+class CramponObs(Crampon):
+
+    def __init__(self, options):
+        Crampon.__init__(self, options)
+        print('ooooobs',)
+        self.setup()
+
+    def setup(self):
+        if not os.path.exists(self.crampondir):
+            os.mkdir(self.crampondir)
+        os.chdir(self.crampondir)
+        if not os.path.exists(self.options.saverep):
+            os.mkdir(self.options.saverep)
+        os.chdir(self.options.saverep)
+        for dd in self.options.dates:
+            if dd in self.options.dates:
+                if os.path.exists(dd):
+                    # pass
+                    shutil.rmtree(dd)
+                os.mkdir(dd)
+                os.chdir(dd)
+                self.prepare_obs(dd)
+                os.chdir('..')

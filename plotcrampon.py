@@ -6,8 +6,8 @@ Created on 6 févr. 2019
 '''
 from SemiDistributed import PrepAbs
 import os
-from utilcrocO import dictErrors, niceName, niceLabel
-from utilcrocO import setSubsetclasses, cm2inch
+from utilcrampon import dictErrors, setSubsetclasses
+from utilplot import cm2inch, niceName, niceLabel
 from utilpp import set_itimes
 
 from matplotlib.colors import Normalize
@@ -42,10 +42,10 @@ class Pie(object):
         if not self.sdObj.isloaded:
             self.sdObj.load()  # -> it is not always loaded (ex. of synth obs)
         self.sel = np.unique(self.sdObj.pgd.elev)
-        if isinstance( sdObj.options.classesS, str):
-            self.ssl = [sdObj.options.classesS]
+        if isinstance( sdObj.options.classes_s, str):
+            self.ssl = [sdObj.options.classes_s]
         else:
-            self.ssl = sdObj.options.classesS
+            self.ssl = sdObj.options.classes_s
         self.sas = 'all'
         self.rmax = float(np.max(self.sdObj.pgd.elev)) + 300.
 
@@ -65,7 +65,7 @@ class Pie(object):
         self.maketitle = maketitle
         self.score = score
 
-    def plot(self, ax = None, savefig = False, cmap = 'viridis', clims = None, title = None, colortitle = None):
+    def plot(self, ax = None, savefig = False, cmap = 'viridis', clims = None, title = None, colortitle = None, savepath = None):
         N = 8.
         width = 2. * np.pi / N
 
@@ -204,18 +204,21 @@ class Pie(object):
             elif self.title is not None and self.maketitle is not False:
                 plt.suptitle(self.title, fontsize = 15)
             if savefig:
-                print('im here before saving', os.getcwd())
-                if hasattr(self, 'focusCl'):
-                    if len(self.focusCl) == 0:
-                        fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '_' + '_' + str(int(self.sdObj.pgd.elev[self.focusCl])) +
-                                    '_' + str(int(self.sdObj.pgd.aspect[self.focusCl])) +
-                                    '_'      + str(int(np.arctan(self.sdObj.pgd.slope[self.focusCl]) * 180. / np.pi))  + '_' + self.sdObj.date + '.png')
-                    else:
-                        fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '.png', dpi=200)
+                if savepath is None:
+                    print('im here before saving', os.getcwd())
+                    if hasattr(self, 'focusCl'):
+                        if len(self.focusCl) == 0:
+                            fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '_' + '_' + str(int(self.sdObj.pgd.elev[self.focusCl])) +
+                                        '_' + str(int(self.sdObj.pgd.aspect[self.focusCl])) +
+                                        '_'      + str(int(np.arctan(self.sdObj.pgd.slope[self.focusCl]) * 180. / np.pi))  + '_' + self.sdObj.date + '.png')
+                        else:
+                            fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '.png', dpi=200)
 
-                else:
-                    fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '.png')
+                    else:
+                        fig.savefig('../pie/' + var + 'pie_' + self.sdObj.ptinom + '.png')
                 # plt.close()
+                else:
+                    fig.savefig(savepath[0:-4] + '_' + var + savepath[-4:])
                 plt.show()
             else:
                 plt.show()
@@ -253,7 +256,7 @@ def spaghettiMarie(run, xtimes, ol, truth, an, cl, var, clim=None,
         _, ax = plt.subplots(figsize=(14, 5))
 
     # plt.ylim([0., 700.])
-    for tt in run.conf.assimdates:
+    for tt in run.assimdates:
         ax.axvline(x=tt, ymin=0, ymax=500, color='k', lw=0.5, linestyle='--', )
     if density is False:
         if score is not None:
@@ -446,8 +449,7 @@ def snsscatter_2vars(options, pb, pa, obsReal, var1, var2, cl, savefig = False):
 
 
 def plot_pie_fromstack(run, kind, date, mb, listvar, ptinom='crpsa', focusCl=None, focusColors=None):
-    sdObj = PrepAbs(date, run.options, ptinom=ptinom,
-                    pgdPath=run.xpiddir + '/crocO/' + run.options.saverep + '/PGD.nc')
+    sdObj = PrepAbs(date, run.options, ptinom=ptinom,)
     data = dict()
     sdObj.options.ppvars = listvar
     for var in sdObj.options.ppvars:
@@ -459,7 +461,7 @@ def plot_pie_fromstack(run, kind, date, mb, listvar, ptinom='crpsa', focusCl=Non
     sdObj.data = data
     sdObj.isloaded = True
     sdObj.pgd = run.pgd
-    sdObj.options.classesS = ['0', '20', '40']
+    sdObj.options.classes_s = ['0', '20', '40']
     return sdObj, Pie(sdObj, focusCl=focusCl, focusColors=focusColors)
 
 

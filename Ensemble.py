@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 Created on 6 févr. 2019
-
+Objects describing ensembles of Prep files.
 @author: cluzetb
 '''
 from SemiDistributed import PrepBg, PrepAn, PrepAbs
@@ -19,7 +19,7 @@ class Ensemble(object):
 
 class PrepEns(Ensemble):
     """
-    ensemble of prep. 
+    ensemble of prep.
     Data is stored twice and instanciating takes time : to ameliorate in the future.
     """
     _abstract = True
@@ -98,7 +98,7 @@ class PrepEnsAn(PrepEns):
 
 class PrepEnsAbs(PrepEns):
 
-    def __init__(self, options, date, pgdPath = 'PGD.nc'):
+    def __init__(self, options, date):
         PrepEns.__init__(self, options, date)
         for mb in range(1, self.nmembers + 1):
-            self.ens[mb] = PrepAbs(date, options, ptinom = 'abs' + str(mb), pgdPath = pgdPath)
+            self.ens[mb] = PrepAbs(date, options, ptinom = 'abs' + str(mb))

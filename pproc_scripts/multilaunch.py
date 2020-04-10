@@ -4,19 +4,19 @@ Created on 15 oct. 2019
 
 @author: cluzetb
 '''
-from crocO import set_options
+from consts import CRAMPON
+from crampon import set_options
 import os
-import re
 from tasks.vortex_kitchen import vortex_conf_file
-from utilcrocO import check_namelist_soda, get_leading_number, get_trailing_number
+from utilcrampon import check_namelist_soda, get_leading_number, get_trailing_number
 
 
 # ########## PARAMS ##########################
-runs = ['global', 'klocal1', 'rlocal']
+runs = ['global', 'klocal5', 'rlocal']
 nens = 40
 neff = 7
-# kind = 'fromol'
-kind = 'postes'
+kind = 'fromol'
+# kind = 'postes' run of fig.9
 assimvars = 'DEP'
 years = [2013, 2014, 2015, 2016]
 
@@ -48,13 +48,7 @@ dictOl = {2013: 'art2_OL_2013_t1500@cluzetb',
           2014: 'art2_OL_2014_t1500',
           2015: 'art2_OL_2015_t1500',
           2016: 'art2_OL_t1500@cluzetb', }
-# dates = dict()
-# dates['DEP'] = dict()
-# dates['DEP'][2013] = '2013112210,2013122910,2014012510,2014022211,2014032810,2014042711'
-# dates['DEP'][2016] = '2016111210,2016121410,2017011511,2017021611,2017031310,2017041410,2017051610,2017060811'
-# dates['B4,B5'] = dict()
-# dates['B4,B5'][2013] = 'all'
-# dates['B4,B5'][2016] = 'all'
+
 suffixrun = '' if nens == 160 else '_{0}'.format(nens) if 'DEP' not in assimvars else '_{0}_{1}'.format(nens, assimvars)
 suffixrun = '_40_DEP_' + str(neff)
 # generate runs on beaufix
@@ -74,7 +68,7 @@ for year in years:
             # 1.  prepare namelist and conf files.
             xp = '{0}_{1}_{2}{3}'.format(year, mbsynth, run, suffixrun)
             args = [
-                '/home/cluzetb/Code/Dev/crocO.py',
+                CRAMPON + '/crampon.py',
                 '-d', 'all',
                 '--pf', run,
                 '--synth', str(mbsynth) if kind != 'postes' else mbnum,
@@ -86,7 +80,7 @@ for year in years:
                 '--ppvars', 'DEP,SWE',
             ]
             defaultConf = '/home/cluzetb/article2/{0}/s2m_12_{1}.ini'.format(nens, year)
-            options, conf = set_options(args,
+            options = set_options(args,
                                         pathConf=defaultConf)
             pathNamRun = '/home/cluzetb/article2/tmp/OPTIONS_{0}.nam'.format(xp)
             check_namelist_soda(options, pathIn = '/home/cluzetb/article2/OPTIONS_MOTHER.nam', pathOut = pathNamRun)
@@ -105,7 +99,7 @@ for year in years:
                 confRun.close()
 
             # 2.  launch the run
-            cmd = ['python /home/cluzetb/snowtools_git/tasks/s2m_command.py',
+            cmd = ['python ' + os.environ['SNOWTOOLS_CEN'] + '/tasks/s2m_command.py',
                    '-b', '{0}0801'.format(year),
                    '-e', '{0}0730'.format(year + 1),
                    '-f', 'forcing_{0}{1}B_31D_11_t1500_160'.format(year, year + 1),
@@ -126,7 +120,7 @@ for year in years:
             if kind == 'fromol':
                 cmd.append('--synth {0}'.format(mbsynth))
                 cmd.append('--sensor ' + 'mb{0:04d}'.format(mbsynth))
-            if kind == 'postes':
+            elif kind == 'postes':
                 cmd.append('--synth {0}'.format(mbnum))
                 cmd.append('--sensor ' + 'mb{0:04d}_{1}'.format(int(mbnum), kind))
 

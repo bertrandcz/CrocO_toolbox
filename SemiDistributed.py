@@ -3,13 +3,16 @@
 Created on 5 févr. 2019
 
 @author: cluzetb
-Module for preparing/faking/ observations within crocO framework
+Classes manipulation Semi-distributed objects :
+- preparing/faking/ synthetic observations observations within crampon framework
+- loading prep files/obervations
+- ...
 
 '''
 import os
-from utilcrocO import Pgd, convertdate
-from utilcrocO import area
-from utilcrocO import setlistvars_obs, setlistvars_var, setSubsetclasses,\
+from utilcrampon import Pgd, convertdate
+from utilcrampon import area
+from utilcrampon import setlistvars_obs, setlistvars_var, setSubsetclasses,\
     dictvarsPrep
 from utils.prosimu import prosimu
 
@@ -20,7 +23,7 @@ import numpy as np
 
 class SemiDistributed(object):
     '''
-    class for semi-distributed files (obs or PREP) bound to a geometry described by a pgd in current crocOdir
+    class for semi-distributed files (obs or PREP) bound to a geometry described by a pgd in current crampondir
     '''
     _abstract = True
 
@@ -35,8 +38,9 @@ class Obs(SemiDistributed):
     '''
     _abstract = True
 
-    def __init__(self, date, options, pgdPath = 'PGD.nc'):
-        SemiDistributed.__init__(self, pgdPath = pgdPath)
+    def __init__(self, date, options):
+        self.pgd = options.pgd
+        self.isloaded = False
         self.options = options
         self.sodaName = 'OBSERVATIONS_' + convertdate(date).strftime('%y%m%dH%H') + '.nc'
         self.vortexname = 'obs_' + options.sensor + '_' + area(options.vconf) + '_' + date + '.nc'
@@ -139,9 +143,9 @@ class Obs(SemiDistributed):
 
     def create_new(self, Raw, newFile, options, fromArch = False, maskit = False):
         New = netCDF4.Dataset(newFile, 'w')
-        if (not options.distr) and maskit:
+        if maskit:
             print('masking into', newFile)
-            subset, mask = self.subset_classes(self.pgd, options)
+            _, mask = self.subset_classes(self.pgd, options)
             self.copydimsvars(Raw, New, self.listvar, fromArch = fromArch, mask=mask)
             self.computeratio(Raw, New, self.listvar, mask=mask)
         else:
@@ -152,14 +156,12 @@ class Obs(SemiDistributed):
         """
         in the SODA copy of the observation file, remove classes where the assim shouldn't be performed
         """
-        if options.distr is True:
-            mask = None
+
+        if options.classes_id is None:  # user can specify a list of classes instead of a selection by Elev,A,S
+            subset, mask = setSubsetclasses(pgd, options.classes_e, options.classes_a, options.classes_s)
         else:
-            if options.classesId is None:  # user can specify a list of classes instead of a selection by Elev,A,S
-                subset, mask = setSubsetclasses(pgd, options.classesE, options.classesA, options.classesS)
-            else:
-                subset = options.classesId
-                mask = np.array([True if i in list(map(int, options.classesId)) else False for i in range(self.pgd.npts)])
+            subset = options.classes_id
+            mask = np.array([True if i in list(map(int, options.classes_id)) else False for i in range(self.pgd.npts)])
         return subset, mask
 
     def copydimsvars(self, Raw, New, nameVars, fromArch = False, mask = None):
@@ -182,13 +184,17 @@ class Obs(SemiDistributed):
             if readName in list(Raw.variables.keys()):  # if var exists in Raw (and if it is not a ratio)
                 var = Raw.variables[readName]
                 tmpvar = var[:]
-            elif readName == 'SWE_TOT':
-                # dd = prosimu()
+            elif readName == 'DEP':
+                var = Raw.variables['WSN_VEG1']
+                tmpvar = np.nansum([(Raw.variables['WSN_VEG' + str(i + 1)][:] / Raw.variables['RSN_VEG' + str(i + 1)][:]) /
+                                    np.cos(np.arctan(self.pgd.slope[:]))
+                                    for i in range(0, 50)], axis = 0)
+            elif readName == 'SWE':
                 var = Raw.variables['WSN_VEG1']  # for the reading of attributes
                 tmpvar = np.nansum([Raw.variables['WSN_VEG' + str(i + 1)] /
                                     np.cos(np.arctan(self.pgd.slope[:]))
                                     for i in range(0, 50)], axis = 0)
-            if readName in list(Raw.variables.keys()) or readName == 'SWE_TOT':
+            if readName in list(Raw.variables.keys()) or readName in ['DEP', 'SWE']:
                 tmp = New.createVariable(writeName, 'float', var.dimensions)
                 # copy attributes
                 tmp.setncatts({k: var.getncattr(k) for k in var.ncattrs()})
@@ -231,7 +237,7 @@ class Synthetic(Obs):
     Class describing synthetic obs
     """
 
-    def __init__(self, xpiddir, date, options, nmembers = 35):
+    def __init__(self, xpiddir, date, options, nmembers = 35, ):
         '''
         Constructor
         '''
@@ -257,11 +263,11 @@ class Real(Obs):
     Class describing real obs
     """
 
-    def __init__(self, xpidobsdir, date, options, pgdPath = 'PGD.nc'):
+    def __init__(self, xpidobsdir, date, options):
         '''
         Constructor
         '''
-        Obs.__init__(self, date, options, pgdPath = pgdPath)
+        Obs.__init__(self, date, options)
         if self.options.todo == 'generobs':
             self.sodaName = xpidobsdir + 'obs_' + options.xpidobs + '_' + area(options.vconf) + '_' + date + '.nc'
         else:
@@ -279,7 +285,7 @@ class Archived(Obs):
     def __init__(self, path, date, options, ptinom = 'archive'):
         Obs.__init__(self, date, options)
         self.path = path
-        self.sodaName = self.path + 'crocO/ARCH/' + options.sensor + '/' + self.vortexname
+        self.sodaName = self.path + 'crampon/ARCH/' + options.sensor + '/' + self.vortexname
         self.dictVarsRead = {name: name for name in self.listvar}
         self.dictVarsWrite = self.dictVarsRead
         self.loadDict = self.dictVarsWrite
@@ -306,8 +312,9 @@ class Prep(SemiDistributed):
     """
     _abstract = True
 
-    def __init__(self, options, pgdPath = 'PGD.nc'):
-        SemiDistributed.__init__(self, pgdPath = pgdPath)
+    def __init__(self, options):
+        self.pgd = options.pgd
+        self.isloaded = False
         self.options = options
         self.listvar = set(options.vars + options.ppvars)
         # if 'DEP' not in self.listvar:
@@ -385,8 +392,8 @@ class PrepAbs(Prep):
     e.g. medians, covariance etc.
     '''
 
-    def __init__(self, date, options, ptinom, pgdPath = 'PGD.nc'):
-        Prep.__init__(self, options, pgdPath = pgdPath)
+    def __init__(self, date, options, ptinom):
+        Prep.__init__(self, options)
         self.date = date
         self.ptinom = ptinom
         self.data = dict()
