@@ -34,7 +34,7 @@ dictmembers = {2013: [66, 12, 122, 149],
                2015: [92, 97, 14, 141],
                2016: [50, 153, 90, 117]}
 
-nens = 160
+nens = 40
 # assimvars = 'B4,B5,SCF'
 assimvars = 'B4,B5'
 # assimvars = 'B4,B5,DEP,SWE'
@@ -129,20 +129,12 @@ for year in years:
         OL[year].readTruth()
         fTruth[year][mbsynth] = OL[year].truth[k][:, focusCl][itimes[year], :]
         nfTruth[year][mbsynth] = OL[year].truth[k][:, nfocusCl][itimes[year], :]
-        print('shptruth', np.shape(fTruth[year][mbsynth]), np.shape(nfTruth[year][mbsynth]))
     for mbsynth in dictSynth[year]:
         if 'CRPS' in scores:
             fEnsProOl_flat = fEnsProOl.reshape(-1, fEnsProOl.shape[-1])
             # fEnsProCl_flat = fEnsProCl.reshape(-1, fEnsProCl.shape[-1])
             nfEnsProOl_flat = nfEnsProOl.reshape(-1, nfEnsProOl.shape[-1])
             # nfEnsProCl_flat = nfEnsProCl.reshape(-1, nfEnsProCl.shape[-1])
-            print('yoyo', year, mbsynth,)
-            print(EnsembleScores(list(range(fEnsProOl_flat.shape[0])),
-                                 list(range(fEnsProOl_flat.shape[0])),
-                                 fTruth[year][mbsynth].flatten(),
-                                 fEnsProOl_flat.T,
-                                 ).CRPS_decomp())
-            print(dfScores_CRPS.loc[pd.IndexSlice[(year, mbsynth, 'f')], ['ol' + '_CRPS', 'ol' + '_Reli', 'ol' + '_Resol']])
             dfScores_CRPS.loc[pd.IndexSlice[(year, mbsynth, 'f')], ['ol' + '_CRPS', 'ol' + '_Reli', 'ol' + '_Resol']] = EnsembleScores(list(range(fEnsProOl_flat.shape[0])),
                                                                                                                                        list(range(fEnsProOl_flat.shape[0])),
                                                                                                                                        fTruth[year][mbsynth].flatten(),

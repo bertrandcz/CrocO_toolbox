@@ -12,6 +12,7 @@ Created on 5 feb. 2019
 '''
 from CramponPf import CramponPf, CramponObs
 from CramponPp import CramponPp
+import datetime
 from optparse import OptionParser, Values
 import os
 import random
@@ -48,8 +49,8 @@ def parse_options(arguments):
                       help="vconf (geometry) of the soda-vortex task")
     parser.add_option("--todo",
                       action = 'store', type = 'choice', dest='todo', default = None,
-                      choices=('generobs', 'localrun', 'localpp', 'beaufixpp', 'pf', 'pfpython'),
-                      help= 'type of evaluation. localpp : post-process local run of the pf (previously ran --todo {pf,pfpython}). beaufixpp: load post-processing done on beaufix.')
+                      choices=('generobs', 'localrun', 'pfpp', 'parallelpp', 'pf', 'pfpython', 'parallel'),
+                      help= 'type of evaluation. pfpp : post-process local run of the pf (previously ran --todo {pf,pfpython}). parallelpp: load post-processing done on beaufix.')
     parser.add_option("--nmembers",
                       action = 'store', type = int, dest='nmembers', default = None,
                       help= 'specify the number of members.')
@@ -90,8 +91,8 @@ def parse_options(arguments):
     parser.add_option("--archive_synth",
                       action = 'store_true', dest = 'archive_synth', default = False,
                       help = 'specify if you want to archive the synthetical obs with its mask or not.')
-    parser.add_option("--need_masking",
-                      action = 'store_false', dest = 'need_masking', default = True,
+    parser.add_option("--no_need_masking",
+                      action = 'store_true', dest = 'no_need_masking', default = False,
                       help = 'specify if you need to mask the obs or use it as it is;')
     parser.add_option("--readprep",
                       action = 'store_true', dest = 'readprep', default = False,
@@ -114,6 +115,32 @@ def parse_options(arguments):
     parser.add_option("--clim",
                       action = 'store_true', dest = 'clim', default = False,
                       help = 'read the clim')
+    # new opts for parallel run
+    parser.add_option("--arch",
+                      type="string", action="store", dest="arch", default=None,
+                      help=" absolute path to the archive (default=xpid)")
+    parser.add_option("-n",
+                      type = 'string', dest = 'namelist',
+                      default = os.environ['SNOWTOOLS_CEN'] + '/DATA/OPTIONS_V81_NEW_OUTPUTS_NC.nam')
+    parser.add_option("-b", "--begin",
+                      action="store", type="string", dest="datedeb", default=None,
+                      help="Date to start the simulation (YYYYMMDD): MANDATORY OPTION")
+
+    parser.add_option("-e", "--end",
+                      action="store", type="string", dest="datefin", default=None,
+                      help="Date to finish the simulation (YYYYMMDD): MANDATORY OPTION (unless --oper)")
+
+    parser.add_option("-f", "--forcing",
+                      action="store", type="string", dest="forcing", default=None,
+                      help="path of the forcing file or of the directory with the forcing files - default: None")
+
+    parser.add_option("--escroc",
+                      action="store", type="string", dest="escroc", default=None,
+                      help="ESCROC subensemble")
+    parser.add_option("--spinup",
+                      action='store', type='string', dest = 'spinup', default=None,
+                      help='path to the pgd and prep files')
+
     opts_no_defaults = Values()
     __, args = parser.parse_args(arguments, values=opts_no_defaults)
     options = Values(parser.get_default_values().__dict__)
@@ -131,7 +158,7 @@ def callvars(option, opt, value, parser):
         setattr(parser.values, option.dest, value)
 
 
-def set_options(args, readConf = True, pathConf = None, pathPgd = None, mutable=False):
+def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPgd = None, mutable=False):
     """
     This methods allows to parse, format and check the options of the crampon command and merge them with those written in the configuration file (pathConf, if any).
     The user-provided options with supersede the values written in the configuration file which supersed over the default not in args options.
@@ -146,10 +173,14 @@ def set_options(args, readConf = True, pathConf = None, pathPgd = None, mutable=
         raise Exception('you must export CRAMPONPATH to the root of your local experiments.')
     else:
         options.cramponpath = os.environ['CRAMPONPATH']
-    try:
-        options.xpiddir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpid + '/'
-    except AttributeError:
-        print('you must prescribe an xpid (root of your experiment), located at $CRAMPONPATH/s2m/<geometry>/xpid/ and create it before the simulation')
+    if not os.path.isabs(options.xpid):
+
+        try:
+            options.xpiddir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpid + '/'
+        except AttributeError:
+            print('you must prescribe an xpid (root of your experiment), located at $CRAMPONPATH/s2m/<geometry>/xpid/ and create it before the simulation')
+    else:
+        options.xpiddir = options.xpid
     if options.xpidobs is not None:
         options.xpidobsdir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.xpidobs + '/'
     if options.xpidol is not None:
@@ -218,12 +249,20 @@ def set_options(args, readConf = True, pathConf = None, pathPgd = None, mutable=
                 conf.stopdates = list(map(str, conf.stopdates))
 
         # in the case we are pping, and options.dates =='all', we must set options.dates to the assimdates of the conf file
-
         if options.dates and 'all' in options.dates:
-            if hasattr(conf, 'stopdates'):
-                options.dates = conf.stopdates[0:-1]
-            else:
-                options.dates = conf.assimdates[0:-1]
+            # conf.stopdates is useful in parallel mode
+            if not hasattr(conf, 'stopdates'):
+                if options.datefin:
+                    conf.stopdates = conf.assimdates + [options.datefin]
+                else:
+                    try:
+                        test = datetime.datetime.strptime(conf.datefin, '%Y%m%d%H')
+                    except ValueError:
+                        test = datetime.datetime.strptime(conf.datefin, "%Y-%m-%d %H:%M:%S")
+                        print('there should be a bug when reading the conf file with vortex. Not handled a the moment')
+                    conf.stopdates = conf.assimdates + [test]
+
+            options.dates = conf.assimdates
         # set openloop or not.
         if not hasattr(conf, 'openloop'):
             conf.openloop = 'off'
@@ -313,7 +352,7 @@ def execute(args):
     """
 
     options = set_options(args)
-    if options.todo in ['localpp', 'beaufixpp']:
+    if options.todo in ['pfpp', 'parallelpp']:
         run = CramponPp(options)
     elif options.todo in ['pf', 'pfpython']:
         run = CramponPf(options)

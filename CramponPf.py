@@ -7,7 +7,9 @@ Created on 5 févr. 2019
 from ParticleFilter import ParticleFilter
 from SemiDistributed import Synthetic, Real
 import os
+import random
 import shutil
+import subprocess
 from utilcrampon import convertdate, area, check_namelist_soda
 
 import matplotlib.pyplot as plt
@@ -27,16 +29,31 @@ class Crampon(object):
         self.xpiddir = options.xpiddir
 
         if not os.path.exists(self.xpiddir):
-            raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
-
+            if self.options.todo == 'parallel':
+                os.mkdir(self.xpiddir)
+            else:
+                raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
         # set dirs
-        self.crampondir = self.xpiddir + 'crampon/'
+        if self.options.todo == 'parallel':
+            self.crampondir = self.xpiddir
+        else:
+            self.crampondir = self.xpiddir + 'crampon/'
         self.machine = os.uname()[1]
 
         if 'sxcen' not in self.machine:
             self.exesurfex = os.environ['EXESURFEX']
         else:
             self.exesurfex = None
+
+    def prepare_namelist(self):
+        """
+        Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
+        """
+        print('copying namelist', os.getcwd())
+        if not os.path.exists('OPTIONS.nam'):
+            nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
+            namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
+            shutil.copyfile(namelist, 'OPTIONS_base.nam')
 
     def prepare_obs(self, date):
         """
@@ -51,7 +68,7 @@ class Crampon(object):
         else:
             # real obs are obtained in xpidobs
             self.obs = Real(self.options.xpidobsdir, date, self.options)
-            self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking)
+            self.obs.prepare(archive_synth = self.options.archive_synth, no_need_masking = self.options.no_need_masking)
 
 
 class CramponPf(Crampon):
@@ -73,47 +90,44 @@ class CramponPf(Crampon):
         if not os.path.exists(self.crampondir):
             os.mkdir(self.crampondir)
         os.chdir(self.crampondir)
-        if not os.path.exists(self.options.saverep):
-            os.mkdir(self.options.saverep)
-        os.chdir(self.options.saverep)
+        if self.options.todo != 'parallel':
+            saverep = self.options.saverep
+            if not os.path.exists(saverep):
+                os.mkdir(saverep)
+        else:
+            saverep = ''
+
+        os.chdir(self.crampondir + '/' + saverep)
         for dd in self.options.dates:
+            if self.options.todo == 'parallel':
+                path = self.crampondir + '/' + saverep + '/' + dd + '/workSODA'
+            else:
+                path = self.crampondir + '/' + saverep + '/' + dd
             if dd in self.options.dates:
-                if os.path.exists(dd):
-                    # pass
-                    shutil.rmtree(dd)
-                os.mkdir(dd)
-                self.prepare_sodaenv(dd)
+                if os.path.exists(path):
+                    shutil.rmtree(path)
+                print('ppppath', path)
+                os.makedirs(path)
+                self.prepare_sodaenv(path, dd)
             else:
                 print(('prescribed date ' + dd + 'does not exist in the experiment, remove it.'))
                 self.options.dates.remove(dd)
 
-    def prepare_sodaenv(self, path):
+    def prepare_sodaenv(self, path, date):
         """
         set soda environment for each date (=path): -PGD, links to preps, namelist, ecoclimap etc.
         """
-
+        cwd = os.getcwd()
         os.chdir(path)
-        # Prepare the PGD and PREP for assim
-        dateAssSoda = convertdate(path).strftime('%y%m%dH%H')
-        for mb in self.mblist:
-            if self.options.synth is not None:
-                if mb < self.options.synth:
-                    self.build_link(mb, mb, path, dateAssSoda)
-                else:
-                    self.build_link(mb + 1, mb, path, dateAssSoda)
-            else:
-                self.build_link(mb, mb, path, dateAssSoda)
-        if not os.path.exists('PREP.nc'):
-            os.symlink('PREP_' + dateAssSoda + '_PF_ENS1.nc', 'PREP.nc')
-
         if not os.path.exists('PGD.nc'):
             os.symlink(self.options.pathPgd, 'PGD.nc')
+        self.prepare_namelist()
 
-        # Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
-        if not os.path.exists('OPTIONS.nam'):
-            shutil.copyfile(self.xpiddir + 'conf/namelist.surfex.foo', 'OPTIONS_base.nam')
-        check_namelist_soda(self.options)
-
+        # in the parallel case, the namelist is checked by CrocOparallel class
+        if self.options.todo != 'parallel':
+            check_namelist_soda(self.options)
+        else:
+            os.rename('OPTIONS_base.nam', 'OPTIONS.nam')
         if 'sxcen' not in self.machine:
             # prepare ecoclimap binaries
             if not os.path.exists('ecoclimapI_covers_param.bin'):
@@ -125,18 +139,47 @@ class CramponPf(Crampon):
                 os.symlink(self.exesurfex + '/SODA', 'soda.exe')
 
         # prepare (get or fake) the obs
-        self.prepare_obs(path)
-        os.chdir('..')
+        self.prepare_obs(date)
 
-    def build_link(self, mb, imb, path, dateAssSoda):
-        try:
-            os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb)  + '/bg/PREP_' + path + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
-        except Exception:
-            os.remove('PREP_' + path + '_PF_ENS' + str(imb + 1) + '.nc')
-            os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb) + '/bg/PREP_' + path + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
+        # prepare the pgd and prep files.
+        # in local parallel sequence, must be done only once the corresponding escroc run has produced the files
+        if self.options.todo != 'parallel':
+            self.prepare_preps(date)
+        os.chdir(cwd)
+
+    def prepare_preps(self, date):
+        '''
+        Prepare the PREP files for SODA.
+        '''
+        dateAssSoda = convertdate(date).strftime('%y%m%dH%H')
+        for mb in self.mblist:
+            if self.options.synth is not None:
+                if mb < self.options.synth:
+                    self.build_link(mb, mb, date, dateAssSoda)
+                else:
+                    self.build_link(mb + 1, mb, date, dateAssSoda)
+            else:
+                self.build_link(mb, mb, date, dateAssSoda)
+        # a link fro PREP...1.nc to PREP.nc is also necessary for SODA
+        if not os.path.exists('PREP.nc'):
+            os.symlink('PREP_' + dateAssSoda + '_PF_ENS1.nc', 'PREP.nc')
+
+    def build_link(self, mb, imb, date, dateAssSoda):
+        if self.options.todo != 'parallel':
+            try:
+                os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb)  + '/bg/PREP_' + date + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
+            except Exception:
+                os.remove('PREP_' + date + '_PF_ENS' + str(imb + 1) + '.nc')
+                os.symlink(self.xpiddir + 'mb{0:04d}'.format(mb) + '/bg/PREP_' + date + '.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
+        else:  # in parallel mode, bg and an reps do not exist.
+            try:
+                os.symlink(self.xpiddir + date + '/mb{0:04d}'.format(mb)  + '/SURFOUT.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
+            except Exception:
+                os.remove('PREP_' + date + '_PF_ENS' + str(imb + 1) + '.nc')
+                os.symlink(self.xpiddir + date + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc', 'PREP_' + dateAssSoda + '_PF_ENS' + str(imb) + '.nc')
 
     def run(self):
-        """spawn soda in each date repertory"""
+        """spawn soda in each date directory"""
         os.system('ulimit -s unlimited')
         for dd in self.options.dates:
             os.chdir(dd)
@@ -159,6 +202,18 @@ class CramponPf(Crampon):
                 if plot:
                     plt.show()
             os.chdir('..')
+
+    def run_parallel(self, date):
+        """
+        This method allows to run soda inside a parallelized assimilation sequence.
+        /!\ soda is not parallelized (NOMPI mode).
+        """
+        os.chdir(self.xpiddir + date + '/workSODA')
+        self.prepare_preps(date)
+        print('launching SODA on ', date)
+        with open('soda.out', 'w') as f:
+            p = subprocess.call('./soda.exe', stdout=f)
+        os.chdir('..')
 
 
 class CramponObs(Crampon):

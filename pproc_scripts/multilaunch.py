@@ -81,7 +81,7 @@ for year in years:
             ]
             defaultConf = '/home/cluzetb/article2/{0}/s2m_12_{1}.ini'.format(nens, year)
             options = set_options(args,
-                                        pathConf=defaultConf)
+                                  pathConf=defaultConf)
             pathNamRun = '/home/cluzetb/article2/tmp/OPTIONS_{0}.nam'.format(xp)
             check_namelist_soda(options, pathIn = '/home/cluzetb/article2/OPTIONS_MOTHER.nam', pathOut = pathNamRun)
             print(options.dates)
@@ -95,7 +95,7 @@ for year in years:
                 confRun = vortex_conf_file(pathConfRun, mode='w')
                 confRun.new_class('DEFAULT')
                 confRun.write_field('assimdates', ','.join(options.dates))
-                confRun.write_field('membersId', ','.join(map(str, conf.membersId)))
+                confRun.write_field('membersId', ','.join(map(str, options.membersId)))
                 confRun.close()
 
             # 2.  launch the run

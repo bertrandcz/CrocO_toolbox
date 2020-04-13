@@ -9,6 +9,7 @@ from CramponPf import Crampon
 from Ensemble import PrepEnsBg, PrepEnsAn
 from Ensemble import PrepEnsOl
 from SemiDistributed import FromXp, Real
+from bronx.datagrip.namelist import NamelistParser
 import datetime
 import os
 from utilcrampon import Pgd, setlistvars_obs, dictvarsPro
@@ -52,7 +53,7 @@ class CramponPp(Crampon):
         self.pgd = Pgd('PGD.nc')
 
         # set subdirs
-        self.subdirs = [self.xpiddir + 'mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
+        self.subdirs = [self.xpiddir + '/mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
         self.mbdirs = ['mb{0:04d}/'.format(mb) for mb in self.mblist]
         # set dates
         self.setDates()
@@ -83,8 +84,12 @@ class CramponPp(Crampon):
                 self.readOl = False
 
     def setDates(self):
-        self.datedeb = datetime.datetime.strptime(str(self.options.datedeb), "%Y-%m-%d %H:%M:%S")
-        self.datefin = datetime.datetime.strptime(str(self.options.datefin), "%Y-%m-%d %H:%M:%S")
+        try:
+            self.datedeb = datetime.datetime.strptime(str(self.options.datedeb), "%Y%m%d%H")
+            self.datefin = datetime.datetime.strptime(str(self.options.datefin), "%Y%m%d%H")
+        except ValueError:
+            self.datedeb = datetime.datetime.strptime(str(self.options.datedeb), "%Y-%m-%d %H:%M:%S")
+            self.datefin = datetime.datetime.strptime(str(self.options.datefin), "%Y-%m-%d %H:%M:%S")
         self.stopdates = list(map(check_and_convert_date, self.options.stopdates)) if hasattr(self.options, 'stopdates') else list(map(check_and_convert_date, self.options.assimdates + [self.options.datefin.strftime('%Y%m%d%H')]))
         self.assimdates = list(map(check_and_convert_date, self.options.assimdates))
 
@@ -167,7 +172,7 @@ class CramponPp(Crampon):
     def loadEnsPrep(self, kind, isOl = False):
 
         # if local pp (e.g. pp of a run on local machine)
-        if self.options.todo == 'localpp' or self.options.todo == 'pf':
+        if self.options.todo == 'pfpp' or self.options.todo == 'pf':
             directFromXp = False
         else:
             directFromXp = True
@@ -186,7 +191,7 @@ class CramponPp(Crampon):
             else:
                 pathPkl = kind + '_' + dd + '.pkl'
             pathpklbeauf = pathPkl + '.foo'
-            if not os.path.islink(pathPkl) or not os.path.exists(pathPkl):
+            if not os.path.islink(pathPkl) and not os.path.exists(pathPkl):
                 if os.path.exists(pathpklbeauf):
                     try:
                         os.symlink(pathpklbeauf, )
@@ -267,8 +272,8 @@ class CramponPp(Crampon):
 
     def readObs(self):
         # paths settings (ol or not, real obs or not).
-        # if performing localpp, it is after a locla run and obs are properly archived.
-        if self.options.todo == 'localpp':
+        # if performing pfpp, it is after a locla run and obs are properly archived.
+        if self.options.todo == 'pfpp':
             if self.options.synth is not None:
                 self.pathArch = self.xpiddir + '/crampon/ARCH/' + self.options.sensor + '/'
                 self.pathSynth = self.xpiddir + '/crampon/SYNTH/' + self.options.sensor + '/'
@@ -294,7 +299,7 @@ class CramponPp(Crampon):
                     self.pathReal = self.options.cramponpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
 
         # proper loading (synth or real)
-        if self.options.todo == 'localpp':
+        if self.options.todo == 'pfpp':
             if self.options.synth is not None:
                 print('reading synthetic assimilated obs. in ' + self.pathArch)
                 self.obsArch = {dd: FromXp(self.pathArch, dd, self.options) for dd in self.options.dates}
@@ -393,9 +398,3 @@ class CramponPp(Crampon):
             print(('saaving ensPro' + kind + ' to pickle !'))
             pickle.dump(locPro, f, protocol=pickle.HIGHEST_PROTOCOL)
         return locPro
-
-    def readOper(self):
-        # read oper pickle files (probably only for postes...)
-        if self.options.todo != 'localpp':
-            pathOper = self.options.cramponpath + '/s2m/' + self.options.vconf + '/oper_{0}/crampon/beaufix/oper.pkl'.format(self.begprodates[0].strftime('%Y'))
-            self.oper = load_pickle2(pathOper)

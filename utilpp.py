@@ -18,14 +18,19 @@ import numpy as np
 def read_part(options):
     gg3 = dict()
     for dd in options.dates:
-        if options.todo == 'localpp' or options.todo == 'pf':
+        if options.todo == 'pfpp' or options.todo == 'pf':
             filename = dd + '/PART'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/PART_' + dd + '.txt.foo'
-        gg3[dd] = np.genfromtxt(
-            open(filename, 'rb'),
-            delimiter = ',',
-            usecols = list(range(0, options.nmembers)))
+            f = open(filename, 'rb')
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/PART_' + dd + '.txt.foo'
+                f = open(filename, 'rb')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/PART_' + dd + '.txt'
+                f = open(filename, 'rb')
+        gg3[dd] = np.genfromtxt(f,
+                                delimiter = ',',
+                                usecols = list(range(0, options.nmembers)))
     return gg3
 
 
@@ -33,11 +38,17 @@ def read_mask(options):
     npts = 187
     imask = dict()
     for dd in options.dates:
-        if options.todo == 'localpp' or options.todo == 'pf':
+        if options.todo == 'pfpp' or options.todo == 'pf':
             filename = dd + '/IMASK'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/IMASK_' + dd + '.txt.foo'
-        f = open(filename, 'r')
+            f = open(filename, 'r')
+
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt.foo'
+                f = open(filename, 'rb')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt'
+                f = open(filename, 'rb')
 
         imask[dd] = dict()
         for var in options.vars:
@@ -68,11 +79,16 @@ def read_BG(options):
 
     bg = dict()
     for dd in options.dates:
-        if options.todo == 'localpp' or options.todo == 'pf':
+        if options.todo == 'pfpp' or options.todo == 'pf':
             filename = dd + '/BG_CORR'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/BG_CORR_' + dd + '.txt.foo'
-        f = open(filename, 'r')
+            f = open(filename, 'r')
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt.foo'
+                f = open(filename, 'rb')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt'
+                f = open(filename, 'rb')
 
         bg[dd] = dict()
         data = np.array([[float(v) for v in line.split(',')[0:-1]] for line in f])
@@ -85,11 +101,16 @@ def read_BG(options):
 def read_alpha(options):
     alpha = dict()
     for dd in options.dates:
-        if options.todo == 'localpp' or options.todo == 'pf' or options.todo == 'pf':
+        if options.todo == 'pfpp' or options.todo == 'pf' or options.todo == 'pf':
             filename = dd + '/ALPHA'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/ALPHA_' + dd + '.txt.foo'
-        f = open(filename, 'r')
+            f = open(filename, 'r')
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/ALPHA_' + dd + '.txt.foo'
+                f = open(filename, 'r')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/ALPHA_' + dd + '.txt'
+                f = open(filename, 'r')
         for line in f:
             if ',' in line:
                 alpha[dd] = np.array([float(a) for a in line.split(',')[0:-1]])

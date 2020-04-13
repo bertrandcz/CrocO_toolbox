@@ -52,7 +52,8 @@ for year in years:
                 '--sensor', 'mb{0:04d}'.format(mbsynth) if kind == 'ol'
                 else 'mb{0:04d}_postes'.format(mbsynth) if kind == 'postes'
                 else 'baseline' if kind == 'baseline' else None,
-                '--archive_synth']
+                '--archive_synth',
+                ]
 
         os.system(' '.join(args))
 
