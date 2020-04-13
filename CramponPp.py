@@ -29,7 +29,7 @@ class CramponPp(Crampon):
     def __init__(self, options):
         self.options = options
         Crampon.__init__(self, options)
-        if hasattr(self.options, 'synth'):
+        if self.options.synth:
             self.mbsynth = int(self.options.synth) - 1  # be careful to id offset
         self.mblist = self.options.mblist
         self.initial_context = os.getcwd()
@@ -226,76 +226,18 @@ class CramponPp(Crampon):
                 except FileExistsError:
                     pass
         if not os.path.exists(pathPkl):
-            print(('preparing the PRO ' + kind + ' pickle file'))
-            locPro = dict()
-            # DOWNLOADING, concatenating, reading.
-            if kind == 'An' or isOl:
-                memberdirs = self.subdirs
-            else:
-                memberdirs = [self.xpidoldir + '/mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
-
-            if not memberdirs[0] + 'pro/':
-                self.getProFiles()
-
-            # then check for concatenated file, if not, create it and delete the sequence of files.
-            for iS, s in enumerate(memberdirs):
-                print(('reading member ' + str(iS + 1)))
-
-                procat = s + 'pro/' + 'PRO_' + self.datedeb.strftime("%Y%m%d%H") + '_' + self.datefin.strftime("%Y%m%d%H") + '.nc'
-                if catPro is True:
-
-                    if not os.path.exists(procat):
-
-                        cmd = ' '.join([s + 'pro/' + 'PRO_' + dd.strftime("%Y%m%d%H") + '_' + df.strftime("%Y%m%d%H") + '.nc'
-                                        for (dd, df) in zip(self.begprodates, self.endprodates)])
-                        print(('concatenating PRO in member ' + str(iS + 1)))
-                        os.system('ncrcat ' + cmd + ' ' + procat)
-                        print(('removing PRO sequence in member ' + str(iS + 1)))
-                        for (dd, df) in zip(self.begprodates, self.endprodates):
-                            gg = s + 'pro/' + 'PRO_' + dd.strftime("%Y%m%d%H") + '_' + df.strftime("%Y%m%d%H") + '.nc'
-                            if os.path.exists(gg):
-                                os.remove(gg)
-                    print(('stackingHTN ', str(iS + 1)))
-                    f = s + '/pro/' + 'PRO_' + self.datedeb.strftime("%Y%m%d%H") + '_' + self.datefin.strftime("%Y%m%d%H") + '.nc'
-
-                else:
-
-                    # if provided a list of files, prosimu automatically aggregates it along time !!
-                    if not os.path.exists(procat):
-                        f = s + 'pro/' + 'PRO*.nc'
-                    else:
-                        f = s + 'pro/' + 'PRO_' + self.datedeb.strftime("%Y%m%d%H") + '_' + self.datefin.strftime("%Y%m%d%H") + '.nc'
-
-                # read
-                datahtn = prosimu(str(f))
-                if iS == 0:
-                    for var in self.listvar:
-                        if 'B' not in var:
-                            locPro[var] = np.expand_dims(datahtn.read(self.dictvarsPro[var]), axis=2)
-                        else:
-                            locPro[var] = np.expand_dims(datahtn.read('SPECMOD')[:, int(var[-1]) - 1, :], axis=2)
-
-                    locPro['time'] = datahtn.readtime()
-                else:
-                    for var in self.listvar:
-                        if 'B' not in var:
-                            locPro[var] = np.concatenate( (locPro[var], np.expand_dims(datahtn.read(self.dictvarsPro[var]), axis=2)), axis=2)
-                        else:
-                            locPro[var] = np.concatenate((locPro[var], np.expand_dims(datahtn.read('SPECMOD')[:, int(var[-1]) - 1, :], axis=2)), axis = 2)
-
-                datahtn.close()
-            # SAVING
-            with open(pathPkl, 'wb') as f:
-                print(('saaving ensPro' + kind + ' to pickle !'))
-                pickle.dump(locPro, f, protocol=pickle.HIGHEST_PROTOCOL)
-
+            locPro = self.nc_to_pkl(pathPkl, kind, catPro = catPro, isOl = isOl)
         else:
             locPro = load_pickle2(pathPkl)
             if not all(l in locPro.keys() for l in self.listvar):
+                print('Some of the ppvars you mentioned are not present in ', pathPkl,
+                      '\n listvars:', self.listvar, '\npickle file keys:', [locPro.keys()], '\n reloading')
 
-                raise Exception('Some of the ppvars you mentioned are not present in ', pathPkl,
-                                '\n listvars:', self.listvar, '\npickle file keys:', locPro.stack.keys())
-
+                # mutualize variables because the pkl will be overwritten.
+                lkeys = list(locPro.keys())
+                lkeys.remove('time')
+                self.listvar = set(lkeys + self.listvar)
+                locPro = self.nc_to_pkl(pathPkl, kind, catPro = catPro, isOl = isOl)
         return locPro
 
     def getProFiles(self):
@@ -386,6 +328,71 @@ class CramponPp(Crampon):
                     os.symlink(self.options.cramponpath + '/s2m/' + self.options.vconf +
                                '/obs/all/obs_all_{0}_2013010106_2018123106.pkl'.format(self.options.vconf), pathObsTs)
                 self.obsTs = load_pickle2(pathObsTs)
+
+    def nc_to_pkl(self, pathPkl, kind, catPro = False, isOl = False):
+        print(('preparing the PRO ' + kind + ' pickle file'))
+        locPro = dict()
+        # DOWNLOADING, concatenating, reading.
+        if kind == 'An' or isOl:
+            memberdirs = self.subdirs
+        else:
+            memberdirs = [self.xpidoldir + '/mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
+
+        if not memberdirs[0] + 'pro/':
+            self.getProFiles()
+
+        # then check for concatenated file, if not, create it and delete the sequence of files.
+        for iS, s in enumerate(memberdirs):
+            print(('reading member ' + str(iS + 1)))
+
+            procat = s + 'pro/' + 'PRO_' + self.datedeb.strftime("%Y%m%d%H") + '_' + self.datefin.strftime("%Y%m%d%H") + '.nc'
+            if catPro is True:
+
+                if not os.path.exists(procat):
+
+                    cmd = ' '.join([s + 'pro/' + 'PRO_' + dd.strftime("%Y%m%d%H") + '_' + df.strftime("%Y%m%d%H") + '.nc'
+                                    for (dd, df) in zip(self.begprodates, self.endprodates)])
+                    print(('concatenating PRO in member ' + str(iS + 1)))
+                    os.system('ncrcat ' + cmd + ' ' + procat)
+                    print(('removing PRO sequence in member ' + str(iS + 1)))
+                    for (dd, df) in zip(self.begprodates, self.endprodates):
+                        gg = s + 'pro/' + 'PRO_' + dd.strftime("%Y%m%d%H") + '_' + df.strftime("%Y%m%d%H") + '.nc'
+                        if os.path.exists(gg):
+                            os.remove(gg)
+                print(('stackingHTN ', str(iS + 1)))
+                f = s + '/pro/' + 'PRO_' + self.datedeb.strftime("%Y%m%d%H") + '_' + self.datefin.strftime("%Y%m%d%H") + '.nc'
+
+            else:
+
+                # if provided a list of files, prosimu automatically aggregates it along time !!
+                if not os.path.exists(procat):
+                    f = s + 'pro/' + 'PRO*.nc'
+                else:
+                    f = s + 'pro/' + 'PRO_' + self.datedeb.strftime("%Y%m%d%H") + '_' + self.datefin.strftime("%Y%m%d%H") + '.nc'
+
+            # read
+            datahtn = prosimu(str(f))
+            if iS == 0:
+                for var in self.listvar:
+                    if 'B' not in var:
+                        locPro[var] = np.expand_dims(datahtn.read(self.dictvarsPro[var]), axis=2)
+                    else:
+                        locPro[var] = np.expand_dims(datahtn.read('SPECMOD')[:, int(var[-1]) - 1, :], axis=2)
+
+                locPro['time'] = datahtn.readtime()
+            else:
+                for var in self.listvar:
+                    if 'B' not in var:
+                        locPro[var] = np.concatenate( (locPro[var], np.expand_dims(datahtn.read(self.dictvarsPro[var]), axis=2)), axis=2)
+                    else:
+                        locPro[var] = np.concatenate((locPro[var], np.expand_dims(datahtn.read('SPECMOD')[:, int(var[-1]) - 1, :], axis=2)), axis = 2)
+
+            datahtn.close()
+        # SAVING
+        with open(pathPkl, 'wb') as f:
+            print(('saaving ensPro' + kind + ' to pickle !'))
+            pickle.dump(locPro, f, protocol=pickle.HIGHEST_PROTOCOL)
+        return locPro
 
     def readOper(self):
         # read oper pickle files (probably only for postes...)

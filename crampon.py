@@ -18,7 +18,7 @@ import random
 import sys
 import time
 from utilcrampon import read_conf, Opt, ImmutableOpt, Pgd, area, parse_classes,\
-    read_opts_in_namelist
+    read_opts_in_namelist, set_sensor
 
 
 usage = 'crampon --opts'
@@ -229,7 +229,7 @@ def set_options(args, readConf = True, pathConf = None, pathPgd = None, mutable=
             conf.openloop = 'off'
         # in case the pf arg has not been provided, or in case of local test of the pf,
         # do not overwrite conf.openloop
-        elif options.pf is None or options.todo == 'pf':
+        if options.pf is None or options.todo == 'pf':
             options.openloop = conf.openloop
         elif options.pf == 'ol':
             options.openloop = 'on'
@@ -237,29 +237,33 @@ def set_options(args, readConf = True, pathConf = None, pathPgd = None, mutable=
             options.openloop = 'off'
         # set the observations dir
         if options.sensor is None:
-            if hasattr(conf, 'sensor'):
-                if conf.sensor is None:
-                    try:
-                        mb = 'mb{0:04d}'.format(options.synth)
-                        print(' clclc', options.classes_e, options.classes_a, options.classes_s)
-                        options.sensor = mb + '_v' + ''.join(options.vars)  \
-                            + '_E' + ''.join(options.classes_e) + '_A' + ''.join(options.classes_a) \
-                            + '_S' + ''.join(options.classes_s) + '_N' + str(options.noise)
-                    except AttributeError:
-                        raise Exception('if you dont specify obs, please specify a synth member to draw')
+            if options.openloop == 'off':
+                if hasattr(conf, 'sensor'):
+                    if conf.sensor is None:
+                        try:
+                            options = set_sensor(options)
+                        except TypeError:
+                            raise Exception
+                    else:
+                        print("reading the sensor from conf.sensor", conf.sensor)
                 else:
-                    print("reading the obs from conf.sensor", conf.sensor)
+                    if options.readobs or options.readtruth:
+                        raise Exception('No sensor found in the conf file',
+                                        'please specify a sensor either in options or the conf file')
             else:
-                if options.readobs or options.readtruth:
-                    raise Exception('No sensor found in the conf file',
-                                    'please specify a sensor either in options or the conf file')
+                try:
+                    options = set_sensor(options)
+                except TypeError:
+                    pass
         else:
             if hasattr(conf, 'sensor'):
                 print('caution : you\'re overwriting conf.sensor with options.sensor.')
 
         # for local pf runs : if options.synth is not None, need to decrease the number of members by 1
         # if options.synth is set to 0, draw a member:
-        options.mblist = list(range(1, options.nmembers + 1))
+        if not options.nmembers:
+            options.nmembers = conf.nmembers
+        options.mblist = list(range(1, int(options.nmembers) + 1))
         if options.synth is not None:
             # draw a synthetical member
             if options.synth == 0:

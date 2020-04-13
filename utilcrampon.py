@@ -53,6 +53,23 @@ def parse_classes(options):
     return options
 
 
+def set_sensor(options):
+    """
+    BC, April 2020
+    if necessary, and if no sensorhas been provieded, create a sensor arg from the option args.
+    """
+
+    try:
+        mb = 'mb{0:04d}'.format(options.synth)
+        print(' clclc', options.classes_e, options.classes_a, options.classes_s)
+        options.sensor = mb + '_v' + ''.join(options.vars)  \
+            + '_E' + ''.join(options.classes_e) + '_A' + ''.join(options.classes_a) \
+            + '_S' + ''.join(options.classes_s) + '_N' + str(options.noise)
+    except TypeError:
+        print('if you dont specify obs, please specify a synth member to draw')
+    return options
+
+
 def setSubsetclasses(pgd, selE, selA, selS):
     """
     BC 5/02/19
