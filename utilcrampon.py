@@ -20,7 +20,6 @@ import shutil
 import netCDF4
 
 import numpy as np
-import pandas as pd
 
 
 def dictsAspect():
@@ -459,7 +458,7 @@ def read_opts_in_namelist(options):
     try:
         options.nloc_pf = N['NAM_ASSIM'].NLOC_PF
         options.neff_pf = N['NAM_ASSIM'].NEFF_PF
-        options.pf_crocus = N['NAM_ASSIM'].CPF_CROCUS
+        options.pf = N['NAM_ASSIM'].CPF_CROCUS
     except AttributeError:
         raise Exception('Some of the PF parameters are not defined in the namelist.')
 
@@ -513,7 +512,10 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
         print('be careful, old-formatted namelist !', 'LSEMIDISTR_CROCUS' 'LASSIM_CROCUS -> CPF_CROCUS, LCRAMPON')
         N['NAM_ASSIM'].delvar('LSEMIDISTR_CROCUS')
         N['NAM_ASSIM'].delvar('LASSIM_CROCUS')
-    N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
+    if options.pf != 'ol':
+        N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
+    else:
+        N['NAM_ASSIM'].CPF_CROCUS = 'global'.upper()
     N['NAM_ASSIM'].LCRAMPON = True
     N['NAM_ASSIM'].LASSIM = True
     N['NAM_ASSIM'].CASSIM_ISBA = 'PF   '

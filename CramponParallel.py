@@ -95,8 +95,10 @@ class CramponParallel(Crampon):
         for dd in self.options.assimdates:
             #  - spawn offline
             self.escrocs.run(dd)
-            # - spawn escroc
-            self.sodas.run_parallel(dd)
+
+            # - spawn escroc (if not openloop)
+            if self.options.pf and self.options.pf != 'ol':
+                self.sodas.run_parallel(dd)
             # report on the time spent
         # last propagation
         self.escrocs.run(self.options.datefin)
@@ -104,7 +106,7 @@ class CramponParallel(Crampon):
         print('elapsed time(setup and simu) :', elapsed_time)
 
         # archive
-        self.archive
+        self.archive()
         # post-process the outputs.
         # cleanup
         if cleanup is True:
@@ -142,18 +144,19 @@ class CramponParallel(Crampon):
             idate = idd + 1
             [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/SURFOUT.nc',
                              mbdir + '/bg/PREP_' + date + '.nc') for mbdir in self.mbdirs]
-            [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/PREP.nc',
-                             mbdir + '/an/PREP_' + self.options.stopdates[idate - 1] + '.nc') for mbdir in self.mbdirs]
+            if self.options.pf and self.options.pf != 'ol':
+                [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/PREP.nc',
+                                 mbdir + '/an/PREP_' + self.options.stopdates[idate - 1] + '.nc') for mbdir in self.mbdirs]
             [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/ISBA_PROGNOSTIC.OUT.nc',
                              mbdir + '/pro/PRO_' + self.options.stopdates[idate - 1] + '_' + date + '.nc') for mbdir in self.mbdirs]
-
-        for date in self.options.stopdates[0:-1]:
-            shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/PART', 'workSODA/PART_' + date + '.txt')
-            shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/ALPHA', 'workSODA/ALPHA_' + date + '.txt')
-            # bg_corr and IMASK only exist with the klocal pf.
-            if os.path.exists('/'.join([self.xpiddir, date, 'workSODA']) + '/BG_CORR'):
-                shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/BG_CORR', 'workSODA/BG_CORR_' + date + '.txt')
-                shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/IMASK', 'workSODA/IMASK_' + date + '.txt')
+        if self.options.pf and self.options.pf != 'ol':
+            for date in self.options.stopdates[0:-1]:
+                shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/PART', 'workSODA/PART_' + date + '.txt')
+                shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/ALPHA', 'workSODA/ALPHA_' + date + '.txt')
+                # bg_corr and IMASK only exist with the klocal pf.
+                if os.path.exists('/'.join([self.xpiddir, date, 'workSODA']) + '/BG_CORR'):
+                    shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/BG_CORR', 'workSODA/BG_CORR_' + date + '.txt')
+                    shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/IMASK', 'workSODA/IMASK_' + date + '.txt')
         if os.path.exists('conf/'):
             shutil.rmtree('conf/')
         shutil.copytree(self.xpiddir + 'conf/', 'conf/')
@@ -244,9 +247,6 @@ class OfflinePools(Crampon):
 
         n = NamelistParser()
         namelist_base = n.parse("OPTIONS_base.nam")
-        print('erlbreqv', datetime.datetime.strptime(
-            self.options.stopdates[idate - 1] if idate - 1 > 0 else self.options.datedeb, '%Y%m%d%H'))
-        print('phyopts,snowparams', physical_options, snow_parameters)
         # SOOOOO SLOW....
         update_surfex_namelist_object(
             namelist_base,
@@ -264,8 +264,7 @@ class OfflinePools(Crampon):
 
     def prepare_prep(self, date, dateprev, mb):
         '''
-        Prepare the PREP file for OFFLINE from SODA
-        @TODO : adapt !!
+        Prepare the PREP file for OFFLINE from SODA (or OL)
         '''
 
         if date == self.options.stopdates[0]:
@@ -281,18 +280,27 @@ class OfflinePools(Crampon):
     def link_build(self, mb, dateprev):
         print('link_build_dir', os.getcwd())
         dateAssSoda = convertdate(dateprev).strftime('%y%m%dH%H')
-
-        print('a', self.xpiddir + '/' + dateprev + '/workSODA/PREP_' + dateAssSoda + '_PF_ENS' + str(mb) + '.nc', 'PREP.nc')
-        print(os.getcwd())
-        try:
-            os.symlink(
-                self.xpiddir + '/' + dateprev + '/workSODA/PREP_' + dateAssSoda + '_PF_ENS' + str(mb) + '.nc',
-                'PREP.nc')
-        except Exception:
-            os.remove('PREP.nc')
-            os.symlink(
-                self.xpiddir + '/' + dateprev + '/workSODA/PREP_' + dateAssSoda + '_PF_ENS' + str(mb) + '.nc',
-                'PREP.nc')
+        if self.options.pf and self.options.pf != 'ol':
+            try:
+                os.symlink(
+                    self.xpiddir + '/' + dateprev + '/workSODA/PREP_' + dateAssSoda + '_PF_ENS' + str(mb) + '.nc',
+                    'PREP.nc')
+            except Exception:
+                os.remove('PREP.nc')
+                os.symlink(
+                    self.xpiddir + '/' + dateprev + '/workSODA/PREP_' + dateAssSoda + '_PF_ENS' + str(mb) + '.nc',
+                    'PREP.nc')
+        # ol case
+        else:
+            try:
+                os.symlink(
+                    self.xpiddir + '/' + dateprev + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc',
+                    'PREP.nc')
+            except Exception:
+                os.remove('PREP.nc')
+                os.symlink(
+                    self.xpiddir + '/' + dateprev + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc',
+                    'PREP.nc')
 
     def run(self, date):
         print('launching escroc until ', date)
@@ -300,7 +308,7 @@ class OfflinePools(Crampon):
         p.map(self.mb_run, [['/'.join([self.xpiddir, date, mbdir]), mbdir] for mbdir in self.mbdirs])
         p.close()
         p.join()
-        ('escroc step is done.')
+        print('escroc step is done.')
 
     def mb_run(self, largs):
         path = largs[0]

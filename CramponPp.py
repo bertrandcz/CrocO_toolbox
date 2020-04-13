@@ -9,7 +9,6 @@ from CramponPf import Crampon
 from Ensemble import PrepEnsBg, PrepEnsAn
 from Ensemble import PrepEnsOl
 from SemiDistributed import FromXp, Real
-from bronx.datagrip.namelist import NamelistParser
 import datetime
 import os
 from utilcrampon import Pgd, setlistvars_obs, dictvarsPro

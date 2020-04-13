@@ -73,7 +73,7 @@ def parse_options(arguments):
                       help= 'name of the postproc/type_of_anal/ without /')
     parser.add_option("--pf",
                       action = 'store', dest = 'pf', default = None, type = 'choice',
-                      choices=('global', 'klocal', 'rlocal'),
+                      choices=('global', 'klocal', 'rlocal', 'ol'),
                       help='choose pf algorithm : global, rlocal, klocal.')
     parser.add_option("--nloc_pf", action = 'store', dest = 'nloc_pf', default = None, type = int,
                       help='set the localization radius (1->+oo) or the k-localization counter (1->+oo).')

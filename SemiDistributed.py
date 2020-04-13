@@ -273,10 +273,9 @@ class Real(Obs):
         '''
         Obs.__init__(self, date, options)
         if self.options.todo == 'generobs':
-            # BC 30/03/20 aaaaaaargh this is SOOO UGLY
             self.sodaName = xpidobsdir + 'obs_' + options.xpidobs + '_' + area(options.vconf) + '_' + date + '.nc'
         else:
-            # BC 30/03/20 change that will cause bugs
+            # BC 30/03/20 change that could cause bugs
             # self.sodaName = xpidobsdir + self.vortexname
             self.sodaName = options.xpiddir + '/' + date + '/workSODA/' + self.sodaName
             self.vortexname = xpidobsdir + self.vortexname
@@ -379,7 +378,7 @@ class PrepOl(Prep):
             self.sodaName = date + '/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
         else:
             if isOl:
-                self.sodaName = '../../' + 'mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
+                self.sodaName = options.xpiddir + '/mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
             else:
                 self.sodaName = options.xpidoldir + '/mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
 
