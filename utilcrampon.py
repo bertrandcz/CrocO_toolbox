@@ -8,7 +8,6 @@ utils suited for crampon interface only
 '''
 
 from bronx.datagrip.namelist import NamelistParser
-from configparser import ConfigParser
 import datetime
 from ftplib import FTP
 from netrc import netrc
@@ -373,6 +372,10 @@ def read_conf(pathconf, useVortex=True):
             raise FileNotFoundError('no conf file at this path :', pathconf)
 
     def open_conf_no_vtx(pathconf):
+        try:
+            from configparser import ConfigParser
+        except ImportError:
+            print('please install configparser or vortex in order to parse the conf file.')
         conf = ConfigParser()
         conf.read(pathconf)
         conf = conf2obj(conf)

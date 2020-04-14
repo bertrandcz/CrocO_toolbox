@@ -50,7 +50,6 @@ dictOl = {2013: 'art2_OL_2013_t1500@cluzetb',
           2016: 'art2_OL_t1500@cluzetb', }
 
 suffixrun = '' if nens == 160 else '_{0}'.format(nens) if 'DEP' not in assimvars else '_{0}_{1}'.format(nens, assimvars)
-suffixrun = '_40_DEP_' + str(neff)
 # generate runs on beaufix
 for year in years:
     if kind == 'fromol':
@@ -69,7 +68,10 @@ for year in years:
             xp = '{0}_{1}_{2}{3}'.format(year, mbsynth, run, suffixrun)
             args = [
                 CRAMPON + '/crampon.py',
+                '-b', '{0}0801'.format(year),
+                '-e', '{0}0730'.format(year + 1),
                 '-d', 'all',
+                '--xpid', xp,
                 '--pf', run,
                 '--synth', str(mbsynth) if kind != 'postes' else mbnum,
                 '--neff', str(neff),
@@ -81,10 +83,9 @@ for year in years:
             ]
             defaultConf = '/home/cluzetb/article2/{0}/s2m_12_{1}.ini'.format(nens, year)
             options = set_options(args,
-                                  pathConf=defaultConf)
+                                  pathConf=defaultConf, useVortex=True)
             pathNamRun = '/home/cluzetb/article2/tmp/OPTIONS_{0}.nam'.format(xp)
             check_namelist_soda(options, pathIn = '/home/cluzetb/article2/OPTIONS_MOTHER.nam', pathOut = pathNamRun)
-            print(options.dates)
             if 'all' in options.dates:
                 pathConfRun = defaultConf
             else:
@@ -95,11 +96,11 @@ for year in years:
                 confRun = vortex_conf_file(pathConfRun, mode='w')
                 confRun.new_class('DEFAULT')
                 confRun.write_field('assimdates', ','.join(options.dates))
-                confRun.write_field('membersId', ','.join(map(str, options.membersId)))
+                confRun.write_field('members_id', ','.join(map(str, options.members_id)))
                 confRun.close()
 
             # 2.  launch the run
-            cmd = ['python ' + os.environ['SNOWTOOLS_CEN'] + '/tasks/s2m_command.py',
+            cmd = ['python3 ' + os.environ['SNOWTOOLS_CEN'] + '/tasks/s2m_command.py',
                    '-b', '{0}0801'.format(year),
                    '-e', '{0}0730'.format(year + 1),
                    '-f', 'forcing_{0}{1}B_31D_11_t1500_160'.format(year, year + 1),
@@ -108,13 +109,13 @@ for year in years:
                    '--escroc', 'E1tartes',
                    '--crampon', pathConfRun,
                    '-n', pathNamRun,
-                   '-o', xp,
+                   '-o', xp + '_testmerge',
                    '--nforcing', '{0}'.format(nens),
                    '--nmembers', '{0}'.format(nens),
                    '--nnodes', '{0}'.format(int(nens / 40)),
                    '--walltime', '200',
                    '--writesx',
-                   '--pickleit'
+                   # '--pickleit',
                    '-x', '2016080106']
             print('cmd', ' '.join(cmd))
             if kind == 'fromol':

@@ -1,3 +1,5 @@
+
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''
 Created on 5 feb. 2019
@@ -194,7 +196,8 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             options.pathPgd = '/'.join([os.environ['CRAMPONPATH'], options.vapp, options.vconf, 'spinup/pgd/PGD_']) + area(options.vconf) + '.nc'
             options.pgd = Pgd(options.pathPgd)
         except FileNotFoundError:
-            raise Exception('I could not find the PGD in the spinup dir... \nhelp me with pathPgd=<path to conf file>')
+            raise Exception('I could not find the PGD in the spinup dir.',
+                            'help me with pathPgd=<path to conf file>')
     else:
         options.pathPgd = pathPgd
         options.pgd = Pgd(options.pathPgd)
