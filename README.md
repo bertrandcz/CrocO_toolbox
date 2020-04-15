@@ -75,9 +75,9 @@ First of all, thouroughly read the documentation of CRAMPON within the snowtools
 ## License information
 ---
 
-See the [license](https://github.com/smrt-model/smrt/blob/master/LICENSE) (copy from smrt, replace with real license file). file for terms & conditions for usage, and a DISCLAIMER OF ALL WARRANTIES.
+See the [license](https://github.com/bertrandcz/crampon/LICENCE.txt) file for terms & conditions for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
-DISCLAIMER: This version of CRAMPON is under peer review. Please use this software with caution, ask for assistance if needed, and let us know any feedback you may have.
+DISCLAIMER: This version of crampon is under peer review. Please use this software with caution, ask for assistance if needed, and let us know any feedback you may have.
 
 Copyright (c) 2020 Bertrand Cluzet, Matthieu Lafaysse, Marie Dumont.
 
