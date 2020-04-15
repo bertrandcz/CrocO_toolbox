@@ -7,10 +7,9 @@ Created on 5 févr. 2019
 from ParticleFilter import ParticleFilter
 from SemiDistributed import Synthetic, Real
 import os
-import random
 import shutil
 import subprocess
-from utilcrampon import convertdate, area, check_namelist_soda
+from utilcrampon import convertdate, check_namelist_soda
 
 import matplotlib.pyplot as plt
 
@@ -49,7 +48,6 @@ class Crampon(object):
         """
         Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
         """
-        print('copying namelist', os.getcwd())
         if not os.path.exists('OPTIONS.nam'):
             nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
             namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
@@ -106,7 +104,6 @@ class CramponPf(Crampon):
             if dd in self.options.dates:
                 if os.path.exists(path):
                     shutil.rmtree(path)
-                print('ppppath', path)
                 os.makedirs(path)
                 self.prepare_sodaenv(path, dd)
             else:
@@ -220,7 +217,6 @@ class CramponObs(Crampon):
 
     def __init__(self, options):
         Crampon.__init__(self, options)
-        print('ooooobs',)
         self.setup()
 
     def setup(self):

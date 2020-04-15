@@ -3,6 +3,7 @@
 Created on 29 oct. 2019
 Example of script used to load and manipulate many Crampon experiences.
 Purpose: load numerous experiences for exploring purposes.
+Launch on sxcen.cnrm.meteo.fr
 @author: cluzetb
 '''
 
@@ -21,14 +22,14 @@ dictmembers = {2013: [66, 12, 122, 149],
 nens = 40
 assimvars = 'DEP'
 ppvars = 'SWE'
-runs = ['global', 'rlocal', 'klocal']
+runs = ['global', 'rlocal', 'klocal5']
 readprep = '--readprep'
 readobs = '--readobs'
 ##############################################
 suffix = '' if nens == 160 else '_{0}'.format(nens) if 'DEP' not in assimvars else '_{0}_{1}'.format(nens, assimvars)
 
 
-runs = [r + s for r in runs for s in suffix]
+runs = [r + suffix for r in runs]
 
 
 print(runs)
@@ -49,8 +50,7 @@ for year in years:
                 '--classes_e', 'all',
                 '--classes_s', 'all',
                 '--classes_a', 'all',
-                readprep,
-                readobs,
+
             ]
             options = set_options(args)
             RUN[xp] = CramponPp(options)

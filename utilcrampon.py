@@ -61,7 +61,6 @@ def set_sensor(options):
 
     try:
         mb = 'mb{0:04d}'.format(options.synth)
-        print(' clclc', options.classes_e, options.classes_a, options.classes_s)
         options.sensor = mb + '_v' + ''.join(options.vars)  \
             + '_E' + ''.join(options.classes_e) + '_A' + ''.join(options.classes_a) \
             + '_S' + ''.join(options.classes_s) + '_N' + str(options.noise)
@@ -503,7 +502,6 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
 
     # NAM_VAR
     sodavar = setlistvars_var(options.vars)
-    print(sodavar)
     if 'PSB' in sodavar:
         sodavar.remove('PSB')
     N['NAM_VAR'].NVAR = N['NAM_OBS'].NOBSTYPE

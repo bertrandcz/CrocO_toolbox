@@ -1,5 +1,5 @@
 
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''
 Created on 5 feb. 2019
@@ -12,14 +12,15 @@ Created on 5 feb. 2019
 * post-process outputs of CRAMPON assimilation sequence
 * lauch local parallelized CRAMPON assimilation sequence
 '''
-from CramponPf import CramponPf, CramponObs
-from CramponPp import CramponPp
 import datetime
 from optparse import OptionParser, Values
 import os
 import random
 import sys
 import time
+
+from CramponPf import CramponPf, CramponObs
+from CramponPp import CramponPp
 from utilcrampon import read_conf, Opt, ImmutableOpt, Pgd, area, parse_classes,\
     read_opts_in_namelist, set_sensor
 
@@ -215,7 +216,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
                 print('opening conf file : ', confPath)
                 conf = read_conf(confPath)
             except FileNotFoundError:
-                raise Exception('I could not find the conf file by myself... \nhelp me with pathConf=<path to conf file>')
+                raise Exception('I could not find the conf file by myself', 'help me with pathConf=<path to conf file>')
         else:
             conf = read_conf(pathConf)
         # convert the classes*args into more explicit variables

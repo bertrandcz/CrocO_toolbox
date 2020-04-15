@@ -282,7 +282,6 @@ def spaghettiMarie(run, xtimes, ol, truth, an, cl, var, clim=None,
                           zorder=-1, label='openloop')
             if 'openloop' not in legEl.keys():
                 legEl['openloop'] = ol
-                print(np.shape(ol))
             ax.plot(xtimes, np.median(ol, axis=1), color='k')
             if clim is not None:
                 ax.plot(xtimes, clim, color='brown', zorder=-1)
@@ -453,7 +452,6 @@ def plot_pie_fromstack(run, kind, date, mb, listvar, ptinom='crpsa', focusCl=Non
     data = dict()
     sdObj.options.ppvars = listvar
     for var in sdObj.options.ppvars:
-        print(var)
         if kind == 'bg':
             data[var] = run.ensBg[date].stack[var][:, mb]
         elif kind == 'an':

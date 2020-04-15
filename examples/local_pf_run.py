@@ -5,7 +5,7 @@ Created on 6 nov. 2019
 
 @author: cluzetb
 
-Perform local runs and freely postprocess it
+Perform local runs and freely postprocess it.
 '''
 from CramponPf import CramponPf
 from CramponPp import CramponPp

@@ -190,19 +190,19 @@ class CramponPp(Crampon):
             else:
                 pathPkl = kind + '_' + dd + '.pkl'
             pathpklbeauf = pathPkl + '.foo'
-            if not os.path.islink(pathPkl) and not os.path.exists(pathPkl):
+            if not os.path.islink(pathPkl):
                 if os.path.exists(pathpklbeauf):
                     try:
-                        os.symlink(pathpklbeauf, )
+                        os.symlink(pathpklbeauf, pathPkl)
                     except FileExistsError:
                         pass
-                else:
-                    print(' unsuccesfull loading', pathPkl, )
-                    print(('loading ' + kind + ' ens for date : ', dd))
-                    locEns[dd].stackit()
-                    with open(pathPkl, 'wb') as f:
-                        print(('saaving ' + kind + ' to pickle !'))
-                        pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
+            if not os.path.exists(pathPkl):
+                print(' unsuccesfull loading', pathPkl, )
+                print(('loading ' + kind + ' ens for date : ', dd))
+                locEns[dd].stackit()
+                with open(pathPkl, 'wb') as f:
+                    print(('saaving ' + kind + ' to pickle !'))
+                    pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
             else:
                 locEns[dd].stack = load_pickle2(pathPkl)
                 if not all(l in locEns[dd].stack.keys() for l in self.listvar):
@@ -214,7 +214,6 @@ class CramponPp(Crampon):
     def loadEnsPro(self, kind, catPro = False, isOl = False):
         if kind == 'Cl':
             pathPkl = self.xpiddir + '../clim/crampon/clim.pkl'
-            print(pathPkl)
         elif (kind == 'Ol' and isOl is False):
             if not os.path.exists(self.xpidoldir + '/crampon/' + self.options.saverep + '/'):
                 os.makedirs(self.xpidoldir + '/crampon/' + self.options.saverep + '/')
@@ -249,13 +248,10 @@ class CramponPp(Crampon):
         Get pro files from hendrix and concatenate it
         """
         print('getting pro files on hendrix')
-        print((os.getcwd()))
         gg = os.getcwd()
         os.chdir(self.xpiddir)
         ftpObject = ftpconnect('hendrix')
         for s in self.mbdirs:
-            print((s, 'on hendrix'))
-            print(('current', os.getcwd()))
             os.chdir(s)
             if not os.path.exists('pro'):
                 os.mkdir('pro')

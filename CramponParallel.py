@@ -71,7 +71,6 @@ class CramponParallel(Crampon):
         # modify the PREP (datemust correspond
         spinup_prepfile = glob.glob(self.xpiddir + '/spinup/prep/PREP*.nc')[0]
         prep = prep_tomodify(spinup_prepfile)
-        print("CHANGE DATE OF THE PREP FILE.")
         prep.change_date(datetime.datetime.strptime(self.options.datedeb, '%Y%m%d%H'))
         prep.close()
         shutil.move(spinup_prepfile, self.xpiddir + '/spinup/prep/PREP.nc')
@@ -278,7 +277,6 @@ class OfflinePools(Crampon):
             self.link_build(mb, dateprev)
 
     def link_build(self, mb, dateprev):
-        print('link_build_dir', os.getcwd())
         dateAssSoda = convertdate(dateprev).strftime('%y%m%dH%H')
         if self.options.pf and self.options.pf != 'ol':
             try:
