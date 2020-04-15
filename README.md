@@ -45,15 +45,16 @@ Download and instructions : https://opensource.umr-cnrm.fr/projects/vortex/ Manu
 ---
 
 Once you installed the required dependencies (see above) you can clone this repository.
-...
 
-In your .bashrc or equivalent, add **crampon** root to your \$PYTHONPATH:
+In your .bashrc or equivalent, add **crampon** root to your $PYTHONPATH:
 ```bash
-export PYTHONPATH=<your_path_to_crampon>:$PYTHONPATH```
+export PYTHONPATH=<your_path_to_crampon>:$PYTHONPATH
+```
 
 As this package closely follows vortex's file structure, it is necessary to put all your archive/simulation in a specific ```path```. In your .bashrc or equivalent set the following environment variable:
-```bash
-export CRAMPONPATH=<path>```
+```bash 
+export CRAMPONPATH=<path>
+```
 
 
 
