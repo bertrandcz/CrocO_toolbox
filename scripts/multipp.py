@@ -5,10 +5,9 @@ Created on 15 oct. 2019
 
 full eval on SWE, aggrclasses + time
 '''
-from snowtools_git.scores.ensemble import EnsembleScores
+from scores.ensemble import EnsembleScores
 import sys
 import time
-
 
 from CramponPp import CramponPp
 from crampon import set_options
