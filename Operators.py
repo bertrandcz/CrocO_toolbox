@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 '''
 Created on 8 févr. 2019
-
+Objects manipulating ensemble of Prep files
 @author: cluzetb
 '''
 
 from Ensemble import PrepEnsAbs
 from SemiDistributed import PrepAbs
-import numpy as np
 from scores.ensemble import EnsembleScores
+
+import numpy as np
 
 
 class SdOperator(object):
@@ -100,36 +101,22 @@ class PrepEnsOperator(EnsOperator):
         '''
         compute covariance in bg ensemble ens1
         if clA, restrict it to covariance between ens1 in clA and ens1 in all classes (then it is plottable)
-        /!\ BC 18/12/19 : deprecated (need a transpose everywhere!!)
 
         '''
         if clA is None:
-            # TODO : write full covariance computation.
             corr = dict()
             for var in self.ens1.listvar:
                 ensMat = np.ma.masked_invalid(self.ens1.stack[var])  # (npts, nens)
-                """ useless parallel (20/03/19)
-                start_1 = time.time()
-                corr[var] = np.array(compute_corr_parallel(ensMat))
-                """
                 corr[var] = np.ma.corrcoef(ensMat)  # removed the transpose bcz now the stack ois (npts, nens) (more natural)
 
             if countIt is True:
                 counts = dict()
 
-                # /!\!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!only compute for first band (same for all) be careful here...
                 for var in self.ens1.listvar[0]:   # only compute for first band (same for all) be careful here...
 
                     # print('test1', np.shape(np.sum(np.invert(np.ma.getmask(ensMat[140, :]) | np.ma.getmask(ensMat[141, :])))))
                     counts[var] = np.array([[np.sum(np.invert(np.ma.getmask(ensMat[i, :]) | np.ma.getmask(ensMat[j, :])))
                                              for i in range(np.shape(ensMat)[0])] for j in range(np.shape(ensMat)[0])])
-                    # print('counts')
-                    # print(counts)
-                    # print np.shape(counts)
-
-                    # plt.figure()
-                    # plt.imshow(counts[var])
-                    # plt.show()
 
                 return corr, counts
             else:

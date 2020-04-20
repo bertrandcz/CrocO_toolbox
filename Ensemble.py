@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 Created on 6 févr. 2019
-
+Objects describing ensembles of Prep files.
 @author: cluzetb
 '''
 from SemiDistributed import PrepBg, PrepAn, PrepAbs
@@ -19,7 +19,7 @@ class Ensemble(object):
 
 class PrepEns(Ensemble):
     """
-    ensemble of prep. 
+    ensemble of prep.
     Data is stored twice and instanciating takes time : to ameliorate in the future.
     """
     _abstract = True

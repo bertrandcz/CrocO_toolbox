@@ -13,20 +13,24 @@ import datetime
 import pickle
 
 import numpy as np
-from utilcrampon import read_conf
 
 
 def read_part(options):
     gg3 = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'pfpp' or options.todo == 'pf':
             filename = dd + '/PART'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/PART_' + dd + '.txt.foo'
-        gg3[dd] = np.genfromtxt(
-            open(filename, 'rb'),
-            delimiter = ',',
-            usecols = list(range(0, options.nmembers)))
+            f = open(filename, 'rb')
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/PART_' + dd + '.txt.foo'
+                f = open(filename, 'rb')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/PART_' + dd + '.txt'
+                f = open(filename, 'rb')
+        gg3[dd] = np.genfromtxt(f,
+                                delimiter = ',',
+                                usecols = list(range(0, options.nmembers)))
     return gg3
 
 
@@ -34,11 +38,17 @@ def read_mask(options):
     npts = 187
     imask = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'pfpp' or options.todo == 'pf':
             filename = dd + '/IMASK'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/IMASK_' + dd + '.txt.foo'
-        f = open(filename, 'r')
+            f = open(filename, 'r')
+
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt.foo'
+                f = open(filename, 'rb')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt'
+                f = open(filename, 'rb')
 
         imask[dd] = dict()
         for var in options.vars:
@@ -69,11 +79,16 @@ def read_BG(options):
 
     bg = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'pfpp' or options.todo == 'pf':
             filename = dd + '/BG_CORR'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/BG_CORR_' + dd + '.txt.foo'
-        f = open(filename, 'r')
+            f = open(filename, 'r')
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt.foo'
+                f = open(filename, 'rb')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt'
+                f = open(filename, 'rb')
 
         bg[dd] = dict()
         data = np.array([[float(v) for v in line.split(',')[0:-1]] for line in f])
@@ -86,11 +101,16 @@ def read_BG(options):
 def read_alpha(options):
     alpha = dict()
     for dd in options.dates:
-        if options.kind == 'localpp':
+        if options.todo == 'pfpp' or options.todo == 'pf' or options.todo == 'pf':
             filename = dd + '/ALPHA'
-        else:  # =='beaufixpp'
-            filename = options.xpiddir + 'workSODA/ALPHA_' + dd + '.txt.foo'
-        f = open(filename, 'r')
+            f = open(filename, 'r')
+        else:  # =='parallelpp'
+            try:
+                filename = options.xpiddir + '/workSODA/ALPHA_' + dd + '.txt.foo'
+                f = open(filename, 'r')
+            except FileNotFoundError:
+                filename = options.xpiddir + '/workSODA/ALPHA_' + dd + '.txt'
+                f = open(filename, 'r')
         for line in f:
             if ',' in line:
                 alpha[dd] = np.array([float(a) for a in line.split(',')[0:-1]])
@@ -98,12 +118,6 @@ def read_alpha(options):
                 alpha[dd] = float(line)
 
     return alpha
-
-
-def effweights_from_part(part):
-    '''
-    compute approximation of effweights from the particle sample.
-    '''
 
 
 def set_itimes(run, clim =False, fromOl = False):
@@ -115,14 +129,14 @@ def set_itimes(run, clim =False, fromOl = False):
         ttttimes = run.ensProOl['time']
     else:
         ttttimes = run.ensProAn['time']
-    times = [not((t.year == run.conf.datedeb.year and t.month <= 9) or t.hour != 0 or (t.year == run.conf.datefin.year and t.month > 6))
+    times = [not((t.year == run.datedeb.year and t.month <= 9) or t.hour != 0 or (t.year == run.datefin.year and t.month > 6))
              for t in ttttimes]
     itimes = [i for i, t in enumerate(times) if t]
 
     if clim is False:
         return itimes
     else:
-        if calendar.isleap(run.conf.datefin.year):
+        if calendar.isleap(run.datefin.year):
             start_year = 2015
         else:
             start_year = 2001
@@ -131,6 +145,19 @@ def set_itimes(run, clim =False, fromOl = False):
         timesC = [not((t.year == start_year and t.month <= 9) or (t.year == start_year + 1 and t.month > 6)) for t in ttC]
         itimesC = [i for i, t in enumerate(timesC) if t]
         return itimes, itimesC
+
+
+def load_pickle2(pathPkl):
+    '''
+    BC Feb 2020
+    pickle files can be generated by python2 on beaufix.
+    When reading it with python 3.7.2+, use encoding = 'latin1' for compatibility
+    https://stackoverflow.com/questions/28218466/unpickling-a-python-2-object-with-python-3
+    '''
+    with open(pathPkl, 'rb') as f:
+        print(('loading from pickle ! ', pathPkl))
+        gg = pickle.load(f, encoding = 'latin1')
+    return gg
 
 
 def old_read_truth(run, var, baseline = False):
@@ -153,34 +180,25 @@ def old_read_truth(run, var, baseline = False):
             truth = gg[var][:, :, run.mbsynth]
         return truth
     else:
-        """
-        try:
-            print('trying to read truth in pickle')
-            with open('{0}baseline_{1}/crampon/{2}/ensProOl.pkl'.format(run.rootdir, run.conf.assimdates[0].strftime('%Y'), run.options.saverep), 'rb') as f:
-                gg = pickle.load(f)
-            truth = gg[var]
-        except Exception:
-        """
         import CramponPp
 
-        # bc do not use prev. block bceause need to set itimes
+        # bc do not use prev. block because need to set itimes
         opts = copy.copy(run.options)
         print('doesnot work, read in file')
-        opts.xpid = 'baseline_{0}'.format(run.conf.assimdates[0].strftime('%Y')) + '/'
-        opts.xpiddir = opts.vortexpath + '/' + opts.vapp + '/' + opts.vconf + '/' + opts.xpid
+        opts.xpid = 'baseline_{0}'.format(run.assimdates[0].strftime('%Y')) + '/'
+        opts.xpiddir = opts.cramponpath + '/' + opts.vapp + '/' + opts.vconf + '/' + opts.xpid
         opts.nmembers = 1
-        conf = read_conf('{0}baseline_{1}/conf/s2m_12.ini'.format(run.rootdir, run.conf.assimdates[0].strftime('%Y')))
-        base = CramponPp.CramponPp(opts, conf)
+        base = CramponPp.CramponPp(opts, pathConf='{0}baseline_{1}/conf/s2m_12.ini'.format(run.rootdir, run.assimdates[0].strftime('%Y')))
         truth = base.ensProOl[var]
         itimes = set_itimes(base, fromOl = True)
         if truth.shape[-1] > 1:
-            raise Exception('youre not readin a truth my dear')
+            raise Exception('youre not readin a truth.')
         return truth, itimes
 
 
 def RMSE(ens, truth, aggrTime = False, aggrDomain = True):
     """
-    (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble median over a domain. 
+    (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble median over a domain.
     (aggrtime = True, aggrDomain = False): domain variant, time averaged RMSE
 
     IN: ens (ndate, npts, nmembers)

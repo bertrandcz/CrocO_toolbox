@@ -11,13 +11,11 @@ from bronx.datagrip.namelist import NamelistParser
 import datetime
 from ftplib import FTP
 from netrc import netrc
+from optparse import Values
 import os
 import re
 import shutil
-from vortex.layout.nodes import ConfigSet
-from vortex.util.config import GenericConfigParser
 
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import netCDF4
 
 import numpy as np
@@ -33,14 +31,52 @@ def dictsAspect():
     return gg1, {v: k for k, v in list(gg1.items())}
 
 
+def parse_classes(options):
+    """
+    BC, april 2020
+    This function parses option arguments classes_e, classes_a, and classes_s into explicit conditions matching the options.pgd features
+    classes_e = 'all' -> classes_e = ['600',...'3600']
+    classes_a = 'all' -> classes_a = ['N','NW',...]
+    """
+
+    # check for conf file (not necessarily defined in old conf files
+    for attr in ['classes_e', 'classes_a', 'classes_s']:
+        if not hasattr(options, attr):
+            options.__setattr__(attr, None)
+
+    if options.classes_e == 'all' or options.classes_e is None:
+        options.classes_e = sorted(np.unique(list(map(str, map(int, options.pgd.elev)))))
+    if options.classes_a == 'all' or options.classes_a is None:
+        options.classes_a = sorted(list(dictsAspect()[0].keys()))
+    if options.classes_s == 'all' or options.classes_s is None:
+        options.classes_s = ['0', '20', '40']
+    return options
+
+
+def set_sensor(options):
+    """
+    BC, April 2020
+    if necessary, and if no sensorhas been provieded, create a sensor arg from the option args.
+    """
+
+    try:
+        mb = 'mb{0:04d}'.format(options.synth)
+        options.sensor = mb + '_v' + ''.join(options.vars)  \
+            + '_E' + ''.join(options.classes_e) + '_A' + ''.join(options.classes_a) \
+            + '_S' + ''.join(options.classes_s) + '_N' + str(options.noise)
+    except TypeError:
+        print('if you dont specify obs, please specify a synth member to draw')
+    return options
+
+
 def setSubsetclasses(pgd, selE, selA, selS):
     """
     BC 5/02/19
-    Returns a list of point ids and a mask corresponding to the selection of topographic classes (selE,selA, selS
+    Returns a list and a mask corresponding to points whose topographic conditions match any combination of the selection (selE,selA, selS)
     params:
-    - selE : string or list of string for elevations (['1800,'2100', ...]. 'all' for all elevation bands
-    - selA : string or list of strings for aspects (['N, 'NW', ...]), 'all' for all.
-    - selS : string or list of strings for slopes (degrees) (['0,20',]), 'all' for all. 
+    - selE : string or list of string for elevations (['1800','2100', ...]. 'all' for all elevation bands
+    - selA : string or list of strings for aspects (['N', 'NW', ...]), 'all' for all.
+    - selS : string or list of strings for slopes (degrees) (['0','20',]), 'all' for all.
        """
     subsetClass = []
     dictElev = {'all': np.unique(pgd.elev)}
@@ -53,29 +89,29 @@ def setSubsetclasses(pgd, selE, selA, selS):
     elif isinstance(selE, str):
         selE = [selE]
     if 'all' not in selE:
-        classesE = list(map(int, selE))
+        classes_e = list(map(int, selE))
     else:
-        classesE = dictElev['all']
+        classes_e = dictElev['all']
 
-    classesA = []
+    classes_a = []
     if 'all' not in selA:
         for cl, asp in enumerate(selA):
-            classesA.append(dictAsp[asp])
+            classes_a.append(dictAsp[asp])
     else:  # avoid having a list of list
-        classesA = dictAsp['all']
+        classes_a = dictAsp['all']
 
-    classesS = []
+    classes_s = []
     if isinstance(selS, str):
         selS = [selS]
     if 'all' not in selS:
-        classesS = selS
+        classes_s = selS
     else:  # avoid having a list of list
-        classesS = dictSlope['all']
+        classes_s = dictSlope['all']
     mask = []
     for cl in range(pgd.npts):
-        if pgd.elev[cl] in classesE and (
-                (str(int(np.arctan(pgd.slope[cl]) * 180. / np.pi)) in classesS and pgd.aspect[cl] in classesA) or
-                (pgd.slope[cl] < 0.01 and ('0' in classesS))):
+        if pgd.elev[cl] in classes_e and (
+                (str(int(np.arctan(pgd.slope[cl]) * 180. / np.pi)) in classes_s and pgd.aspect[cl] in classes_a) or
+                (pgd.slope[cl] < 0.01 and ('0' in classes_s))):
 
             subsetClass.append(cl)
             mask.append(True)
@@ -91,7 +127,7 @@ def dictvarsPrep():
             'B7': 'SPM_VEG7',
             'SCF': 'WSN_VEG1',  # computing of SCF requires to read SWE_tot
             'R53': 'R53', 'R52': 'R52', 'R51': 'R51', 'R54': 'R54', 'R21': 'R21', 'R23': 'R23', 'R24': 'R24',
-            'DEP': 'DEP_TOT', 'SWE': 'SWE_TOT'}
+            'DEP': 'DEP', 'SWE': 'SWE'}  # caution : DEP_TOT is the depth of the previous timestep !!
 
 
 def dictvarsPro():
@@ -103,40 +139,29 @@ def dictvarsPro():
             'DEP': 'DSN_T_ISBA', 'SWE': 'WSN_T_ISBA'}
 
 
-def niceName(pgd, cl, tolist = False):
-    _, revdictAsp = dictsAspect()
-    return str(int(pgd.elev[cl])) + '_' + revdictAsp[pgd.aspect[cl]] + '_' + str(int(np.arctan(pgd.slope[cl]) * 180. / np.pi))
+class Opt(Values):
+    """
+    Opt is an object representing options of a command.
+    This class is initialized with a dict.
+    """
+
+    def __init__(self, **kwargs):
+        for name, val in kwargs.items():
+            # pydev editor show an error for Values.__setattr__
+            super(Opt, self).__setattr__(name, val)
 
 
-def niceLabel(var, score = None, printunits=True):
+class ImmutableOpt(Opt):
+    """
+    This class is initialized with a dict.
+    Once instanciated, the object is immutable
+    """
 
-    if score is None:
-        sc = ''
-    else:
-        sc = score
-    units = {'SWE': '[$\mathrm{\mathsf{kgm^{-2}}}$]',
-             'DEP': '[$\mathrm{\mathsf{m}}$]',
-             'B5': '',
-             'B4': '',
-             }
-    if printunits:
-        u = units[var]
-    else:
-        u = ''
-
-    ddict = {'SWE': 'SWE {0} {1}'.format(sc, u),
-             'DEP': 'HS {0} {1}'.format(sc, u),
-             'B5': 'Band 5 {0} {1}'.format(sc, u),
-             'B4': 'Band 4 {0} {1}'.format(sc, u),
-             }
-    return ddict[var]
+    def __setattr__(self, name, value):
+        raise Exception('This class is immutable.')
 
 
-def cm2inch(w, h):
-    return(0.393701 * w, 0.393701 * h)
-
-
-class Pgd(object):
+class Pgd:
     """
     class to read a semi-distributed PGD file
     slope is the TANGENT of the angle of slope.
@@ -145,6 +170,9 @@ class Pgd(object):
     def __init__(self, pathPGD):
 
         pgd = netCDF4.Dataset(pathPGD)
+        bugfix = pgd.variables['BUG']
+        if bugfix == 0:
+            raise Exception(' Version of your PGD is deprecated (BUG==0) please update it by rerunning a spinup so that BUG>=1')
         self.path = pathPGD
         self.elev = np.squeeze(pgd.variables['MIN_ZS'][:])  # lower altitude
         self.slope = np.squeeze(pgd.variables['SSO_SLOPE'][:])
@@ -152,11 +180,7 @@ class Pgd(object):
         self.npts = self.elev.size
         self.lat = np.squeeze(pgd.variables['XY'][:])
         self.lon = np.squeeze(pgd.variables['XX'][:])
-        # in the case of postes geometries, a "SUPER" PGD (enhanced with numposts ('station') and type of postes) is put at pathPGD
-        if 'station' in pgd.variables.keys():
-            self.station = np.squeeze(pgd.variables['station'][:])
-            self.type = np.squeeze(pgd.variables['type'][:])
-            self.massif = np.squeeze(pgd.variables['massif'][:])
+
         pgd.close()
 
 
@@ -229,7 +253,113 @@ def area(geometry):
     return area
 
 
-def read_conf(pathconf):
+def unpack_conf(arg):
+    """
+    BC 01/04/20
+    supported types:
+    arg = aa,bb,cc : return ['aa','bb','cc']
+    arg = 'aa','bb','cc' : return ['aa','bb','cc']
+    arg = "'toto'" or '"toto"' : return 'toto'
+    arg = '2' : return 2
+    arg = '2.3' : return 2.3
+    arg = 'toto.nam' :'return toto.nam'
+    arg = '2.2,2.3' : return [2.2,2.3]
+    arg = None : return None (NoneType)
+
+    /!| tricky case:
+    arg='2016080106' (YYYYmmddHH format) : return '2016080106' (and not 2016080106)
+    arg=rangex(start: a end: b) : return list(range(a,b+1)) (a vortex type...)
+    arg=rangex(start:a end:b): return list(range(a,b+1))
+    exception cases :
+    - badly formatted str
+    - mixed types in lists
+    """
+    # first deal with the vortex case
+    if "rangex" in arg:
+        try:
+            start = int(re.search(r"start: (\d+)", arg).group(1))
+        except AttributeError:
+            start = int(re.search(r"start:(\d+)", arg).group(1))
+        try:
+            end = int(re.search(r"end: (\d+)", arg).group(1))
+        except AttributeError:
+            end = int(re.search(r"end:(\d+)", arg).group(1))
+        ret = list(range(start, end + 1))
+    elif arg == 'None':
+        ret = None
+    else:
+        if "," in arg:
+            ret = list(map(unpack_conf, arg.split(',')))
+        # unpack strings:
+        elif arg.startswith("'") or arg.startswith('"'):
+            if arg[0] == arg[-1]:
+                ret = arg[1:-1]
+            else:
+                raise ValueError(arg + ': badly formatted string.')
+        elif '.' in arg:
+            try:
+                ret = float(arg)
+            except ValueError:  # must be a path ^^
+                ret = arg
+        else:
+            try:
+                _ = datetime.datetime.strptime(arg, '%Y%m%d%H')
+                ret = arg
+            except ValueError:
+                try:
+                    ret = int(arg)
+                except ValueError:
+                    ret = arg
+    if isinstance(ret, list):
+        if all(isinstance(r, type(ret[0])) for r in ret):
+            return ret
+        else:
+            raise TypeError('unconsistent types in list: {0}'.format(ret))
+    else:
+        return ret
+
+
+class ConfObj1L(dict):
+    def __init__(self, **kwargs):
+        self.__dict__.update(self, **kwargs)
+        for name, val in kwargs.items():
+            super().__setitem__(name, val)
+
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+    def __setattr__(self, name, val):
+        self[name] = val
+        super().__setitem__(name, val)  # useful for object description
+        self.__dict__[name] = val  # useful for iteration over self.__dict__
+
+    def __str__(self):
+        return '<ConfObj1L(' + ', '.join(['{0}:{1}'.format(key, val) for key, val in self.__dict__.items()]) + ')>'
+
+    def __repr__(self):
+        return '<ConfObj1L(' + ', '.join(['{0}:{1}'.format(key, val) for key, val in self.__dict__.items()]) + ')>'
+
+
+def conf2obj(conf):
+    '''
+    BC 01/04/20
+    convert a ConfParser to a one-level dict then a one level dot.dict.
+    '''
+
+    dict1 = dict()
+    default_sec = conf.default_section
+    for k in conf[default_sec]:
+        dict1[k] = unpack_conf(conf[default_sec][k])
+    for k in conf._sections:
+        for kk in conf[k]:
+            dict1[kk] = unpack_conf(conf[k][kk])
+    return ConfObj1L(**dict1)
+
+
+def read_conf(pathconf, useVortex=True):
     '''
     B. Cluzet
     duplicated from evalSODA.util
@@ -238,28 +368,34 @@ def read_conf(pathconf):
         if os.path.exists(pathconf[0:-4] + '.foo'):
             shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
         else:
-            print('no conf file for this experiment :', pathconf)
-    iniparser = GenericConfigParser(pathconf)
-    thisconf  = iniparser.as_dict(merged=False)
-    updconf = thisconf.get('defaults', dict())
-    conf = ConfigSet()
-    conf.update(updconf)
+            raise FileNotFoundError('no conf file at this path :', pathconf)
 
-    return conf
-
-
-def colorbar(mappable, ax = None):
-    """
-    from http://joseph-long.com/writing/colorbars/
-    """
-    if ax is None:
-        ax = mappable.axes
+    def open_conf_no_vtx(pathconf):
+        try:
+            from configparser import ConfigParser
+        except ImportError:
+            print('please install configparser or vortex in order to parse the conf file.')
+        conf = ConfigParser()
+        conf.read(pathconf)
+        conf = conf2obj(conf)
+        return conf
+    if useVortex is True:
+        try:
+            from vortex.layout.nodes import ConfigSet
+            from vortex.util.config import GenericConfigParser
+            iniparser = GenericConfigParser(pathconf)
+            thisconf  = iniparser.as_dict(merged=False)
+            updconf = thisconf.get('defaults', dict())
+            conf = ConfigSet()
+            conf.update(updconf)
+        except ImportError:
+            print("you asked vortex to parse conf file but vortex is not installed")
+            print("since it is not installed, we use the alternative config parser")
+            print("this alternative config parser may not appropriately parse complex vorte types")
+            conf = open_conf_no_vtx(pathconf)
     else:
-        ax = ax
-    fig = ax.figure
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    return fig.colorbar(mappable, cax=cax)
+        conf = open_conf_no_vtx(pathconf)
+    return conf
 
 
 def dictErrors():
@@ -304,6 +440,31 @@ def set_factors(argsoda, fact):
             raise Exception('you should either apply the same fact to all vars or specify it for each one')
 
 
+def read_opts_in_namelist(options):
+    """
+    read pf parameters in namelist
+    """
+    n = NamelistParser()
+    if hasattr(options, 'kind'):
+        if options.todo != 'pfpp':
+            try:
+                N = n.parse(options.xpiddir + 'conf/namelist.surfex.foo')
+                print(' read the PF params in namelist:',
+                      options.xpiddir + 'conf/namelist.surfex.foo')
+            except FileNotFoundError:
+                N = n.parse(options.xpiddir + '/conf/OPTIONS.nam')
+                print(' read the PF params in namelist:', options.xpiddir + '/conf/OPTIONS.nam')
+    else:
+        N = n.parse(options.dates[0] + '/OPTIONS.nam')
+        print(' read the PF params in namelist:', options.dates[0] + '/OPTIONS.nam')
+    try:
+        options.nloc_pf = N['NAM_ASSIM'].NLOC_PF
+        options.neff_pf = N['NAM_ASSIM'].NEFF_PF
+        options.pf = N['NAM_ASSIM'].CPF_CROCUS
+    except AttributeError:
+        raise Exception('Some of the PF parameters are not defined in the namelist.')
+
+
 def check_namelist_soda(options, pathIn= None, pathOut = None):
     """
     - check consistency between the prescribed assim vars and what is written in the namelist
@@ -341,7 +502,6 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
 
     # NAM_VAR
     sodavar = setlistvars_var(options.vars)
-    print(sodavar)
     if 'PSB' in sodavar:
         sodavar.remove('PSB')
     N['NAM_VAR'].NVAR = N['NAM_OBS'].NOBSTYPE
@@ -353,7 +513,10 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
         print('be careful, old-formatted namelist !', 'LSEMIDISTR_CROCUS' 'LASSIM_CROCUS -> CPF_CROCUS, LCRAMPON')
         N['NAM_ASSIM'].delvar('LSEMIDISTR_CROCUS')
         N['NAM_ASSIM'].delvar('LASSIM_CROCUS')
-    N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
+    if options.pf != 'ol':
+        N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
+    else:
+        N['NAM_ASSIM'].CPF_CROCUS = 'global'.upper()
     N['NAM_ASSIM'].LCRAMPON = True
     N['NAM_ASSIM'].LASSIM = True
     N['NAM_ASSIM'].CASSIM_ISBA = 'PF   '
