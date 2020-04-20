@@ -9,15 +9,15 @@ create a masked version of the postes observations  to select a specific massif 
 
 import datetime
 
-from CrocOrun import CrocO
-from crocO import set_options
-from utilcrocO import Pgd
+from CramponPf import Crampon
+from crampon import set_options
+from utilcrampon import Pgd
 # ####### PARAMETERS #####
 vconf = 'postes_8_9_12_13_15_16_csv'
 selMassif = [12]
 xpidobs = 'all'
 # in order to mask the obs that are not in the selected massif,
-# we use the classesId argument of crocO.py
+# we use the classesId argument of crampon.py
 
 # the classesId are in Python indexw (0 for the first class/station.)
 pgdPath = '/home/cluzetb/vortexpath/s2m/' + vconf + '/spinup/pgd/super_PGD_' + vconf + '.nc'
@@ -32,7 +32,7 @@ for i, stat in enumerate(pgd.station[classesId]):
     sensor = '_'.join(map(str, selMassif)) + '_X' + str(stat)
     args = [
 
-        '/home/cluzetb/Code/Dev/crocO.py',
+        '/home/cluzetb/Code/Dev/crampon.py',
         '--xpidobs', xpidobs,
         '--xpid', 'testmaskobs',
         '--todo', 'generobs',
@@ -45,7 +45,7 @@ for i, stat in enumerate(pgd.station[classesId]):
         '--archive_synth'
     ]
     options, conf = set_options(args)
-    run = CrocO(options, conf)
+    run = Crampon(options, conf)
     for date in run.conf.assimdates:
         dt = datetime.datetime.strptime(date, '%Y%m%d%H')
         if dt.month > 9 or dt.month < 7:

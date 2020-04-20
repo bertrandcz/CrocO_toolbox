@@ -6,13 +6,11 @@ Created on 15 oct. 2019
 '''
 import os
 
-from tasks.vortex_kitchen import vortex_conf_file
-
-from crocO import set_options
+from crampon import set_options
 from postes.utilpostes import set_conf_everydate
-from utilcrocO import Pgd
-from utilcrocO import check_namelist_soda
-from utilcrocO import get_trailing_number
+from utilcrampon import Pgd
+from utilcrampon import check_namelist_soda
+from utilcrampon import get_trailing_number
 
 
 # ########## PARAMS ##########################
@@ -48,7 +46,7 @@ def spawn_crampon(year, run, fact, sensor, nens, neff, assimvars, assimilate_eve
         xp = '{0}_{1}_{2}_{3}_{4}_{5}'.format(
             year, pf, nens, sensor, neff, assimilate_every) + strtartes
     args = [
-        '/home/cluzetb/Code/Dev/crocO.py',
+        '/home/cluzetb/Code/Dev/crampon.py',
         '-d', 'all',
         '--pf', pf if pf is not 'ol' else 'rlocal',
         '--vconf', vconf,

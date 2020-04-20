@@ -10,11 +10,11 @@ import sys
 import time
 
 
-from CrocOpp import CrocOpp
-from crocO import set_options
+from CramponPp import CramponPp
+from crampon import set_options
 import numpy as np
 import pandas as pd
-from utilcrocO import setSubsetclasses
+from utilcrampon import setSubsetclasses
 from utilpp import set_itimes, RMSE, spread
 
 
@@ -86,7 +86,7 @@ itimesC = dict()
 for year in years:
     xp = 'art2_OL_{0}_t1500'.format(year)
     args = [
-        '/home/cluzetb/assim/crocO.py',
+        '/home/cluzetb/assim/crampon.py',
         '--xpid', xp,
         '-d', 'all',
         '--vars', assimvars,
@@ -99,7 +99,7 @@ for year in years:
     ]
     options, conf = set_options(args)
 
-    OL[year] = CrocOpp(options, conf)  # full loading, expensive but necessary in exploration mode.
+    OL[year] = CramponPp(options, conf)  # full loading, expensive but necessary in exploration mode.
     pgd = OL[year].pgd
     # set time and focus selection
     focusCl = setSubsetclasses(pgd, options.classesE,
@@ -168,7 +168,7 @@ for year in years:
                                       rr)
             print('xp', xp)
             args = [
-                '/home/cluzetb/snowtools_git/assim/crocO.py',
+                '/home/cluzetb/snowtools_git/assim/crampon.py',
                 '--xpid', xp,
                 '-d', 'all',
                 '--vars', 'B4,B5,SCF' if kind != 'postes' else 'SCF',
@@ -180,7 +180,7 @@ for year in years:
             ]
             options, conf = set_options(args)
             # try:
-            run = CrocOpp(options, conf)
+            run = CramponPp(options, conf)
             # except Exception:
             # print('bug with xp {0}, maybe it doesnot exist'.format(xp))
             # continue

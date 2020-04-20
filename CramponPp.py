@@ -5,15 +5,15 @@ Created on 12 juin 2019
 @author: cluzetb
 '''
 
-from CrocOrun import CrocO
+from CramponPf import Crampon
 from Ensemble import PrepEnsBg, PrepEnsAn
 from Ensemble import PrepEnsOl
 from SemiDistributed import FromXp, Real
 from bronx.datagrip.namelist import NamelistParser
 import datetime
 import os
-from utilcrocO import Pgd, setlistvars_obs, dictvarsPro
-from utilcrocO import ftpconnect, area
+from utilcrampon import Pgd, setlistvars_obs, dictvarsPro
+from utilcrampon import ftpconnect, area
 from utilpp import read_alpha, read_part, read_mask, read_BG
 from utils.dates import check_and_convert_date
 from utils.prosimu import prosimu
@@ -22,7 +22,7 @@ import numpy as np
 import pickle as pickle
 
 
-class CrocOpp(CrocO):
+class CramponPp(Crampon):
     '''
     class meant to post-process beaufix cycled assimilation runs (similar to deprecated SodaXP)
     '''
@@ -30,7 +30,7 @@ class CrocOpp(CrocO):
     def __init__(self, options, conf):
         self.options = options
         self.conf = conf
-        CrocO.__init__(self, options, conf)
+        Crampon.__init__(self, options, conf)
 
         self.mblist = list(range(1, options.nmembers + 1))
         if hasattr(self.conf, 'synth'):
@@ -155,8 +155,8 @@ class CrocOpp(CrocO):
             self.truth = load_from_dict(self.ensProOl, self.mbsynth)
         except IndexError:
             print('\n\nWARNING : there is no corresponding mbsynth in this openloop not enough members\n looking in the bigger OL xp.\n\n')
-            print('loading ' + self.xpidoldir[0:-4] + '/crocO/' + self.options.saverep + '/ensProOl.pkl')
-            pathPklBigOl = self.xpidoldir[0:-4] + '/crocO/' + self.options.saverep + '/ensProOl.pkl'
+            print('loading ' + self.xpidoldir[0:-4] + '/crampon/' + self.options.saverep + '/ensProOl.pkl')
+            pathPklBigOl = self.xpidoldir[0:-4] + '/crampon/' + self.options.saverep + '/ensProOl.pkl'
             gg = self.load_pickle2(pathPklBigOl)
             self.truth = load_from_dict(gg, self.mbsynth)
 
@@ -177,7 +177,7 @@ class CrocOpp(CrocO):
 
         for dd in self.options.dates:
             if (kind == 'ol' and isOl is False):
-                pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' +\
+                pathPkl = self.xpidoldir + '/crampon/' + self.options.saverep + '/' +\
                     kind + '_' + dd + '.pkl'
             else:
                 pathPkl = kind + '_' + dd + '.pkl'
@@ -201,15 +201,15 @@ class CrocOpp(CrocO):
 
     def loadEnsPro(self, kind, catPro = False, isOl = False):
         if kind == 'Cl':
-            pathPkl = self.xpiddir + '../clim/crocO/clim.pkl'
+            pathPkl = self.xpiddir + '../clim/crampon/clim.pkl'
             print(pathPkl)
         elif (kind == 'Ol' and isOl is False):
-            if not os.path.exists(self.xpidoldir + '/crocO/' + self.options.saverep + '/'):
-                os.makedirs(self.xpidoldir + '/crocO/' + self.options.saverep + '/')
-            pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' + 'ensPro' + kind + '.pkl'
+            if not os.path.exists(self.xpidoldir + '/crampon/' + self.options.saverep + '/'):
+                os.makedirs(self.xpidoldir + '/crampon/' + self.options.saverep + '/')
+            pathPkl = self.xpidoldir + '/crampon/' + self.options.saverep + '/' + 'ensPro' + kind + '.pkl'
         else:
             pathPkl = 'ensPro' + kind + '.pkl'
-        # with pickling on beaufix (february 2020 on), pickle files are in xpdir/crocO and with .foo extension added.
+        # with pickling on beaufix (february 2020 on), pickle files are in xpdir/crampon and with .foo extension added.
         pathpklbeauf = pathPkl + '.foo'
         if not os.path.islink(pathPkl):
             if os.path.exists(pathpklbeauf):
@@ -334,23 +334,23 @@ class CrocOpp(CrocO):
         if self.options.kind == 'localpp':
             if self.options.synth is not None:
                 print('xxxx', self.xpiddir)
-                self.pathArch = self.xpiddir + '/crocO/ARCH/' + self.sensor + '/'
-                self.pathSynth = self.xpiddir + '/crocO/SYNTH/' + self.sensor + '/'
+                self.pathArch = self.xpiddir + '/crampon/ARCH/' + self.sensor + '/'
+                self.pathSynth = self.xpiddir + '/crampon/SYNTH/' + self.sensor + '/'
             else:
                 self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
 
         else:
             if str(self.conf.openloop) == 'on':
                 if hasattr(self.conf, 'synth'):
-                    self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.sensor + '/'
-                    self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.sensor + '/'
+                    self.pathArch = self.xpidoldir + '/crampon/ARCH/' + self.sensor + '/'
+                    self.pathSynth = self.xpidoldir + '/crampon/SYNTH/' + self.sensor + '/'
                 else:
                     self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
             else:
                 if hasattr(self.options, 'xpidoldir'):
                     if hasattr(self.conf, 'synth'):
-                        self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.sensor + '/'
-                        self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.sensor + '/'
+                        self.pathArch = self.xpidoldir + '/crampon/ARCH/' + self.sensor + '/'
+                        self.pathSynth = self.xpidoldir + '/crampon/SYNTH/' + self.sensor + '/'
                     else:
                         self.pathReal = self.options.vortexpath + '/s2m/' + self.options.vconf + '/obs/' + self.sensor + '/'
 
@@ -397,7 +397,7 @@ class CrocOpp(CrocO):
     def readOper(self):
         # add an optio one day...
         if self.options.kind != 'localpp':
-            pathOper = self.options.vortexpath + '/s2m/' + self.options.vconf + '/oper_{0}/crocO/beaufix/oper.pkl'.format(self.conf.begprodates[0].strftime('%Y'))
+            pathOper = self.options.vortexpath + '/s2m/' + self.options.vconf + '/oper_{0}/crampon/beaufix/oper.pkl'.format(self.conf.begprodates[0].strftime('%Y'))
             self.oper = self.load_pickle2(pathOper)
 
     def read_opts_in_namelist(self):

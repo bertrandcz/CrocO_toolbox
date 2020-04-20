@@ -9,14 +9,14 @@ import time
 
 from scipy import stats
 
-from CrocOpp import CrocOpp
+from CramponPp import CramponPp
 from Operators import PrepEnsOperator
 from SemiDistributed import PrepAbs
-from crocO import set_options
+from crampon import set_options
 import matplotlib.pyplot as plt
 import numpy as np
-from plotcrocO import Pie, spaghettispace
-from utilcrocO import setSubsetclasses
+from plotcrampon import Pie, spaghettispace
+from utilcrampon import setSubsetclasses
 
 
 plt.close('all')
@@ -32,7 +32,7 @@ dcolors = {'klocal_f10': 'c', 'klocal_f1': 'm', 'klocal': 'b', 'rlocal': 'g', 'g
 
 for ik, key in enumerate(sorted(kinds.keys())):
     args = [
-        '/home/cluzetb/snowtools_git/assim/crocO.py',
+        '/home/cluzetb/snowtools_git/assim/crampon.py',
         '--xpid', 'OL_youness_160',
         '--vconf', 'lautaretreduc',
         '-d', 'all',
@@ -42,7 +42,7 @@ for ik, key in enumerate(sorted(kinds.keys())):
     ]
     options, conf = set_options(args)
 
-    run = CrocOpp(options, conf)
+    run = CramponPp(options, conf)
     # run.readEns()
 
 

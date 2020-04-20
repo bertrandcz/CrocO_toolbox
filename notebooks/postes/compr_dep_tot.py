@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils.prosimu import prosimu
 import glob
-pgd = netCDF4.Dataset('/cnrm/cen/users/NO_SAVE/cluzetb/vortex/s2m/12/2016_50_global/crocO/compar2to3/PGD.nc')
+pgd = netCDF4.Dataset('/cnrm/cen/users/NO_SAVE/cluzetb/vortex/s2m/12/2016_50_global/crampon/compar2to3/PGD.nc')
 slope = pgd.variables['SSO_SLOPE'][:]
 
 

@@ -4,7 +4,7 @@
 Created on 28 févr. 2019
 
 @author: cluzetb
-This script launches series of crocO command to test the PF collapsing conditions.
+This script launches series of crampon command to test the PF collapsing conditions.
 
 
 '''
@@ -31,7 +31,7 @@ for fact in list_fact:
 
         pts = list(range(140, 140 + npts))
         ipts = ','.join([str(pp) for pp in pts])
-        os.system('python /home/cluzetb/snowtools_git/assim/crocO.py ' +
+        os.system('python /home/cluzetb/snowtools_git/assim/crampon.py ' +
                   '--xpid ' + xpid +
                   ' -d ' + dt +
                   ' --vars ' + var +

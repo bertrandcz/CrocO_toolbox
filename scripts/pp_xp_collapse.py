@@ -4,7 +4,7 @@
 Created on 28 févr. 2019
 
 @author: cluzetb
-This script launches series of crocO command to test the PF collapsing conditions.
+This script launches series of crampon command to test the PF collapsing conditions.
 
 
 '''
@@ -14,7 +14,7 @@ import os
 import matplotlib.pyplot as plt
 xpid = 'artB31D11_2016@cluzetb'
 dt = '2017031310'
-rootdir = '/home/cluzetb/vortexpath/s2m/12/' + xpid + '/crocO'
+rootdir = '/home/cluzetb/vortexpath/s2m/12/' + xpid + '/crampon'
 os.chdir(rootdir)
 plt.figure()
 for filename in glob.glob('./coll*/' + dt + '/PART'):

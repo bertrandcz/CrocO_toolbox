@@ -4,11 +4,11 @@ Created on 15 oct. 2019
 
 @author: cluzetb
 '''
-from crocO import set_options
+from crampon import set_options
 import os
 import re
 from tasks.vortex_kitchen import vortex_conf_file
-from utilcrocO import check_namelist_soda, get_leading_number, get_trailing_number
+from utilcrampon import check_namelist_soda, get_leading_number, get_trailing_number
 
 
 # ########## PARAMS ##########################
@@ -74,7 +74,7 @@ for year in years:
             # 1.  prepare namelist and conf files.
             xp = '{0}_{1}_{2}{3}'.format(year, mbsynth, run, suffixrun)
             args = [
-                '/home/cluzetb/Code/Dev/crocO.py',
+                '/home/cluzetb/Code/Dev/crampon.py',
                 '-d', 'all',
                 '--pf', run,
                 '--synth', str(mbsynth) if kind != 'postes' else mbnum,

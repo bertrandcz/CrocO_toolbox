@@ -12,8 +12,8 @@ from Operators import PrepEnsOperator
 from SemiDistributed import PrepBg, PrepAbs, Synthetic, Real
 import matplotlib.pyplot as plt
 import numpy as np
-from plotcrocO import Pie
-from utilcrocO import setSubsetclasses
+from plotcrampon import Pie
+from utilcrampon import setSubsetclasses
 
 
 class PostCroco(object):
