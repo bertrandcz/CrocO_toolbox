@@ -5,20 +5,20 @@ Created on 12 juin 2019
 @author: cluzetb
 '''
 
+import datetime
+import os
+from utils.dates import check_and_convert_date
+from utils.prosimu import prosimu
+
 from CramponPf import Crampon
 from Ensemble import PrepEnsBg, PrepEnsAn
 from Ensemble import PrepEnsOl
 from SemiDistributed import FromXp, Real
-import datetime
-import os
+import numpy as np
+import pickle as pickle
 from utilcrampon import Pgd, setlistvars_obs, dictvarsPro
 from utilcrampon import ftpconnect, area
 from utilpp import read_alpha, read_part, read_mask, read_BG, load_pickle2
-from utils.dates import check_and_convert_date
-from utils.prosimu import prosimu
-
-import numpy as np
-import pickle as pickle
 
 
 class CramponPp(Crampon):
@@ -36,7 +36,7 @@ class CramponPp(Crampon):
         # setup + loading
         self.setup()
         self.read(readpro = not self.options.notreadpro, readprep=self.options.readprep, readaux = self.options.readaux, readobs = self.options.readobs,
-                  readoper=self.options.readoper, readtruth=options.readtruth)
+                  readtruth=options.readtruth)
 
         if 'notebooks' in self.initial_context:
             os.chdir(self.initial_context)
@@ -95,7 +95,7 @@ class CramponPp(Crampon):
         self.begprodates = [self.datedeb] + self.assimdates
         self.endprodates = self.assimdates + [self.datefin]
 
-    def read(self, readpro = True, readprep = False, readaux = False, readobs = False, readoper = False, readtruth = False):
+    def read(self, readpro = True, readprep = False, readaux = False, readobs = False, readtruth = False):
 
         # set the list of vars
         self.listvar = setlistvars_obs(self.options.ppvars)
@@ -115,9 +115,6 @@ class CramponPp(Crampon):
                     self.readTruth()
                 except AttributeError:
                     raise Exception('please prescribe a synthetic member in either options or conf file.')
-
-        if readoper is True:
-            self.readOper()
 
     def readEns(self):
         print('initializing ens')

@@ -109,9 +109,6 @@ def parse_options(arguments):
     parser.add_option("--readtruth",
                       action = 'store_true', dest = 'readtruth', default = False,
                       help = 'read truth from openloop run (synthetic experiments only. synth must be defined in either opts or conf file.')
-    parser.add_option("--readoper",
-                      action = 'store_true', dest = 'readoper', default = False,
-                      help = 'read oper pickle file @TODO remove from master branch.')
     parser.add_option("--notreadpro",
                       action = 'store_true', dest = 'notreadpro', default = False,
                       help = 'do NOT read pro files or the pickles EnsPro*')
