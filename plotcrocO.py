@@ -4,18 +4,18 @@ Created on 6 févr. 2019
 
 @author: cluzetb
 '''
+from SemiDistributed import PrepAbs
 import os
+from utilcrocO import dictErrors, niceName, niceLabel
+from utilcrocO import setSubsetclasses, cm2inch
+from utilpp import set_itimes
 
 from matplotlib.colors import Normalize
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 
-from SemiDistributed import PrepAbs
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-from utilcrocO import dictErrors, niceName, niceLabel
-from utilcrocO import setSubsetclasses, cm2inch
-from utilpp import set_itimes
 
 
 if 'beaufix' not in os.uname()[1]:
@@ -100,7 +100,7 @@ class Pie(object):
                 cmap = plt.cm.get_cmap(cmap)
                 cmap.set_bad(color = '0.5')
                 # pie or imshow depending on the slope
-                if slope is '0':
+                if slope == '0':
                     sax = plt.subplot(gs[0])
                     gg = sax.imshow(np.flipud(np.expand_dims(validcolors, 1)),
                                     interpolation  ='None', cmap = cmap, zorder = 0, vmin = lims[0], vmax = lims[1])
@@ -196,7 +196,7 @@ class Pie(object):
                 cb.set_ticklabels(['{:.1f}'.format(x) for x in np.arange(lims[0], lims[1] + step, step)])
                 # fig.subplots_adjust(left=0.05, right=0.85)
                 plt.title(colortitle if colortitle is not None else niceLabel(var), fontsize = 10)
-            if self.title is '':
+            if self.title == '':
                 plt.suptitle(niceLabel(var, self.score, printunits=False), fontsize = 15)
             elif self.title is not None and self.maketitle is not False:
                 plt.suptitle(self.title, fontsize = 15)

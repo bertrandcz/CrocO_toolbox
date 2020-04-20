@@ -7,19 +7,20 @@ Created on 6 févr. 2019
 utils suited for crocO interface only
 '''
 
+from bronx.datagrip.namelist import NamelistParser
 import datetime
 from ftplib import FTP
 from netrc import netrc
 import os
+import re
 import shutil
+from vortex.layout.nodes import ConfigSet
+from vortex.util.config import GenericConfigParser
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import netCDF4
 
-from bronx.datagrip.namelist import NamelistParser
 import numpy as np
-from vortex.layout.nodes import ConfigSet
-from vortex.util.config import GenericConfigParser
 
 
 def dictsAspect():
@@ -35,17 +36,22 @@ def dictsAspect():
 def setSubsetclasses(pgd, selE, selA, selS):
     """
     BC 5/02/19
-    duplicate from SodaXP.setSubset classes with some midfs
-    mask is True when the class is whithin the subset
-    """
+    Returns a list of point ids and a mask corresponding to the selection of topographic classes (selE,selA, selS
+    params:
+    - selE : string or list of string for elevations (['1800,'2100', ...]. 'all' for all elevation bands
+    - selA : string or list of strings for aspects (['N, 'NW', ...]), 'all' for all.
+    - selS : string or list of strings for slopes (degrees) (['0,20',]), 'all' for all. 
+       """
     subsetClass = []
     dictElev = {'all': np.unique(pgd.elev)}
     dictAsp, _ = dictsAspect()
     dictAsp['all'] = np.unique(pgd.aspect)
     dictSlope = {'all': ['0', '20', '40']}
 
-    if type(selE) is np.ndarray:
+    if isinstance(selE, np.ndarray):
         selE = np.ndarray.tolist(selE)
+    elif isinstance(selE, str):
+        selE = [selE]
     if 'all' not in selE:
         classesE = list(map(int, selE))
     else:
@@ -59,7 +65,7 @@ def setSubsetclasses(pgd, selE, selA, selS):
         classesA = dictAsp['all']
 
     classesS = []
-    if type(selS) is str:
+    if isinstance(selS, str):
         selS = [selS]
     if 'all' not in selS:
         classesS = selS
@@ -283,8 +289,7 @@ def set_factors(argsoda, fact):
     - if only one value (default or lazy case), apply it to all variables
     - if list of values (exhaustive): ok
     '''
-    print('ffact', fact)
-    print('aarg', argsoda)
+
     if type(fact) is list:
         return list(map(float, fact))
     if len(argsoda) == len([fact]):  # default with 1 var, lazy with 1 var, exhaustive

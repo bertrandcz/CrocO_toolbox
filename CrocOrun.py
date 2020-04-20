@@ -4,15 +4,15 @@ Created on 5 févr. 2019
 
 @author: cluzetb, inspired on SodaXP, test_PF.py and snowtools_git/tasks/runs.py from Lafaysse
 '''
-import os
-import random
-import shutil
-
 from ParticleFilter import ParticleFilter
 from PostCroco import PostCroco
 from SemiDistributed import Synthetic, Real
-import matplotlib.pyplot as plt
+import os
+import random
+import shutil
 from utilcrocO import convertdate, area, check_namelist_soda
+
+import matplotlib.pyplot as plt
 
 
 # import numpy as np
@@ -93,7 +93,6 @@ class CrocO(object):
             # real obs are obtained in xpidobs
             # BC 24/02 dirty dirty
             gg = self.options.vortexpath + '/s2m/' + self.options.vconf + '/spinup/pgd/super_PGD_' + area(self.options.vconf) + '.nc'
-            print('gaqgr', gg)
             self.obs = Real(self.options.xpidobsdir, date, self.options,
                             pgdPath=gg)
             self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking)
@@ -202,7 +201,7 @@ class CrocOrun(CrocO):
         os.system('ulimit -s unlimited')
         for dd in self.options.dates:
             os.chdir(dd)
-            if self.options.todo is not 'pfpython':
+            if self.options.todo != 'pfpython':
                 os.system('./soda.exe')
             else:
                 plot = True
@@ -219,7 +218,7 @@ class CrocOrun(CrocO):
             os.chdir('..')
 
     def post_proc(self, options):
-        if self.options.todo is 'pfpython':
+        if self.options.todo == 'pfpython':
             postp = PostCroco(self.xpiddir, self.xpiddir, options, pf = self.pf)
             pb = postp.run()
             return pb

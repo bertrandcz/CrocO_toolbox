@@ -4,12 +4,11 @@ Created on 15 oct. 2019
 
 @author: cluzetb
 '''
+from crocO import set_options
 import os
 import re
-
-from crocO import set_options
 from tasks.vortex_kitchen import vortex_conf_file
-from utilcrocO import check_namelist_soda, get_trailing_number
+from utilcrocO import check_namelist_soda, get_leading_number, get_trailing_number
 
 
 # ########## PARAMS ##########################
