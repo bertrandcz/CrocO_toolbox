@@ -5,7 +5,7 @@
 
 
 get_ipython().run_line_magic('matplotlib', 'inline')
-from plotcrocO import prepare_spaghetti_Marie
+from plotcrampon import prepare_spaghetti_Marie
 get_ipython().run_line_magic('run', '/home/cluzetb/assim/scripts/load_multi_xp.py postesdebug')
 
 
@@ -38,7 +38,7 @@ RUN[xp].mbsynth
 # In[26]:
 
 
-from plotcrocO import snsscatter_2vars
+from plotcrampon import snsscatter_2vars
 
 
 # In[30]:

@@ -9,9 +9,8 @@ Purpose: laod numerous expireiences for exploring purposes.
 
 import sys
 import time
-
-from CrocOpp import CrocOpp
-from crocO import set_options
+from CramponPp import CramponPp
+from crampon import set_options
 
 
 start_time = time.time()
@@ -101,7 +100,7 @@ for year in years:
             xp = '{0}_{1}_{2}'.format(year, mbsynth, key)
             print('------loading xp ', xp, '------')
             args = [
-                '/home/cluzetb/snowtools_git/assim/crocO.py',
+                '/home/cluzetb/snowtools_git/assim/crampon.py',
                 '--xpid', xp,
                 # '--xpid', 'art2_OL_{0}_t1500'.format(year),
                 '--xpidol', 'art2_OL_{0}_t1500'.format(year),
@@ -116,4 +115,4 @@ for year in years:
                 readobs,
             ]
             options, conf = set_options(args)
-            RUN[xp] = CrocOpp(options, conf)
+            RUN[xp] = CramponPp(options, conf)

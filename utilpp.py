@@ -13,7 +13,7 @@ import datetime
 import pickle
 
 import numpy as np
-from utilcrocO import read_conf
+from utilcrampon import read_conf
 
 
 def read_part(options):
@@ -147,8 +147,8 @@ def old_read_truth(run, var, baseline = False):
             truth = run.ensProOl[var][:, :, run.mbsynth]
         except Exception:
             print('\n\nWARNING : there is no corresponding mbsynth in this openloop not enough members\n looking in the bigger OL xp.\n\n')
-            print('loading ' + run.xpidoldir[0:-4] + '/crocO/' + run.options.saverep + '/ensProOl.pkl')
-            with open(run.xpidoldir[0:-4] + '/crocO/' + run.options.saverep + '/ensProOl.pkl', 'rb') as f:
+            print('loading ' + run.xpidoldir[0:-4] + '/crampon/' + run.options.saverep + '/ensProOl.pkl')
+            with open(run.xpidoldir[0:-4] + '/crampon/' + run.options.saverep + '/ensProOl.pkl', 'rb') as f:
                 gg = pickle.load(f)
             truth = gg[var][:, :, run.mbsynth]
         return truth
@@ -156,12 +156,12 @@ def old_read_truth(run, var, baseline = False):
         """
         try:
             print('trying to read truth in pickle')
-            with open('{0}baseline_{1}/crocO/{2}/ensProOl.pkl'.format(run.rootdir, run.conf.assimdates[0].strftime('%Y'), run.options.saverep), 'rb') as f:
+            with open('{0}baseline_{1}/crampon/{2}/ensProOl.pkl'.format(run.rootdir, run.conf.assimdates[0].strftime('%Y'), run.options.saverep), 'rb') as f:
                 gg = pickle.load(f)
             truth = gg[var]
         except Exception:
         """
-        import CrocOpp
+        import CramponPp
 
         # bc do not use prev. block bceause need to set itimes
         opts = copy.copy(run.options)
@@ -170,7 +170,7 @@ def old_read_truth(run, var, baseline = False):
         opts.xpiddir = opts.vortexpath + '/' + opts.vapp + '/' + opts.vconf + '/' + opts.xpid
         opts.nmembers = 1
         conf = read_conf('{0}baseline_{1}/conf/s2m_12.ini'.format(run.rootdir, run.conf.assimdates[0].strftime('%Y')))
-        base = CrocOpp.CrocOpp(opts, conf)
+        base = CramponPp.CramponPp(opts, conf)
         truth = base.ensProOl[var]
         itimes = set_itimes(base, fromOl = True)
         if truth.shape[-1] > 1:

@@ -6,8 +6,8 @@ Created on 6 févr. 2019
 '''
 from SemiDistributed import PrepAbs
 import os
-from utilcrocO import dictErrors, niceName, niceLabel
-from utilcrocO import setSubsetclasses, cm2inch
+from utilcrampon import dictErrors, niceName, niceLabel
+from utilcrampon import setSubsetclasses, cm2inch
 from utilpp import set_itimes
 
 from matplotlib.colors import Normalize
@@ -444,7 +444,7 @@ def snsscatter_2vars(options, pb, pa, obsReal, var1, var2, cl, savefig = False):
 
 def plot_pie_fromstack(run, kind, date, mb, listvar, ptinom='crpsa', focusCl=None, focusColors=None):
     sdObj = PrepAbs(date, run.options, ptinom=ptinom,
-                    pgdPath=run.xpiddir + '/crocO/' + run.options.saverep + '/PGD.nc')
+                    pgdPath=run.xpiddir + '/crampon/' + run.options.saverep + '/PGD.nc')
     data = dict()
     sdObj.options.ppvars = listvar
     for var in sdObj.options.ppvars:

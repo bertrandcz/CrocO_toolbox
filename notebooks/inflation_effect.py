@@ -6,8 +6,8 @@
 
 get_ipython().run_line_magic('matplotlib', 'notebook')
 import matplotlib.pyplot as plt
-from plotcrocO import prepare_spaghetti_Marie
-from utilcrocO import cm2inch,setSubsetclasses
+from plotcrampon import prepare_spaghetti_Marie
+from utilcrampon import cm2inch,setSubsetclasses
 
 
 # In[2]:

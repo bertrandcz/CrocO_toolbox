@@ -11,7 +11,7 @@ import pickle
 from snowtools_git.utils.prosimu import prosimu
 
 import numpy as np
-from utilcrocO import dictvarsPro
+from utilcrampon import dictvarsPro
 
 
 rootpath = '/era40/vortex/s2m/alp_allslopes/reanalysis/pro/'
@@ -20,7 +20,7 @@ startY = 1989
 lastY = 2018
 clim = dict()
 dictVars = dictvarsPro()
-pathPkl = '/home/cluzetb/vortexpath/s2m/12/clim/crocO/clim.pkl'
+pathPkl = '/home/cluzetb/vortexpath/s2m/12/clim/crampon/clim.pkl'
 listvar = ['DEP', 'SWE']
 for var in listvar:
     clim[var] = np.empty((365, 187, len(range(startY, lastY + 1))))

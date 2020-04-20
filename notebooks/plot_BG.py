@@ -7,11 +7,11 @@
 get_ipython().run_line_magic('matplotlib', 'notebook')
 import matplotlib.pyplot as plt
 from utilpp import read_BG
-from plotcrocO import Pie
+from plotcrampon import Pie
 from SemiDistributed import PrepAbs
 from copy import copy
 from Operators import PrepEnsOperator
-from utilcrocO import setSubsetclasses,cm2inch
+from utilcrampon import setSubsetclasses,cm2inch
 
 
 # In[2]:

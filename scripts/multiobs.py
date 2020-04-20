@@ -7,8 +7,8 @@ Created on 15 oct. 2019
 
 import os
 
-from crocO import set_options
-from utilcrocO import ftpconnect, ftp_upload
+from crampon import set_options
+from utilcrampon import ftpconnect, ftp_upload
 
 
 years = [2013, 2014, 2015, 2016]
@@ -30,7 +30,7 @@ for year in years:
     else:
         llist = ['baseline']
     for mbsynth in llist:
-        args = ['python3 /home/cluzetb/assim/crocO.py',
+        args = ['python3 /home/cluzetb/assim/crampon.py',
                 '--xpid', dictOl[year] if (kind == 'ol' or kind == 'postes')
                 else 'baseline_{0}'.format(year),
                 '--synth', str(mbsynth) if (kind == 'ol' or kind == 'postes') else '1',
@@ -54,11 +54,11 @@ for year in years:
         # put it on hendrix
         ftp = ftpconnect('hendrix')
         if kind == 'ol':
-            os.chdir('{0}crocO/SYNTH/mb{1:04d}/'.format(options.xpiddir, mbsynth))
+            os.chdir('{0}crampon/SYNTH/mb{1:04d}/'.format(options.xpiddir, mbsynth))
         elif kind == 'postes':
-            os.chdir('{0}crocO/SYNTH/mb{1:04d}_postes/'.format(options.xpiddir, mbsynth))
+            os.chdir('{0}crampon/SYNTH/mb{1:04d}_postes/'.format(options.xpiddir, mbsynth))
         elif kind == 'baseline':
-            os.chdir('{0}crocO/SYNTH/baseline/'.format(options.xpiddir))
+            os.chdir('{0}crampon/SYNTH/baseline/'.format(options.xpiddir))
         for file in os.listdir('.'):
             if kind == 'ol':
                 remotefile = '/home/cluzetb/vortex/{0}/{1}/obs/mb{2:04d}/{3}'.format(options.vapp, options.vconf, mbsynth, file)

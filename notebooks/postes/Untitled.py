@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 import datetime
 import numpy as np
 from utilpp import RMSE,spread
-from CrocOpp import CrocOpp
-from crocO import set_options
+from CramponPp import CramponPp
+from crampon import set_options
 import matplotlib.pyplot as plt
 from postes.explore_metadata import find_name_station
-from utilcrocO import Pgd
+from utilcrampon import Pgd
 
 # ########## PARAMS ##########################
 run = 'global'  # 'ol' for openloop
@@ -44,7 +44,7 @@ runs = dict()
 for station in list(xps.keys()):
     print('sensor', xps[station])
     args = [
-        '/home/cluzetb/snowtools_git/assim/crocO.py',
+        '/home/cluzetb/snowtools_git/assim/crampon.py',
         '--xpid', '{0}_{1}_{2}_{3}_{4}_{5}'.format(year, run, nens, xps[station], neff, assimilate_every),
         '--xpidol', '{0}_ol_40'.format(year),
         '--sensor', xps[station],
@@ -60,7 +60,7 @@ for station in list(xps.keys()):
     ]
     options, conf = set_options(args)
 
-    runs[station] = CrocOpp(options, conf)
+    runs[station] = CramponPp(options, conf)
 
 
 # In[113]:

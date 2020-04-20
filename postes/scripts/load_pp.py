@@ -6,8 +6,8 @@ Created on 10 févr. 2020
 '''
 import datetime
 
-from CrocOpp import CrocOpp
-from crocO import set_options
+from CramponPp import CramponPp
+from crampon import set_options
 import matplotlib.pyplot as plt
 from postes.explore_metadata import find_name_station
 
@@ -24,7 +24,7 @@ selMassif = [12]
 runs = dict()
 for sensor in ['12', '12_X38191400']:
     args = [
-        '/home/cluzetb/snowtools_git/assim/crocO.py',
+        '/home/cluzetb/snowtools_git/assim/crampon.py',
         '--xpid', '{0}_{1}_{2}_{3}_{4}_{5}'.format(year, run, nens, sensor, neff, assimilate_every),
         '--xpidol', '2014_ol_40',
         '--sensor', sensor,
@@ -39,4 +39,4 @@ for sensor in ['12', '12_X38191400']:
     ]
     options, conf = set_options(args)
 
-    runs[sensor] = CrocOpp(options, conf)
+    runs[sensor] = CramponPp(options, conf)

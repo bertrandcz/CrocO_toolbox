@@ -4,7 +4,7 @@ Created on 6 févr. 2019
 
 @author: cluzetb
 
-utils suited for crocO interface only
+utils suited for crampon interface only
 '''
 
 from bronx.datagrip.namelist import NamelistParser
@@ -183,7 +183,7 @@ def colorbar(mappable):
 def setlistvars_obs(arg):
     """
     BC 6/02/19
-    convert a crocO argument options.vars into a list of OBS variables names in soda format
+    convert a crampon argument options.vars into a list of OBS variables names in soda format
     """
 
     if arg == 'all':
@@ -198,7 +198,7 @@ def setlistvars_obs(arg):
 def setlistvars_var(arg):
     """
     BC 6/02/19
-    convert a crocO argument options.vars into a list of VAR variables names in soda format
+    convert a crampon argument options.vars into a list of VAR variables names in soda format
     TODO : same stuff for DEP/ SCF etc.
     """
     if arg == 'all':

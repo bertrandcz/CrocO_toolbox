@@ -17,7 +17,7 @@ import netCDF4
 import numpy as np
 from postes.explore_metadata import slice_file_listpnb
 from postes.explore_obs import find_common_massif_obsbase
-from utilcrocO import todates
+from utilcrampon import todates
 from utils.prosimu import prosimu
 
 years = [2013,2014,2015,2016]
@@ -126,7 +126,7 @@ for year in years:
         oper = dict()
         oper['DEP'] = depOper
         oper['time'] = timeOper
-        pathOper = '/home/cluzetb/vortexpath/s2m/{0}/oper_{1}/crocO/beaufix/'.format(vconf, year)
+        pathOper = '/home/cluzetb/vortexpath/s2m/{0}/oper_{1}/crampon/beaufix/'.format(vconf, year)
         if not os.path.exists(pathOper):
             os.makedirs(pathOper)
         with open(pathOper + 'oper.pkl', 'wb') as f:

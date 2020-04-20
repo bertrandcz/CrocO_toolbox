@@ -14,9 +14,9 @@ import os
 import sys
 import time
 
-from CrocOrun import CrocOrun
+from CramponPf import CramponPf
 from postes.utilpostes import set_conf_everydate
-from utilcrocO import read_conf
+from utilcrampon import read_conf
 
 
 usage = 'crocO --opts'
@@ -43,7 +43,7 @@ def parse_options(arguments):
     #                   help="xpev (useful for pickle save")
     parser.add_option("--kind",
                       action="store", type="string", dest="kind", default='beaufixpp',
-                      help='kind of the run run to perform (beaufixpp for CrocOpp')
+                      help='kind of the run run to perform (beaufixpp for CramponPp')
     parser.add_option("--vapp",
                       action="store", type="string", dest="vapp", default='s2m',
                       help="vapp of the soda-vortex task")
@@ -177,7 +177,7 @@ def set_options(args, pathConf = None):
 
 def execute(args):
     options, conf = set_options(args)
-    run = CrocOrun(options, conf)
+    run = CramponPf(options, conf)
     if options.todo in ['corr', 'load', 'generobs']:
         pass
     elif options.todo in ['pf', 'pfpython']:

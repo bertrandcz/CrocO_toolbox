@@ -7,15 +7,15 @@ Created on 6 nov. 2019
 
 Perform local runs and freely postprocess it
 '''
-from CrocOpp import CrocOpp
-from CrocOrun import CrocOrun
-from crocO import set_options
+from CramponPp import CramponPp
+from CramponPf import CramponPf
+from crampon import set_options
 import matplotlib.pyplot as plt
-from plotcrocO import plot_part_cesar_from_run
+from plotcrampon import plot_part_cesar_from_run
 import time
 start_time=time.time()
 args = [
-    '/home/cluzetb/Code/Dev/crocO.py',
+    '/home/cluzetb/Code/Dev/crampon.py',
     '--xpid', 'artB31D11_2016@cluzetb',
     '-d', '2016111210',
     '--todo', 'pf',
@@ -40,10 +40,10 @@ args = [
 ]
 options, conf = set_options(args)
 
-run = CrocOrun(options, conf)  # full loading, expensive but necessary in exploration mode.
+run = CramponPf(options, conf)  # full loading, expensive but necessary in exploration mode.
 run.run()
 """
-pp = CrocOpp(options, conf)
+pp = CramponPp(options, conf)
 for cl in range(85, 120):
     plt.figure()
     plot_part_cesar_from_run(pp, cl, 'DEP', '2016111210', kindobs = 'Arch')

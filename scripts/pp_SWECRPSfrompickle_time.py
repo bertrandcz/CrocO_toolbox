@@ -11,14 +11,14 @@ import time
 
 from matplotlib.dates import date2num
 
-from CrocOpp import CrocOpp
+from CramponPp import CramponPp
 from Ensemble import *
 from Operators import *
 from SemiDistributed import *
-from crocO import set_options
+from crampon import set_options
 import matplotlib.pyplot as plt
-from plotcrocO import *
-from utilcrocO import setSubsetclasses
+from plotcrampon import *
+from utilcrampon import setSubsetclasses
 from utilpp import RMSE, spread
 
 
@@ -78,7 +78,7 @@ for year in years:
                                       else kind if kind == 'baseline' else None,
                                       key)
             args = [
-                '/home/cluzetb/snowtools_git/assim/crocO.py',
+                '/home/cluzetb/snowtools_git/assim/crampon.py',
                 '--xpid', xp,
                 '--xpidol', 'art2_OL_{0}_t1500'.format(year),
                 '-d', 'all',
@@ -91,7 +91,7 @@ for year in years:
             ]
             options, conf = set_options(args)
 
-            RUN[xp] = CrocOpp(options, conf)
+            RUN[xp] = CramponPp(options, conf)
             pgd = RUN[xp].pgd
             # set time and focus selection
             if kind != 'postes':
@@ -113,9 +113,9 @@ for year in years:
             fAnCRPS = dict()
             nfAnCRPS = dict()
 
-            if not os.path.exists(options.xpiddir + '/crocO/' + options.saverep):
-                os.mkdir(options.xpiddir + '/crocO/' + options.saverep)
-            os.chdir(options.xpiddir + '/crocO/' + options.saverep)
+            if not os.path.exists(options.xpiddir + '/crampon/' + options.saverep):
+                os.mkdir(options.xpiddir + '/crampon/' + options.saverep)
+            os.chdir(options.xpiddir + '/crampon/' + options.saverep)
             # BC 07/01/20 dirty dirty
             os.chdir('/home/cluzetb/pie/')
             if score == 'CRPS' or score == 'rankdiag':
@@ -402,8 +402,8 @@ for year in years:
                         print(fOlCRPS2)
                         print(nfOlCRPS)
                     elif score == 'rankdiag':
-                        if not os.path.exists(RUN[xp].options.xpidoldir + '/crocO/pie/'):
-                            os.mkdir(RUN[xp].options.xpidoldir + '/crocO/pie/')
+                        if not os.path.exists(RUN[xp].options.xpidoldir + '/crampon/pie/'):
+                            os.mkdir(RUN[xp].options.xpidoldir + '/crampon/pie/')
                         fig, axes = plt.subplots(1, 2, figsize = (7, 3), sharey = True)
                         fig.subplots_adjust(wspace = 0.05)
                         axes[0].set_ylim([0, 1])
@@ -482,12 +482,12 @@ for year in years:
                 '''
 
         if aggrClasses and not aggrTime:
-            if not os.path.exists(RUN[xp].options.xpidoldir + '/crocO/pie/'):
-                os.mkdir(RUN[xp].options.xpidoldir + '/crocO/pie/')
+            if not os.path.exists(RUN[xp].options.xpidoldir + '/crampon/pie/'):
+                os.mkdir(RUN[xp].options.xpidoldir + '/crampon/pie/')
             axes[0].set_ylim([0, max(axes[0].get_ylim()[1], axes[1].get_ylim()[1])])
             axes[1].set_ylim([0, max(axes[0].get_ylim()[1], axes[1].get_ylim()[1])])
             plt.show()
-            fig.savefig(RUN[xp].options.xpidoldir + '/crocO/pie/{0}_timeseries_{1}_{2}.png'.format(score, year, mbsynth))
+            fig.savefig(RUN[xp].options.xpidoldir + '/crampon/pie/{0}_timeseries_{1}_{2}.png'.format(score, year, mbsynth))
 
 el_time = time.time() - start_time
 print(el_time)

@@ -10,13 +10,13 @@ from SemiDistributed import Synthetic, Real
 import os
 import random
 import shutil
-from utilcrocO import convertdate, area, check_namelist_soda
+from utilcrampon import convertdate, area, check_namelist_soda
 
 import matplotlib.pyplot as plt
 
 
 # import numpy as np
-class CrocO(object):
+class Crampon(object):
     '''
     Class for local soda test
     '''
@@ -62,7 +62,7 @@ class CrocO(object):
             self.options.nmembers = int(self.conf.nmembers)
 
         # set dirs
-        self.crocodir = self.xpiddir + 'crocO/'
+        self.crocodir = self.xpiddir + 'crampon/'
         self.machine = os.uname()[1]
         if type(self.conf.assimdates) is str:
             self.conf.assimdates = [str(self.conf.assimdates)]
@@ -98,7 +98,7 @@ class CrocO(object):
             self.obs.prepare(archive_synth = self.options.archive_synth, need_masking = self.options.need_masking)
 
 
-class CrocOrun(CrocO):
+class CramponPf(Crampon):
     '''
     class meant to perform LOCAL runs of the pf and post-process it
     '''
@@ -116,7 +116,7 @@ class CrocOrun(CrocO):
             self.options.nmembers -= 1
 
         # then, call mother init
-        CrocO.__init__(self, self.options, conf)
+        Crampon.__init__(self, self.options, conf)
 
         if self.options.synth is None:
             self.mblist = list(range(1, self.options.nmembers + 1))
