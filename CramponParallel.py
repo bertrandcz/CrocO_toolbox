@@ -277,16 +277,15 @@ class OfflinePools(Crampon):
             self.link_build(mb, dateprev)
 
     def link_build(self, mb, dateprev):
-        dateAssSoda = convertdate(dateprev).strftime('%y%m%dH%H')
         if self.options.pf and self.options.pf != 'ol':
             try:
                 os.symlink(
-                    self.xpiddir + '/' + dateprev + '/workSODA/PREP_' + dateAssSoda + '_PF_ENS' + str(mb) + '.nc',
+                    self.xpiddir + '/' + dateprev + '/workSODA/SURFOUT' + str(mb) + '.nc',
                     'PREP.nc')
             except Exception:
                 os.remove('PREP.nc')
                 os.symlink(
-                    self.xpiddir + '/' + dateprev + '/workSODA/PREP_' + dateAssSoda + '_PF_ENS' + str(mb) + '.nc',
+                    self.xpiddir + '/' + dateprev + '/workSODA/SURFOUT' + str(mb) + '.nc',
                     'PREP.nc')
         # ol case
         else:
