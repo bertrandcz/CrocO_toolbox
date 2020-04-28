@@ -2,21 +2,21 @@
 Created on 15 oct. 2019
 @author: cluzetb
 This pproc_scripts:
-- post processes the raw outputs of CRAMPON simulations into pickle files ( if they don't exist)
+- post processes the raw outputs of CROCO simulations into pickle files ( if they don't exist)
 - loads these pickle files
 - compute scores into pandas dataframe.
 '''
-from CramponPp import CramponPp
-from consts import CRAMPON
-from crampon import set_options
 from scores.ensemble import EnsembleScores
 import sys
 import time
-from utilcrampon import setSubsetclasses
-from utilpp import set_itimes, RMSE, spread
 
+from CrocoPp import CrocoPp
+from consts import CROCO
+from crocO import set_options
 import numpy as np
 import pandas as pd
+from utilcrocO import setSubsetclasses
+from utilpp import set_itimes, RMSE, spread
 
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -91,7 +91,7 @@ itimesC = dict()
 for year in years:
     xp = 'art2_OL_{0}_t1500'.format(year)
     args = [
-        CRAMPON + '/crampon.py',
+        CROCO + '/crocO.py',
         '--xpid', xp,
         '-d', 'all',
         '--vars', assimvars,
@@ -104,7 +104,7 @@ for year in years:
     ]
     options = set_options(args)
 
-    OL[year] = CramponPp(options)  # full loading, expensive but necessary in exploration mode.
+    OL[year] = CrocoPp(options)  # full loading, expensive but necessary in exploration mode.
     pgd = OL[year].pgd
     # set time and focus selection
     focusCl = setSubsetclasses(pgd, options.classes_e,
@@ -172,7 +172,7 @@ for year in years:
                                       rr)
             print('xp', xp)
             args = [
-                CRAMPON + '/crampon.py',
+                CROCO + '/crocO.py',
                 '--xpid', xp,
                 '-d', 'all',
                 '--vars', 'B4,B5,SCF' if kind != 'postes' else 'SCF',
@@ -184,7 +184,7 @@ for year in years:
             ]
             options = set_options(args)
             # try:
-            run = CramponPp(options)
+            run = CrocoPp(options)
             # except Exception:
             # print('bug with xp {0}, maybe it doesnot exist'.format(xp))
             # continue

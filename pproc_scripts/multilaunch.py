@@ -4,11 +4,12 @@ Created on 15 oct. 2019
 
 @author: cluzetb
 '''
-from consts import CRAMPON
-from crampon import set_options
 import os
 from tasks.vortex_kitchen import vortex_conf_file
-from utilcrampon import check_namelist_soda, get_leading_number, get_trailing_number
+
+from consts import CROCO
+from crocO import set_options
+from utilcrocO import check_namelist_soda, get_leading_number, get_trailing_number
 
 
 # ########## PARAMS ##########################
@@ -67,7 +68,7 @@ for year in years:
             # 1.  prepare namelist and conf files.
             xp = '{0}_{1}_{2}{3}'.format(year, mbsynth, run, suffixrun)
             args = [
-                CRAMPON + '/crampon.py',
+                CROCO + '/crocO.py',
                 '-b', '{0}0801'.format(year),
                 '-e', '{0}0730'.format(year + 1),
                 '-d', 'all',
@@ -107,7 +108,7 @@ for year in years:
                    '-m', 'safran',
                    '-r', '12',
                    '--escroc', 'E1tartes',
-                   '--crampon', pathConfRun,
+                   '--crocO', pathConfRun,
                    '-n', pathNamRun,
                    '-o', xp + '_testmerge',
                    '--nforcing', '{0}'.format(nens),

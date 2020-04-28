@@ -10,25 +10,25 @@ import os
 from utils.dates import check_and_convert_date
 from utils.prosimu import prosimu
 
-from CramponPf import Crampon
+from CrocoPf import CrocO
 from Ensemble import PrepEnsBg, PrepEnsAn
 from Ensemble import PrepEnsOl
 from SemiDistributed import FromXp, Real
 import numpy as np
 import pickle as pickle
-from utilcrampon import Pgd, setlistvars_obs, dictvarsPro
-from utilcrampon import ftpconnect, area
+from utilcrocO import Pgd, setlistvars_obs, dictvarsPro
+from utilcrocO import ftpconnect, area
 from utilpp import read_alpha, read_part, read_mask, read_BG, load_pickle2
 
 
-class CramponPp(Crampon):
+class CrocoPp(CrocO):
     '''
     class meant to post-process beaufix cycled assimilation runs (similar to deprecated SodaXP)
     '''
 
     def __init__(self, options):
         self.options = options
-        Crampon.__init__(self, options)
+        CrocO.__init__(self, options)
         if self.options.synth:
             self.mbsynth = int(self.options.synth) - 1  # be careful to id offset
         self.mblist = self.options.mblist
@@ -42,13 +42,13 @@ class CramponPp(Crampon):
             os.chdir(self.initial_context)
 
     def setup(self):
-        if not os.path.exists(self.crampondir + '/' + self.options.saverep):
-            os.makedirs(self.crampondir + '/' + self.options.saverep)
-        os.chdir(self.crampondir + '/' + self.options.saverep)
+        if not os.path.exists(self.crocOdir + '/' + self.options.saverep):
+            os.makedirs(self.crocOdir + '/' + self.options.saverep)
+        os.chdir(self.crocOdir + '/' + self.options.saverep)
 
         # load the PGD (useful for pp)
         if not os.path.exists('PGD.nc'):
-            os.symlink(self.options.cramponpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
+            os.symlink(self.options.crocOpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
         self.pgd = Pgd('PGD.nc')
 
         # set subdirs
@@ -77,7 +77,7 @@ class CramponPp(Crampon):
                     raise Exception('the prescribed OL associated experiment ' + self.xpidoldir + 'does not exist')
                 else:
                     if not os.path.exists(self.xpidoldir + '/PGD.nc'):
-                        os.symlink(self.options.cramponpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc',
+                        os.symlink(self.options.crocOpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc',
                                    self.xpidoldir + 'PGD.nc')
             else:
                 self.readOl = False
@@ -160,8 +160,8 @@ class CramponPp(Crampon):
             self.truth = load_from_dict(self.ensProOl, self.mbsynth)
         except IndexError:
             print('\n\nWARNING : there is no corresponding mbsynth in this openloop not enough members\n looking in the bigger OL xp.\n\n')
-            print('loading ' + self.xpidoldir[0:-4] + '/crampon/' + self.options.saverep + '/ensProOl.pkl')
-            pathPklBigOl = self.xpidoldir[0:-4] + '/crampon/' + self.options.saverep + '/ensProOl.pkl'
+            print('loading ' + self.xpidoldir[0:-4] + '/crocO/' + self.options.saverep + '/ensProOl.pkl')
+            pathPklBigOl = self.xpidoldir[0:-4] + '/crocO/' + self.options.saverep + '/ensProOl.pkl'
             gg = load_pickle2(pathPklBigOl)
             self.truth = load_from_dict(gg, self.mbsynth)
 
@@ -182,7 +182,7 @@ class CramponPp(Crampon):
 
         for dd in self.options.dates:
             if (kind == 'ol' and isOl is False):
-                pathPkl = self.xpidoldir + '/crampon/' + self.options.saverep + '/' +\
+                pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' +\
                     kind + '_' + dd + '.pkl'
             else:
                 pathPkl = kind + '_' + dd + '.pkl'
@@ -210,14 +210,14 @@ class CramponPp(Crampon):
 
     def loadEnsPro(self, kind, catPro = False, isOl = False):
         if kind == 'Cl':
-            pathPkl = self.xpiddir + '../clim/crampon/clim.pkl'
+            pathPkl = self.xpiddir + '../clim/crocO/clim.pkl'
         elif (kind == 'Ol' and isOl is False):
-            if not os.path.exists(self.xpidoldir + '/crampon/' + self.options.saverep + '/'):
-                os.makedirs(self.xpidoldir + '/crampon/' + self.options.saverep + '/')
-            pathPkl = self.xpidoldir + '/crampon/' + self.options.saverep + '/' + 'ensPro' + kind + '.pkl'
+            if not os.path.exists(self.xpidoldir + '/crocO/' + self.options.saverep + '/'):
+                os.makedirs(self.xpidoldir + '/crocO/' + self.options.saverep + '/')
+            pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' + 'ensPro' + kind + '.pkl'
         else:
             pathPkl = 'ensPro' + kind + '.pkl'
-        # with pickling on beaufix (february 2020 on), pickle files are in xpdir/crampon and with .foo extension added.
+        # with pickling on beaufix (february 2020 on), pickle files are in xpdir/crocO and with .foo extension added.
         pathpklbeauf = pathPkl + '.foo'
         if not os.path.islink(pathPkl):
             if os.path.exists(pathpklbeauf):
@@ -267,28 +267,28 @@ class CramponPp(Crampon):
         # if performing pfpp, it is after a locla run and obs are properly archived.
         if self.options.todo == 'pfpp':
             if self.options.synth is not None:
-                self.pathArch = self.xpiddir + '/crampon/ARCH/' + self.options.sensor + '/'
-                self.pathSynth = self.xpiddir + '/crampon/SYNTH/' + self.options.sensor + '/'
+                self.pathArch = self.xpiddir + '/crocO/ARCH/' + self.options.sensor + '/'
+                self.pathSynth = self.xpiddir + '/crocO/SYNTH/' + self.options.sensor + '/'
             else:
-                self.pathReal = self.options.cramponpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
+                self.pathReal = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
 
         else:
             if str(self.options.openloop) == 'on':
                 if hasattr(self.options, 'synth'):
-                    self.pathArch = self.xpidoldir + '/crampon/ARCH/' + self.options.sensor + '/'
-                    self.pathSynth = self.xpidoldir + '/crampon/SYNTH/' + self.options.sensor + '/'
+                    self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.options.sensor + '/'
+                    self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.options.sensor + '/'
                 else:
-                    self.pathReal = self.options.cramponpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
+                    self.pathReal = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
             else:
                 if hasattr(self.options, 'xpidoldir'):
                     if hasattr(self.options, 'synth'):
-                        self.pathArch = self.xpidoldir + '/crampon/ARCH/' + self.options.sensor + '/'
-                        self.pathSynth = self.xpidoldir + '/crampon/SYNTH/' + self.options.sensor + '/'
+                        self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.options.sensor + '/'
+                        self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.options.sensor + '/'
                     else:
-                        self.pathReal = self.options.cramponpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
+                        self.pathReal = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
                 else:
                     # if no xpidoldir has been prescribed, obs must be real.
-                    self.pathReal = self.options.cramponpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
+                    self.pathReal = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
 
         # proper loading (synth or real)
         if self.options.todo == 'pfpp':
@@ -319,10 +319,10 @@ class CramponPp(Crampon):
                 for dd in self.options.dates:
                     self.obsReal[dd].load()
                 print('reading observation timeseries (pickle from csv file)')
-                pathObsTs = self.options.cramponpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor +\
+                pathObsTs = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor +\
                     '/obs_{0}_{1}_2013010106_2018123106.pkl'.format(self.options.sensor, self.options.vconf)
                 if not os.path.exists(pathObsTs):
-                    os.symlink(self.options.cramponpath + '/s2m/' + self.options.vconf +
+                    os.symlink(self.options.crocOpath + '/s2m/' + self.options.vconf +
                                '/obs/all/obs_all_{0}_2013010106_2018123106.pkl'.format(self.options.vconf), pathObsTs)
                 self.obsTs = load_pickle2(pathObsTs)
 

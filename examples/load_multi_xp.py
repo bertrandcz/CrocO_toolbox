@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 '''
 Created on 29 oct. 2019
-Example of script used to load and manipulate many Crampon experiences.
+Example of script used to load and manipulate many CrocO experiences.
 Purpose: load numerous experiences for exploring purposes.
 Launch on sxcen.cnrm.meteo.fr
 @author: cluzetb
 '''
 
 
-from CramponPp import CramponPp
-from consts import CRAMPON
-from crampon import set_options
+from CrocoPp import CrocoPp
+from consts import CROCO
+from crocO import set_options
 import time
 start_time = time.time()
 # ############ PARAMETERS ####################
@@ -40,7 +40,7 @@ for year in years:
             xp = '{0}_{1}_{2}'.format(year, mbsynth, key)
             print('------loading xp ', xp, '------')
             args = [
-                CRAMPON + '/crampon.py',
+                CROCO + '/crocO.py',
                 '--xpid', xp,
                 '--xpidol', 'art2_OL_{0}_t1500'.format(year),
                 '-d', 'all',
@@ -53,4 +53,4 @@ for year in years:
 
             ]
             options = set_options(args)
-            RUN[xp] = CramponPp(options)
+            RUN[xp] = CrocoPp(options)

@@ -4,7 +4,7 @@ Created on 6 avr. 2020
 @author: cluzetb
 Some useful functions for plotting
 '''
-from utilcrampon import dictsAspect
+from utilcrocO import dictsAspect
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 

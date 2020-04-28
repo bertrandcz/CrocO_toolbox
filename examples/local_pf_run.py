@@ -6,20 +6,21 @@ Created on 6 nov. 2019
 @author: cluzetb
 
 Perform local runs and freely postprocess it.
+example data : inside the data archive of the summitted manuscript to GMD (Cluzet et al., 2020)
 '''
-from CramponPf import CramponPf
-from CramponPp import CramponPp
-from consts import CRAMPON
-from crampon import set_options
-from plotcrampon import plot_part_cesar_from_run
 import time
 
+from CrocoPf import CrocoPf
+from CrocoPp import CrocoPp
+from consts import CROCO
+from crocO import set_options
 import matplotlib.pyplot as plt
+from plotcrocO import plot_part_cesar_from_run
 
 
 start_time = time.time()
 args = [
-    CRAMPON + '/crampon.py',
+    CROCO + '/crocO.py',
     '--xpid', 'art2_OL_2014_t1500',
     '-d', '2014110710',
     '--todo', 'pf',
@@ -43,9 +44,9 @@ args = [
 ]
 options = set_options(args)
 
-run = CramponPf(options)  # full loading, expensive but necessary in exploration mode.
+run = CrocoPf(options)  # full loading, expensive but necessary in exploration mode.
 run.run()
-pp = CramponPp(options)
+pp = CrocoPp(options)
 for cl in range(85, 87):
     print(pp.ensBg[options.dates[0]].stack['DEP'][85, :])
     print(pp.ensAn[options.dates[0]].stack['DEP'][85, :])

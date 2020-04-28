@@ -4,15 +4,15 @@ Created on 5 févr. 2019
 
 @author: cluzetb
 Classes manipulation Semi-distributed objects :
-- preparing/faking/ synthetic observations observations within crampon framework
+- preparing/faking/ synthetic observations observations within crocO framework
 - loading prep files/obervations
 - ...
 
 '''
 import os
-from utilcrampon import Pgd, convertdate
-from utilcrampon import area
-from utilcrampon import setlistvars_obs, setlistvars_var, setSubsetclasses,\
+from utilcrocO import Pgd, convertdate
+from utilcrocO import area
+from utilcrocO import setlistvars_obs, setlistvars_var, setSubsetclasses,\
     dictvarsPrep
 from utils.prosimu import prosimu
 
@@ -23,7 +23,7 @@ import numpy as np
 
 class SemiDistributed(object):
     '''
-    class for semi-distributed files (obs or PREP) bound to a geometry described by a pgd in current crampondir
+    class for semi-distributed files (obs or PREP) bound to a geometry described by a pgd in current crocOdir
     '''
     _abstract = True
 
@@ -294,7 +294,7 @@ class Archived(Obs):
     def __init__(self, path, date, options, ptinom = 'archive'):
         Obs.__init__(self, date, options)
         self.path = path
-        self.sodaName = self.path + 'crampon/ARCH/' + options.sensor + '/' + self.vortexname
+        self.sodaName = self.path + 'crocO/ARCH/' + options.sensor + '/' + self.vortexname
         self.dictVarsRead = {name: name for name in self.listvar}
         self.dictVarsWrite = self.dictVarsRead
         self.loadDict = self.dictVarsWrite

@@ -174,21 +174,21 @@ def old_read_truth(run, var, baseline = False):
             truth = run.ensProOl[var][:, :, run.mbsynth]
         except Exception:
             print('\n\nWARNING : there is no corresponding mbsynth in this openloop not enough members\n looking in the bigger OL xp.\n\n')
-            print('loading ' + run.xpidoldir[0:-4] + '/crampon/' + run.options.saverep + '/ensProOl.pkl')
-            with open(run.xpidoldir[0:-4] + '/crampon/' + run.options.saverep + '/ensProOl.pkl', 'rb') as f:
+            print('loading ' + run.xpidoldir[0:-4] + '/crocO/' + run.options.saverep + '/ensProOl.pkl')
+            with open(run.xpidoldir[0:-4] + '/crocO/' + run.options.saverep + '/ensProOl.pkl', 'rb') as f:
                 gg = pickle.load(f)
             truth = gg[var][:, :, run.mbsynth]
         return truth
     else:
-        import CramponPp
+        import CrocoPp
 
         # bc do not use prev. block because need to set itimes
         opts = copy.copy(run.options)
         print('doesnot work, read in file')
         opts.xpid = 'baseline_{0}'.format(run.assimdates[0].strftime('%Y')) + '/'
-        opts.xpiddir = opts.cramponpath + '/' + opts.vapp + '/' + opts.vconf + '/' + opts.xpid
+        opts.xpiddir = opts.crocOpath + '/' + opts.vapp + '/' + opts.vconf + '/' + opts.xpid
         opts.nmembers = 1
-        base = CramponPp.CramponPp(opts, pathConf='{0}baseline_{1}/conf/s2m_12.ini'.format(run.rootdir, run.assimdates[0].strftime('%Y')))
+        base = CrocoPp.CrocoPp(opts, pathConf='{0}baseline_{1}/conf/s2m_12.ini'.format(run.rootdir, run.assimdates[0].strftime('%Y')))
         truth = base.ensProOl[var]
         itimes = set_itimes(base, fromOl = True)
         if truth.shape[-1] > 1:

@@ -5,15 +5,15 @@ Created on Fri Jun 21 09:26:45 2019
 @author: cluzetb
 """
 
-from CramponPp import CramponPp
+from CrocoPp import CrocoPp
 from SemiDistributed import PrepAbs
-from consts import CRAMPON
-from crampon import set_options
+from consts import CROCO
+from crocO import set_options
 import os
-from plotcrampon import Pie
+from plotcrocO import Pie
 from scores.ensemble import EnsembleScores
 import time
-from utilcrampon import setSubsetclasses
+from utilcrocO import setSubsetclasses
 from utilplot import set_colors, set_title
 from utilpp import set_itimes
 
@@ -26,7 +26,7 @@ def compute_CRPS_space_time(nens, dictmembers, runs, assimvars, saverep = 'gmd',
     Compute SWE CRPS over a set of experiments.
     CRPS can be aggregated over time or space (discriminating between observed and non observed classes.)
     for aggregation over both time and space, use multipp.py
-    saverep : the crampon subdir where to look for pickle files
+    saverep : the crocO subdir where to look for pickle files
     '''
     start_time = time.time()
 
@@ -47,7 +47,7 @@ def compute_CRPS_space_time(nens, dictmembers, runs, assimvars, saverep = 'gmd',
                                           else kind if kind == 'baseline' else None,
                                           key)
                 args = [
-                    CRAMPON + '/crampon.py',
+                    CROCO + '/crocO.py',
                     '--xpid', xp,
                     '--xpidol', 'art2_OL_{0}_t1500'.format(year),
                     '-d', 'all',
@@ -62,7 +62,7 @@ def compute_CRPS_space_time(nens, dictmembers, runs, assimvars, saverep = 'gmd',
                 ]
                 options = set_options(args)
 
-                RUN[xp] = CramponPp(options)
+                RUN[xp] = CrocoPp(options)
                 pgd = RUN[xp].pgd
                 # set time and focus selection
                 if kind != 'postes':
@@ -82,9 +82,9 @@ def compute_CRPS_space_time(nens, dictmembers, runs, assimvars, saverep = 'gmd',
                 fEnsProAn = dict()
                 nfEnsProAn = dict()
 
-                if not os.path.exists(options.xpiddir + '/crampon/' + options.saverep):
-                    os.mkdir(options.xpiddir + '/crampon/' + options.saverep)
-                os.chdir(options.xpiddir + '/crampon/' + options.saverep)
+                if not os.path.exists(options.xpiddir + '/crocO/' + options.saverep):
+                    os.mkdir(options.xpiddir + '/crocO/' + options.saverep)
+                os.chdir(options.xpiddir + '/crocO/' + options.saverep)
                 if ik == 0:
                     # remove beginning of the season and hours different from 12 and 29 feb if any
                     fTruth = dict()
@@ -275,11 +275,11 @@ def compute_CRPS_space_time(nens, dictmembers, runs, assimvars, saverep = 'gmd',
                                    savepath = (savepath[0:-4] + '_' + set_title(runs[ik]) + savepath[-4:]) if savepath else savepath)
 
     if aggrClasses:
-        if not os.path.exists(RUN[xp].options.xpidoldir + '/crampon/pie/'):
-            os.mkdir(RUN[xp].options.xpidoldir + '/crampon/pie/')
+        if not os.path.exists(RUN[xp].options.xpidoldir + '/crocO/pie/'):
+            os.mkdir(RUN[xp].options.xpidoldir + '/crocO/pie/')
         axes[0].set_ylim([0, max(axes[0].get_ylim()[1], axes[1].get_ylim()[1])])
         axes[1].set_ylim([0, max(axes[0].get_ylim()[1], axes[1].get_ylim()[1])])
         plt.show()
-        fig.savefig(RUN[xp].options.xpidoldir + '/crampon/pie/CRPS_timeseries_{0}_{1}.png'.format(year, mbsynth))
+        fig.savefig(RUN[xp].options.xpidoldir + '/crocO/pie/CRPS_timeseries_{0}_{1}.png'.format(year, mbsynth))
     el_time = time.time() - start_time
     print(el_time)

@@ -6,11 +6,11 @@ Created on 5 feb. 2019
 
 @author: cluzetb
 
-* perform local tests/dev of CRAMPON PF based on :
+* perform local tests/dev of CROCO PF based on :
     - set of prep files from an openloop
     - opt : set of REAL observations OR generate synthetical observations.
-* post-process outputs of CRAMPON assimilation sequence
-* lauch local parallelized CRAMPON assimilation sequence
+* post-process outputs of CROCO assimilation sequence
+* lauch local parallelized CROCO assimilation sequence
 '''
 import datetime
 from optparse import OptionParser, Values
@@ -19,13 +19,13 @@ import random
 import sys
 import time
 
-from CramponPf import CramponPf, CramponObs
-from CramponPp import CramponPp
-from utilcrampon import read_conf, Opt, ImmutableOpt, Pgd, area, parse_classes,\
+from CrocoPf import CrocoPf, CrocOObs
+from CrocoPp import CrocoPp
+from utilcrocO import read_conf, Opt, ImmutableOpt, Pgd, area, parse_classes,\
     read_opts_in_namelist, set_sensor
 
 
-usage = 'crampon --opts'
+usage = 'crocO --opts'
 
 
 def parse_options(arguments):
@@ -34,10 +34,10 @@ def parse_options(arguments):
 
     parser.add_option("--xpid",
                       type="string", action="store", dest="xpid", default=None,
-                      help="xpid of the crampon run : must exist (if you are not post-processing, you must create it before launching the experiment")
+                      help="xpid of the crocO run : must exist (if you are not post-processing, you must create it before launching the experiment")
     parser.add_option("--xpidol",
                       type="string", action="store", dest="xpidol", default=None,
-                      help="xpid of the associated openloop crampon run (if any)")
+                      help="xpid of the associated openloop crocO run (if any)")
     parser.add_option("--xpidobs",
                       type="string", action="store", dest="xpidobs", default=None,
                       help="xpid of the associated observations")
@@ -160,7 +160,7 @@ def callvars(option, opt, value, parser):
 
 def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPgd = None, mutable=False):
     """
-    This methods allows to parse, format and check the options of the crampon command and merge them with those written in the configuration file (pathConf, if any).
+    This methods allows to parse, format and check the options of the crocO command and merge them with those written in the configuration file (pathConf, if any).
     The user-provided options with supersede the values written in the configuration file which supersed over the default not in args options.
     The returned object has immutable attributes.
     - readConf : load a conf file, naively looking for a conf file in the xpiddir.
@@ -169,29 +169,29 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
     - mutable : NOT RECOMMENDED: if True, return a mutable option object (lazy useful solution for pp on beaufix)
     """
     options, no_default_opts = parse_options(args)
-    if 'CRAMPONPATH' not in list(os.environ.keys()):
-        raise Exception('you must export CRAMPONPATH to the root of your local experiments.')
+    if 'CROCOPATH' not in list(os.environ.keys()):
+        raise Exception('you must export CROCOPATH to the root of your local experiments.')
     else:
-        options.cramponpath = os.environ['CRAMPONPATH']
+        options.crocOpath = os.environ['CROCOPATH']
     if not os.path.isabs(options.xpid):
 
         try:
-            options.xpiddir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpid + '/'
+            options.xpiddir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpid + '/'
         except AttributeError:
-            print('you must prescribe an xpid (root of your experiment), located at $CRAMPONPATH/s2m/<geometry>/xpid/ and create it before the simulation')
+            print('you must prescribe an xpid (root of your experiment), located at $CROCOPATH/s2m/<geometry>/xpid/ and create it before the simulation')
     else:
         options.xpiddir = options.xpid
     if options.xpidobs is not None:
-        options.xpidobsdir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.xpidobs + '/'
+        options.xpidobsdir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.xpidobs + '/'
     if options.xpidol is not None:
-        options.xpidoldir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpidol + '/'
+        options.xpidoldir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpidol + '/'
 
     if options.todo != 'generobs' and options.synth and options.sensor:
         raise Exception(" either you are running a synth experiment from scratch (--synth) or you are using pre-generated observations (--sensor)")
     # load the PGD (mandatory), it is key to describe the working geometry.
     if pathPgd is None:
         try:
-            options.pathPgd = '/'.join([os.environ['CRAMPONPATH'], options.vapp, options.vconf, 'spinup/pgd/PGD_']) + area(options.vconf) + '.nc'
+            options.pathPgd = '/'.join([os.environ['CROCOPATH'], options.vapp, options.vconf, 'spinup/pgd/PGD_']) + area(options.vconf) + '.nc'
             options.pgd = Pgd(options.pathPgd)
         except FileNotFoundError:
             raise Exception('I could not find the PGD in the spinup dir.',
@@ -342,24 +342,24 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
 
 def execute(args):
     """
-    Use of crampon for pre/post-processing through the command line is possible but not handy.
+    Use of crocO for pre/post-processing through the command line is possible but not handy.
     Basic sequences of execution are presented below.
-    The recommended use of crampon is to launch it in a separate script/notebook (see some examples in pproc_scripts/ :
+    The recommended use of crocO is to launch it in a separate script/notebook (see some examples in pproc_scripts/ :
      - set the args
      - parse them with set_options.
      If you're post-processing some experiment, the conf file of the experiment will be read and overwritten by your options.
-     - instantiate CramponPf or CramponPp
+     - instantiate CrocoPf or CrocoPp
      - have fun with those handy objects.
     """
 
     options = set_options(args)
     if options.todo in ['pfpp', 'parallelpp']:
-        run = CramponPp(options)
+        run = CrocoPp(options)
     elif options.todo in ['pf', 'pfpython']:
-        run = CramponPf(options)
-        pp = CramponPp(options)
+        run = CrocoPf(options)
+        pp = CrocoPp(options)
     elif options.todo == 'generobs':
-        run = CramponObs(options)
+        run = CrocOObs(options)
 
 
 if __name__ == '__main__':

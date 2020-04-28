@@ -4,10 +4,10 @@ Created on 26 mars 2020
 
 @author: cluzetb\
 
-The aim of CramponParallel class is to provide an alternative to vortex to perform CRAMPON parallalized runs.
-Many of its features are similar to snowtools_git/tasks/crampon* files
+The aim of CrocoParallel class is to provide an alternative to vortex to perform CROCO parallalized runs.
+Many of its features are similar to snowtools_git/tasks/crocO* files
 '''
-from CramponPf import Crampon, CramponPf
+from CrocoPf import CrocO, CrocoPf
 from bronx.datagrip.namelist import NamelistParser
 import datetime
 import glob
@@ -19,12 +19,12 @@ from tasks.vortex_kitchen import vortex_conf_file
 import time
 from tools.change_prep import prep_tomodify
 from tools.update_namelist import update_surfex_namelist_object
-from utilcrampon import area, check_namelist_soda, convertdate
+from utilcrocO import area, check_namelist_soda, convertdate
 from utils.ESCROCsubensembles import ESCROC_subensembles
 from utils.dates import get_list_dates_files
 
 
-class CramponParallel(Crampon):
+class CrocoParallel(CrocO):
     '''
     Setup of the data assimilation sequence and run
     '''
@@ -35,9 +35,9 @@ class CramponParallel(Crampon):
         '''
         self.start_time = time.time()
         # call mother init
-        Crampon.__init__(self, options)
+        CrocO.__init__(self, options)
         self.dump_options()
-        # duplicate with offline pool... but cannot move to Crampon class yet (due tu the synth case removal)
+        # duplicate with offline pool... but cannot move to CrocO class yet (due tu the synth case removal)
         self.mblist = list(range(1, self.options.nmembers + 1))
         self.mbdirs = ['mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
 
@@ -81,10 +81,10 @@ class CramponParallel(Crampon):
         # (same simulation architecture as on beaufix (a little bit simpler maybe)
         # feed them with the constants
         # prepare the observations and put it into the dirs
-        # => CramponPf is used to prepare all that (it can be fed with a list of dates !!)
+        # => CrocoPf is used to prepare all that (it can be fed with a list of dates !!)
         # however, the links to prep must be done just before the soda run itself
         # hence, they are encapsulated inside run_parallel() class method
-        self.sodas = CramponPf(self.options)  # first because prepare the directories.
+        self.sodas = CrocoPf(self.options)  # first because prepare the directories.
         self.escrocs = OfflinePools(self.options)
 
     def run(self, cleanup=False):
@@ -171,14 +171,14 @@ class CramponParallel(Crampon):
                 shutil.rmtree(dd + ' /' + mbdir)
 
 
-class OfflinePools(Crampon):
+class OfflinePools(CrocO):
     '''
-    Class meant to prepare the escroc part of the CRAMPON sequence
+    Class meant to prepare the escroc part of the CROCO sequence
     and parallelize the members between each assimilation date
     '''
 
     def __init__(self, options):
-        Crampon.__init__(self, options)
+        CrocO.__init__(self, options)
 
         # B 26/03/20 CAREFUL WITH SYNTHETIC RUNS
         self.mblist = list(range(1, self.options.nmembers + 1))
