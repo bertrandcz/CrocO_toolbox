@@ -30,7 +30,7 @@ CrocO can be run without the present package **CrocO**, but only on Météo-Fran
 
 ## Dependencies
 ---
-- **Python libraries**: The code is developped on latest stable version of python3, and has been tested with python 3.5.2. [Required libraries](link_to_requirements.txt): matplotlib, numpy, pandas, scipy, netCDF4, seaborn, pytest, configobj. Installation inside a conda virtual environment is recommended.
+- **Python libraries**: The code is developped on latest stable version of python3, and has been tested with python 3.5.2. [Required libraries](https://github.com/bertrandcz/CrocO/blob/master/requirements.txt): matplotlib, numpy, pandas, scipy, netCDF4, seaborn, pytest, configobj. Installation inside a conda virtual environment is recommended.
 - **snowtools**: open-source python package used to pre/post process SURFEX-Crocus outputs and launch simulations on Météo-France HPC environment. Used for operational snowpack modelling at Météo-France. The present package is highly inspired on snowtools and will be included in it in the future. Please carefully check snowtools documentation (in particular the [wiki](https://opensource.umr-cnrm.fr/projects/snowtools_git/wiki/Wiki) and its [CrocO user doc](https://opensource.umr-cnrm.fr/projects/snowtools_git/wiki/CrocO_user_doc)) as it includes detailed information on the installation procedure and the simulation environment.
 Download, documentation and instructions : https://opensource.umr-cnrm.fr/projects/snowtools_git/ Manuscript version: tag *CrocO_v1.0*
 - **SURFEX** : open-source Land Surface Model, including FORTRAN sources of CrocO snowpack model (SURFEX-ISBA-Crocus) and the Particle Filter.
@@ -62,12 +62,12 @@ export CROCOPATH=<path>
 ---
 
 First of all, thouroughly read the documentation of CrocO within the snowtools module :[CrocO user doc](https://opensource.umr-cnrm.fr/projects/snowtools_git/wiki/CrocO_user_doc), in order to get familiar with the software environment. 
-- Basically, the only inputs you needs are a meteorological forcing and a set of observations. Forcings from SAFRAN reanalyses (_Vernay et al., (in prep)_) over French mountain ranges are available at https://doi.org/10.25326/37. Observations must be converted to the daily format specified in the doc. 
+- Basically, the only inputs you need are a meteorological forcing and a set of observations. Forcings from SAFRAN reanalyses (_Vernay et al., (in prep)_) over French mountain ranges are available at https://doi.org/10.25326/37. Observations must be converted to the daily format specified in the doc. 
 - Use this forcing to generate a *spinup* (PGD.nc and PREP.nc files) using **snowtools** _s2m command_ (example in pproc_scripts/spinup.py) and an appropriate namelist (basic examples in snowtools_git/DATA/).
 - Apply stochastic perturbations on the forcing to generate an *ensemble of forcings* (snowtools/tools/makeForcingEnsemble.py or snowtools_git/tools/job_gener_pert_forcings.py)
 - Prepare the assimilation sequence : create a configuration file with the assimilation dates and the ESCROC member ids. choose your PF configuration (to be directly written in the namelist).
 - launch the assimilation sequence (or an openloop) on Meteo-France HPC system (inspiring on pproc_scripts/multilaunch.py) or locally (inspiring on examples/launch_parallel_local.py).
-- the [experiment/archive map](link_to_thexmind_map) tries to give you an overview of the experiment and archive file structure. 
+- the [experiment/archive map](https://github.com/bertrandcz/CrocO/doc/xp.png) gives you an overview of the experiment and archive file structure. 
 - post process the archive into pickle files (using CrocoPp.py, inspiring on examples/launch_parallel_local.py or pproc_scripts/multipp.py)
 - once an experiment has succeeded, you can also play around with the Particle Filter, applying it on the background PREPS of specific dates (using CrocoPf.py, inspiring on examples/local_pf_run.py).
 - enjoy :)
@@ -75,15 +75,15 @@ First of all, thouroughly read the documentation of CrocO within the snowtools m
 ## License information
 ---
 
-See the [license](https://github.com/bertrandcz/CrocO/LICENCE.txt) file for terms & conditions for usage, and a DISCLAIMER OF ALL WARRANTIES.
+CrocO is licensed under CECILL-C, see [license](<https://github.com/bertrandcz/CrocO/LICENCE.txt>) for terms & conditions for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
 DISCLAIMER: This version of CrocO is under peer review. Please use this software with caution, ask for assistance if needed, and let us know any feedback you may have.
 
-Copyright (c) 2020 Bertrand Cluzet, Matthieu Lafaysse, Marie Dumont.
+Copyright (c) 2020 Bertrand Cluzet.
 
 ## Other Contributions
 ---
-
+- Matthieu Lafaysse and Marie Dumont (PhD supervision)
 - César Deschamps-Berger (plotting routines, not used in the manuscript).
 
 
