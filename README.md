@@ -1,8 +1,9 @@
 # CrocO_v1.0: pre-post processing module and plotting scripts (GMD manuscript version)
----
 
+---
 ## General description
 ---
+https://zenodo.org/badge/259417787.svg
 
 CrocO (CRocus with AssiMilation of snowPack ObservatioNs) is an ensemble data assimilation system assimilating snowpack observations with a Particle Filter. Its core software is SURFEX-ISBA-Crocus fortran model, embedded in an HPC environment using external python librairies.
 
