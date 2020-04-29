@@ -4,7 +4,7 @@
 ## General description
 ---
 
-CrocO (CRocus with AssiMilation of snowPack ObservatioNs) is an ensemble data assimilation system assimilating snowpack observations with a Particle Filter.
+CrocO (CRocus with AssiMilation of snowPack ObservatioNs) is an ensemble data assimilation system assimilating snowpack observations with a Particle Filter. Its core software is SURFEX-ISBA-Crocus fortran model, embedded in an HPC environment using external python librairies.
 
 The present package "CrocO" is a python toolbox to launch, pre/post-process and plot CrocO simulations on Météo-France HPC system, in link with the publication manuscript submitted to _Geoscientific Model Development_ (GMD):
 >CrocO : a Particle Filter to assimilate snowpack observations
