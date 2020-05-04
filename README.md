@@ -37,7 +37,7 @@ Download, documentation and instructions : https://opensource.umr-cnrm.fr/projec
 - **SURFEX** : open-source Land Surface Model, including FORTRAN sources of CrocO snowpack model (SURFEX-ISBA-Crocus) and the Particle Filter.
 Download and instructions : https://opensource.umr-cnrm.fr/projects/surfex_git2/ Manuscript version: tag *CrocO_v1.0*
 
-- **vortex** (optional): python package gathering all environment-specific codes of Météo-France modelling systems relative to its HPC computing system. Can not be applied in other HPC environment. Install is not mandatory. A tool to locally launch CrocO in parallel is provided in the present package as an alternative for low computational cost applications _(beta mode)_.
+- **vortex** (optional): python package gathering all environment-specific codes of Météo-France modelling systems relative to its HPC computing system. Can not be applied in other HPC environment. Install is mandatory for HPC Meteo-France environment but it is neither useful neither allowed for external users. A tool to locally launch CrocO in parallel is provided in the present package as an alternative for low computational cost applications _(beta mode)_.
 Download and instructions : https://opensource.umr-cnrm.fr/projects/vortex/ Manuscript version : tag *CrocO_v1.0*
 
 
