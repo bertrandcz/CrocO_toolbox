@@ -3,16 +3,16 @@ Created on 27 mars 2020
 
 @author: cluzetb
 
-script to test local parallelization of CRAMPON sequence
+script to test local parallelization of CROCO sequence
 
 '''
-from CramponParallel import CramponParallel
-from CramponPp import CramponPp
-from crampon import set_options
+from CrocoParallel import CrocoParallel
+from CrocoPp import CrocoPp
+from crocO import set_options
 import os
 import time
 
-os.environ['CRAMPONPATH'] = os.environ['THESE'] + '/vortexpath'
+os.environ['CROCOPATH'] = os.environ['THESE'] + '/vortexpath'
 if __name__ == '__main__':
     # #### PARAMETERS #####
     vconf = 'postes_8_9_12_13_15_16_csv'
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #######################
 
     args = [
-        '/home/cluzetb/Documents/these/assim/crampon.py',
+        '/home/cluzetb/Documents/these/assim/crocO.py',
         '-d', 'all',
         '-n', os.environ['THESE'] + '/article3/OPTIONS_MOTHER_NO_TARTES.nam',
         '-b', '{0}080106'.format(year),
@@ -55,14 +55,14 @@ if __name__ == '__main__':
     defaultConf = os.environ['THESE'] + '/dev_local_parallel/conf.ini'
     options = set_options(args,
                           pathConf=defaultConf, useVortex=False)
-    run = CramponParallel(options)
+    run = CrocoParallel(options)
     run.run(cleanup=False)
 
     # post-processing.
     # by construction, pp is operating on the archive.
-    # for this reason, the conf file must be copied to the archive and parser to feed CramponPp.
+    # for this reason, the conf file must be copied to the archive and parser to feed CrocoPp.
     args = [
-        '/home/cluzetb/Documents/these/assim/crampon.py',
+        '/home/cluzetb/Documents/these/assim/crocO.py',
         '-d', 'all',
         '-n', os.environ['THESE'] + '/article3/OPTIONS_MOTHER_NO_TARTES.nam',
         '-b', '{0}080106'.format(year),
@@ -90,6 +90,6 @@ if __name__ == '__main__':
     optionspp = set_options(args, pathConf = archtest + '/conf/conf.ini', useVortex=False, mutable = True)
     start_time = time.time()
 
-    pp = CramponPp(optionspp)
+    pp = CrocoPp(optionspp)
     elapsed_time = time.time() - start_time
     print('elapsed time (pp):', elapsed_time)

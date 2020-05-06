@@ -6,7 +6,7 @@ Created on 6 févr. 2019
 '''
 from SemiDistributed import PrepAbs
 import os
-from utilcrampon import dictErrors, setSubsetclasses
+from utilcrocO import dictErrors, setSubsetclasses
 from utilplot import cm2inch, niceName, niceLabel
 from utilpp import set_itimes
 

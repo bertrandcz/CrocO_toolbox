@@ -14,8 +14,8 @@ if machine == 'sxcen':
     refPath = '/home/cluzetb/Data/safran/12/ref/mb0000/meteo/'
     rootPath = '/cnrm/cen/users/NO_SAVE/cluzetb/vortex/safran/12/'
 else:
-    refPath = os.environ['CRAMPONPATH'] + '/safran/12/ref/mb0000/meteo/'
-    rootPath = os.environ['CRAMPONPATH'] + '/safran/12/'
+    refPath = os.environ['CROCOPATH'] + '/safran/12/ref/mb0000/meteo/'
+    rootPath = os.environ['CROCOPATH'] + '/safran/12/'
 
 for year in [2013, 2014, 2015, 2016]:
     forcName = refPath + 'FORCING_{0}080106_{1}080106.nc'.format(year, year + 1)

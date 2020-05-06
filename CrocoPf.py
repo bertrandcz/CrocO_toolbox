@@ -9,22 +9,22 @@ from SemiDistributed import Synthetic, Real
 import os
 import shutil
 import subprocess
-from utilcrampon import convertdate, check_namelist_soda
+from utilcrocO import convertdate, check_namelist_soda
 
 import matplotlib.pyplot as plt
 
 
 # import numpy as np
-class Crampon(object):
+class CrocO(object):
     '''
-    Mother class for CRAMPON pf local tests, local CRAMPON runs and post-processing
+    Mother class for CROCO pf local tests, local CROCO runs and post-processing
     '''
 
     def __init__(self, options):
 
         self.options = options
 
-        self.rootdir = options.cramponpath + '/' + options.vapp + '/' + options.vconf + '/'
+        self.rootdir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/'
         self.xpiddir = options.xpiddir
 
         if not os.path.exists(self.xpiddir):
@@ -34,9 +34,9 @@ class Crampon(object):
                 raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
         # set dirs
         if self.options.todo == 'parallel':
-            self.crampondir = self.xpiddir
+            self.crocOdir = self.xpiddir
         else:
-            self.crampondir = self.xpiddir + 'crampon/'
+            self.crocOdir = self.xpiddir + 'crocO/'
         self.machine = os.uname()[1]
 
         if 'sxcen' not in self.machine:
@@ -69,14 +69,14 @@ class Crampon(object):
             self.obs.prepare(archive_synth = self.options.archive_synth, no_need_masking = self.options.no_need_masking)
 
 
-class CramponPf(Crampon):
+class CrocoPf(CrocO):
     '''
     class meant to perform LOCAL runs of the pf
     '''
 
     def __init__(self, options, setup = True):
 
-        Crampon.__init__(self, options)
+        CrocO.__init__(self, options)
         # for the local soda PF, it is safer if mblist is a continous range (no removal of the synth mb but one mb less.
         # handling of the synth member is done in prepare_soda_env
         self.mblist = list(range(1, options.nmembers + 1))
@@ -85,9 +85,9 @@ class CramponPf(Crampon):
             self.setup()
 
     def setup(self):
-        if not os.path.exists(self.crampondir):
-            os.mkdir(self.crampondir)
-        os.chdir(self.crampondir)
+        if not os.path.exists(self.crocOdir):
+            os.mkdir(self.crocOdir)
+        os.chdir(self.crocOdir)
         if self.options.todo != 'parallel':
             saverep = self.options.saverep
             if not os.path.exists(saverep):
@@ -95,12 +95,12 @@ class CramponPf(Crampon):
         else:
             saverep = ''
 
-        os.chdir(self.crampondir + '/' + saverep)
+        os.chdir(self.crocOdir + '/' + saverep)
         for dd in self.options.dates:
             if self.options.todo == 'parallel':
-                path = self.crampondir + '/' + saverep + '/' + dd + '/workSODA'
+                path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
             else:
-                path = self.crampondir + '/' + saverep + '/' + dd
+                path = self.crocOdir + '/' + saverep + '/' + dd
             if dd in self.options.dates:
                 if os.path.exists(path):
                     shutil.rmtree(path)
@@ -213,16 +213,16 @@ class CramponPf(Crampon):
         os.chdir('..')
 
 
-class CramponObs(Crampon):
+class CrocOObs(CrocO):
 
     def __init__(self, options):
-        Crampon.__init__(self, options)
+        CrocO.__init__(self, options)
         self.setup()
 
     def setup(self):
-        if not os.path.exists(self.crampondir):
-            os.mkdir(self.crampondir)
-        os.chdir(self.crampondir)
+        if not os.path.exists(self.crocOdir):
+            os.mkdir(self.crocOdir)
+        os.chdir(self.crocOdir)
         if not os.path.exists(self.options.saverep):
             os.mkdir(self.options.saverep)
         os.chdir(self.options.saverep)

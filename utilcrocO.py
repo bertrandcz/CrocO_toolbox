@@ -4,7 +4,7 @@ Created on 6 févr. 2019
 
 @author: cluzetb
 
-utils suited for crampon interface only
+utils suited for crocO interface only
 '''
 
 from bronx.datagrip.namelist import NamelistParser
@@ -207,7 +207,7 @@ def colorbar(mappable):
 def setlistvars_obs(arg):
     """
     BC 6/02/19
-    convert a crampon argument options.vars into a list of OBS variables names in soda format
+    convert a crocO argument options.vars into a list of OBS variables names in soda format
     """
 
     if arg == 'all':
@@ -222,7 +222,7 @@ def setlistvars_obs(arg):
 def setlistvars_var(arg):
     """
     BC 6/02/19
-    convert a crampon argument options.vars into a list of VAR variables names in soda format
+    convert a crocO argument options.vars into a list of VAR variables names in soda format
     TODO : same stuff for DEP/ SCF etc.
     """
     if arg == 'all':
@@ -510,14 +510,14 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
 
     # NAM_ASSIM
     if hasattr(N['NAM_ASSIM'], 'LSEMIDISTR_CROCUS') or hasattr(N['NAM_ASSIM'], 'LASSIM_CROCUS'):
-        print('be careful, old-formatted namelist !', 'LSEMIDISTR_CROCUS' 'LASSIM_CROCUS -> CPF_CROCUS, LCRAMPON')
+        print('be careful, old-formatted namelist !', 'LSEMIDISTR_CROCUS' 'LASSIM_CROCUS -> CPF_CROCUS, LCROCO')
         N['NAM_ASSIM'].delvar('LSEMIDISTR_CROCUS')
         N['NAM_ASSIM'].delvar('LASSIM_CROCUS')
     if options.pf != 'ol':
         N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
     else:
         N['NAM_ASSIM'].CPF_CROCUS = 'global'.upper()
-    N['NAM_ASSIM'].LCRAMPON = True
+    N['NAM_ASSIM'].LCROCO = True
     N['NAM_ASSIM'].LASSIM = True
     N['NAM_ASSIM'].CASSIM_ISBA = 'PF   '
     N['NAM_ASSIM'].NLOC_PF = options.nloc_pf

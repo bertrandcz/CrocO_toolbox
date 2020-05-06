@@ -6,4 +6,4 @@ Created on 9 avr. 2020
 Useful constants
 '''
 import os
-CRAMPON = os.path.dirname(__file__)
+CROCO = os.path.dirname(__file__)

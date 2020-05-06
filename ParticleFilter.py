@@ -10,7 +10,7 @@ from Ensemble import PrepEnsBg, PrepEnsAn
 from Operators import AnalysisOperator
 from Operators import PrepEnsOperator
 from SemiDistributed import Synthetic
-from utilcrampon import set_errors
+from utilcrocO import set_errors
 
 import matplotlib.pyplot as plt
 import numpy as np

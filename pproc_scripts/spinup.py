@@ -14,10 +14,10 @@ import datetime
 import os
 import shutil
 from tools.change_prep import prep_tomodify
-from utilcrampon import area
 from utils.dates import check_and_convert_date
 
 import tasks.s2m_command as s2m
+from utilcrocO import area
 
 
 # Params
@@ -27,9 +27,9 @@ spinDate = endDate
 sweceil = '100'
 extractforcing = ""
 vconf = '12'
-forcingDir = os.environ['CRAMPONPATH'] + '/safran/' + vconf + '/ref/mb0000/meteo/'
+forcingDir = os.environ['CROCOPATH'] + '/safran/' + vconf + '/ref/mb0000/meteo/'
 forcingPath = forcingDir + 'FORCING_' + beginDate + '_' + endDate + '.nc'
-rootXpOut = os.environ['CRAMPONPATH'] + '/s2m/' + vconf + '/spinup/'
+rootXpOut = os.environ['CROCOPATH'] + '/s2m/' + vconf + '/spinup/'
 gg = datetime.datetime.today().strftime("%Y%m%d-%H-%M-%S")
 exesurfex = ' -s ' + os.environ['EXESURFEX']
 diroutput = rootXpOut + gg
