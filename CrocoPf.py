@@ -28,7 +28,7 @@ class CrocO(object):
         self.xpiddir = options.xpiddir
 
         if not os.path.exists(self.xpiddir):
-            if self.options.todo == 'parallel':
+            if self.options.todo == 'parallel'or (self.options.todo == 'generobs' and self.options.synth is None):
                 os.mkdir(self.xpiddir)
             else:
                 raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
@@ -64,8 +64,8 @@ class CrocO(object):
             self.obs.prepare(archive_synth = self.options.archive_synth)
 
         else:
-            # real obs are obtained in xpidobs
-            self.obs = Real(self.options.xpidobsdir, date, self.options)
+            # either we are dealing with real obs or we are masking it.
+            self.obs = Real(self.options.sensordir, date, self.options)
             self.obs.prepare(archive_synth = self.options.archive_synth, no_need_masking = self.options.no_need_masking)
 
 
@@ -219,7 +219,7 @@ class CrocoPf(CrocO):
         os.chdir('..')
 
 
-class CrocOObs(CrocO):
+class CrocoObs(CrocO):
 
     def __init__(self, options):
         CrocO.__init__(self, options)
@@ -233,11 +233,10 @@ class CrocOObs(CrocO):
             os.mkdir(self.options.saverep)
         os.chdir(self.options.saverep)
         for dd in self.options.dates:
-            if dd in self.options.dates:
-                if os.path.exists(dd):
-                    # pass
-                    shutil.rmtree(dd)
-                os.mkdir(dd)
-                os.chdir(dd)
-                self.prepare_obs(dd)
-                os.chdir('..')
+            if os.path.exists(dd):
+                # pass
+                shutil.rmtree(dd)
+            os.mkdir(dd)
+            os.chdir(dd)
+            self.prepare_obs(dd)
+            os.chdir('..')

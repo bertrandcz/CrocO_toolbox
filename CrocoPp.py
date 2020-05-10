@@ -284,14 +284,14 @@ class CrocoPp(CrocO):
 
         else:
             if str(self.options.openloop) == 'on':
-                if hasattr(self.options, 'synth'):
+                if self.options.synth is not None:
                     self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.options.sensor + '/'
                     self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.options.sensor + '/'
                 else:
                     self.pathReal = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor + '/'
             else:
                 if hasattr(self.options, 'xpidoldir'):
-                    if hasattr(self.options, 'synth'):
+                    if self.options.synth is not None:
                         self.pathArch = self.xpidoldir + '/crocO/ARCH/' + self.options.sensor + '/'
                         self.pathSynth = self.xpidoldir + '/crocO/SYNTH/' + self.options.sensor + '/'
                     else:
@@ -316,7 +316,8 @@ class CrocoPp(CrocO):
                     self.obsReal[dd].load()
 
         else:
-            if hasattr(self.options, 'synth'):
+            if self.options.synth is not None:
+                print('sssynth', self.options.synth)
                 print('reading synthetic assimilated obs. in ' + self.pathArch)
                 self.obsArch = {dd: FromXp(self.pathArch, dd, self.options) for dd in self.options.dates}
                 self.obsSynth = {dd: FromXp(self.pathSynth, dd, self.options) for dd in self.options.dates}

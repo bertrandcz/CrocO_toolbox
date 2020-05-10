@@ -105,9 +105,9 @@ class Obs(SemiDistributed):
                 os.symlink(self.path, self.sodaName)
 
     def prepare_realmask(self):
-        self.maskpath = self.options.xpidobsdir + '/../' + self.options.sensor + '/' + self.vortexname
-        if not os.path.exists(self.options.xpidobsdir + '/../' + self.options.sensor + '/'):
-            os.mkdir(self.options.xpidobsdir + '/../' + self.options.sensor + '/')
+        self.maskpath = self.sodaName
+        if not os.path.exists(self.options.sensordir):
+            os.mkdir(self.options.sensordir)
 
     def prepare_archive(self, archive_synth=False):
 
@@ -148,7 +148,6 @@ class Obs(SemiDistributed):
     def create_new(self, Raw, newFile, options, fromArch = False, maskit = False):
         New = netCDF4.Dataset(newFile, 'w')
         if maskit:
-            print('masking into', newFile)
             _, mask = self.subset_classes(self.pgd, options)
             self.copydimsvars(Raw, New, self.listvar, fromArch = fromArch, mask=mask)
             self.computeratio(Raw, New, self.listvar, mask=mask)
@@ -238,7 +237,8 @@ class Obs(SemiDistributed):
 
 class Synthetic(Obs):
     """
-    Class describing synthetic obs
+    Class describing synthetic obs :
+    - either from PREP files (mask and/or noise)
     """
 
     def __init__(self, xpiddir, date, options, nmembers = 35, ):
@@ -262,31 +262,53 @@ class Synthetic(Obs):
                 New.variables[var][:] = New.variables[var][:] * (1 + np.random.normal(0, noise, size=np.shape(New.variables[var][:])))
 
 
+'''
+class Masked(Synthetic):
+    """
+    class describing synthetic observation obtained by masking real obs from a sensor_in directory.
+    """
+
+    def __init__(self, date, options):
+        Obs.__init__(self, date, options)
+        self.date = date
+        self.path = self.options.sensor_in_dir + '/' + 'obs_'  + self.options.sensor_in + '_' + date + '.nc'
+        self.ptinom = self.options.sensor_in
+        self.isloaded = False
+'''
+
+
 class Real(Obs):
     """
     Class describing real obs
     """
 
-    def __init__(self, xpidobsdir, date, options):
+    def __init__(self, sensordir, date, options):
         '''
         Constructor
         '''
         Obs.__init__(self, date, options)
-        if self.options.todo == 'generobs':
-            self.sodaName = xpidobsdir + 'obs_' + options.xpidobs + '_' + area(options.vconf) + '_' + date + '.nc'
+        if self.options.todo in ['generobs', 'parallelpp']:
+            if self.options.sensor_in:
+                # in
+                self.path = self.options.sensor_in_dir + 'obs_' + options.sensor_in + '_' + area(options.vconf) + '_' + date + '.nc'
+                # out
+                self.sodaName = self.options.sensordir + 'obs_' + options.sensor + '_' + area(options.vconf) + '_' + date + '.nc'
+            else:
+                self.sodaName = sensordir + 'obs_' + options.sensor + '_' + area(options.vconf) + '_' + date + '.nc'
+                self.path = self.sodaName
         else:
             # BC 30/03/20 change that could cause bugs
-            # self.sodaName = xpidobsdir + self.vortexname
+            # self.sodaName = sensordir + self.vortexname
             self.sodaName = options.xpiddir + '/' + date + '/workSODA/' + self.sodaName
-            self.vortexname = xpidobsdir + self.vortexname
-        # BC30/03/20 idem
-        # self.path = self.sodaName
-        self.path = self.vortexname
+            # overwrite vortexname
+            self.vortexname = sensordir + self.vortexname
+            self.path = self.vortexname
+
         self.dictVarsRead = {name: name for name in options.vars}
         self.dictVarsWrite = self.dictVarsRead
         self.loadDict = self.dictVarsRead
         self.isloaded = False
-        self.ptinom = xpidobsdir
+        self.ptinom = sensordir
 
 
 class Archived(Obs):
