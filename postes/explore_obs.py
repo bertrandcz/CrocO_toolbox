@@ -7,14 +7,12 @@ Created on Fri Jan 17 08:32:01 2020
 """
 
 
-import matplotlib.pyplot as plt
-import numpy as np
+import os
 import pandas as pd
 from postes.explore_metadata import find_metadata
-import seaborn as sns
 
 
-def find_common_massif_obsbase(obsPath, metadata = '/home/cluzetb/snowtools_git/DATA/METADATA.xml', massifs = [12], droptypes = [], pivotval = 'HTN cm'):
+def find_common_massif_obsbase(obsPath, metadata = os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml', massifs = [12], droptypes = [], pivotval = 'HTN cm'):
     df = pd.read_csv(obsPath, delimiter = ';')
 
     # A. PREPARE the Dataframe
@@ -55,7 +53,7 @@ def find_common_massif_obsbase(obsPath, metadata = '/home/cluzetb/snowtools_git/
 
     # Actualize the list of posts
     listp = [p for (p, nb) in zip(listp, listpnb) if nb in df.columns]
-    listpname = [na  for (nb, na) in zip(listpnb, listpname) if nb in df.columns]
+    listpname = [na for (nb, na) in zip(listpnb, listpname) if nb in df.columns]
     listpnb = [nb for nb in listpnb if nb in df.columns]
     print(listpnb)
     print('common postes between metadata and csv :', len(listpnb))

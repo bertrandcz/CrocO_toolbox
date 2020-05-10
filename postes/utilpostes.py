@@ -9,6 +9,7 @@ on beaufix, generate  conf file with the appropriate assimilation dates (for ex.
 
 '''
 import datetime
+import os
 
 import netCDF4
 
@@ -24,13 +25,16 @@ def set_conf_everydate(startY, assimilate_every, filepath, nens=40, endY = None)
     '''
     if endY is None:
         endY = startY + 1
-
     # assimilate between october and june
-    startDate = datetime.datetime(startY, 10, 1, 6, 0, 0)
-    endDate = datetime.datetime(endY, 6, 30, 6, 0, 0)
-
-    datelist = pd.date_range(startDate, periods=(endDate - startDate).days).tolist()
-    stringdates = ','.join([d.strftime('%Y%m%d%H')for d in datelist[::assimilate_every]])
+    for i, year in enumerate(range(startY, endY)):
+        startDate = datetime.datetime(year, 10, 1, 6, 0, 0)
+        endDate = datetime.datetime(year + 1, 6, 30, 6, 0, 0)
+        datelist = pd.date_range(startDate, periods=(endDate - startDate).days).tolist()
+        datelist = [d.strftime('%Y%m%d%H') for d in datelist[::assimilate_every]]
+        if i == 0:
+            stringdates = ','.join(datelist)
+        else:
+            stringdates = ','.join([stringdates] + datelist)
 
     # members Id copied from the previous experiments (always the same for reproducibility
     membersId = [168, 429, 524, 1460, 1568, 698, 1084, 162, 1159, 872, 466, 1646, 1550, 1582, 403, 165, 1, 540,
@@ -45,7 +49,13 @@ def set_conf_everydate(startY, assimilate_every, filepath, nens=40, endY = None)
                  ]
     membersId = list(map(str, membersId))
 
-    # if not os.path.exists(filepath):
+    if not os.path.exists(filepath):
+        try:
+            os.makedirs(os.path.dirname(filepath))
+        except FileExistsError:
+            pass
+    else:
+        os.remove(filepath)
     f = open(filepath, 'w')
     f.write('[DEFAULT]')
     f.write('\n')

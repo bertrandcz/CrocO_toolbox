@@ -13,9 +13,8 @@ import netCDF4
 
 import xml.etree.ElementTree as ET
 
-metadatapath = os.environ['CRAMPONPATH'] + '/snowtools_git/DATA/METADATA.xml'
 
-def find_metadata(filepath = '/home/cluzetb/snowtools_git/DATA/METADATA.xml', massifs = [12]):
+def find_metadata(filepath = os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml', massifs = [12]):
     '''
     BC 17/01/20
     Extract all metadata of postes (Sites) within the list of massifs.
@@ -42,11 +41,12 @@ def find_metadata(filepath = '/home/cluzetb/snowtools_git/DATA/METADATA.xml', ma
     return listp, listpnb, listpname
 
 
-def find_name_station(station, filepath=metadatapath):
+def find_name_station(station, filepath=os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml'):
     '''
     BC 17/02/20
     find the string name of a station ID
     '''
+
     tree = ET.parse(filepath)
     root = tree.getroot()
     listp = []
@@ -64,7 +64,7 @@ def slice_file_listpnb(fileIn, fileOut, listpnb):
     Extract a list of points from a forcing or PRO (provided they have a station variable)
     '''
     forcing = netCDF4.Dataset(fileIn, 'r')
-    station = forcing.variables['station']
+    station = forcing.variables['station'][:]
     statpos = {s: str(i) for i, s in enumerate(station) if s in listpnb}
     forcing.close()
     listfiles = []
