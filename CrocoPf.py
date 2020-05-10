@@ -98,14 +98,18 @@ class CrocoPf(CrocO):
         os.chdir(self.crocOdir + '/' + saverep)
         for dd in self.options.dates:
             if self.options.todo == 'parallel':
-                path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
+                if self.options.pf != 'ol':
+                    path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
+                else:  # no need to create workSODA in openloop case
+                    path = self.crocOdir + '/' + saverep + '/' + dd + '/'
             else:
                 path = self.crocOdir + '/' + saverep + '/' + dd
             if dd in self.options.dates:
                 if os.path.exists(path):
                     shutil.rmtree(path)
                 os.makedirs(path)
-                self.prepare_sodaenv(path, dd)
+                if self.options.pf != 'ol':
+                    self.prepare_sodaenv(path, dd)
             else:
                 print(('prescribed date ' + dd + 'does not exist in the experiment, remove it.'))
                 self.options.dates.remove(dd)
@@ -207,9 +211,11 @@ class CrocoPf(CrocO):
         """
         os.chdir(self.xpiddir + date + '/workSODA')
         self.prepare_preps(date)
-        print('launching SODA on ', date)
+        # print('launching SODA on ', date)
         with open('soda.out', 'w') as f:
             p = subprocess.call('./soda.exe', stdout=f)
+            if p != 0:
+                raise RuntimeError('SODA crashed, check ', os.getcwd() + f)
         os.chdir('..')
 
 

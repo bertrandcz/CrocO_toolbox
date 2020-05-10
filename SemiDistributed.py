@@ -339,15 +339,23 @@ class Prep(SemiDistributed):
             self.data = dict()
             for var in self.listvar:
                 if var == 'DEP':
-                    self.data[var] = np.nansum([dd.read('WSN_VEG' + str(i + 1)) /
-                                                dd.read('RSN_VEG' + str(i + 1)) /
-                                                np.cos(np.arctan(self.pgd.slope))
-                                                for i in range(0, 50)], axis = 0)
+                    # @TODO : BC 24/04/20 : this step is sooo slow when reading prep files... (because 100 variables must be read)
+                    # -> load in parallel and save WSN_VEG and RSN_VEG to cut down human time expense.
+                    # or load the PREP in parallel
+                    if hasattr(self, 'SWE_tot'):
+                        pass
+                    else:
+                        self.SWE_tot = self.read_tot(dd, 'SWE')
+                    rho_tot = self.read_tot(dd, 'RHO')
+                    self.data[var] = self.SWE_tot / rho_tot / np.cos(np.arctan(self.pgd.slope))
+
                     # print(self.data[var])
                 elif var == 'SWE':
-                    self.data[var] = np.nansum([dd.read('WSN_VEG' + str(i + 1)) /
-                                                np.cos(np.arctan(self.pgd.slope))
-                                                for i in range(0, 50)], axis = 0)
+                    if hasattr(self, 'SWE_tot'):
+                        pass
+                    else:
+                        self.SWE_tot = self.read_tot(dd, 'SWE')
+                    self.data[var] = self.SWE_tot / np.cos(np.arctan(self.pgd.slope))
                     # print(self.data[var])
                 elif 'R' in var:
                     self.data[var] = dd.read(self.loadDict['B' + var[1]]) / dd.read(self.loadDict['B' + var[2]])
@@ -355,6 +363,14 @@ class Prep(SemiDistributed):
                     self.data[var] = dd.read(self.loadDict[var])
             dd.close()
             self.isloaded = True
+
+    def read_tot(self, dd, var):
+        """return the layers sum of SWE or density (RHO)
+        /!\ SWE is not reprojected"""
+        if var == 'SWE':
+            return np.nansum([dd.read('WSN_VEG' + str(i + 1)) for i in range(0, 50)], axis = 0)
+        elif var == 'RHO':
+            return np.nansum([dd.read('RSN_VEG' + str(i + 1)) for i in range(0, 50)], axis = 0)
 
 
 class PrepBg(Prep):

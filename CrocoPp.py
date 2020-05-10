@@ -6,6 +6,7 @@ Created on 12 juin 2019
 '''
 
 import datetime
+import multiprocessing
 import os
 from utils.dates import check_and_convert_date
 from utils.prosimu import prosimu
@@ -166,7 +167,6 @@ class CrocoPp(CrocO):
             self.truth = load_from_dict(gg, self.mbsynth)
 
     def loadEnsPrep(self, kind, isOl = False):
-
         # if local pp (e.g. pp of a run on local machine)
         if self.options.todo == 'pfpp' or self.options.todo == 'pf':
             directFromXp = False
@@ -180,33 +180,43 @@ class CrocoPp(CrocO):
         else:
             locEns = {dd: PrepEnsOl(self.options, dd, isOl=isOl, directFromXp=directFromXp) for dd in self.options.dates}
 
-        for dd in self.options.dates:
-            if (kind == 'ol' and isOl is False):
-                pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' +\
-                    kind + '_' + dd + '.pkl'
-            else:
-                pathPkl = kind + '_' + dd + '.pkl'
-            pathpklbeauf = pathPkl + '.foo'
-            if not os.path.islink(pathPkl):
-                if os.path.exists(pathpklbeauf):
-                    try:
-                        os.symlink(pathpklbeauf, pathPkl)
-                    except FileExistsError:
-                        pass
-            if not os.path.exists(pathPkl):
-                print(' unsuccesfull loading', pathPkl, )
-                print(('loading ' + kind + ' ens for date : ', dd))
-                locEns[dd].stackit()
-                with open(pathPkl, 'wb') as f:
-                    print(('saaving ' + kind + ' to pickle !'))
-                    pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
-            else:
-                locEns[dd].stack = load_pickle2(pathPkl)
-                if not all(l in locEns[dd].stack.keys() for l in self.listvar):
-                    raise Exception('Some of the ppvars you mentioned are not present in ', pathPkl,
-                                    '\n listvars:', self.listvar, '\npickle file keys:', locEns[dd].stack.keys())
-                locEns[dd].isstacked = True
+        p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates)))
+        p.map(self.loadEnsPrepDate_parallel, [[locEns, dd, kind, isOl] for dd in self.options.dates])
+        p.close()
+        p.join()
+
         return locEns
+
+    def loadEnsPrepDate_parallel(self, largs):
+        locEns  = largs[0]
+        dd = largs[1]
+        kind = largs[2]
+        isOl = largs[3]
+        if (kind == 'ol' and isOl is False):
+            pathPkl = self.xpidoldir + '/crampon/' + self.options.saverep + '/' +\
+                kind + '_' + dd + '.pkl'
+        else:
+            pathPkl = kind + '_' + dd + '.pkl'
+        pathpklbeauf = pathPkl + '.foo'
+        if not os.path.islink(pathPkl):
+            if os.path.exists(pathpklbeauf):
+                try:
+                    os.symlink(pathpklbeauf, pathPkl)
+                except FileExistsError:
+                    pass
+        if not os.path.exists(pathPkl):
+            print(' unsuccesfull loading', pathPkl, )
+            print(('loading ' + kind + ' ens for date : ', dd))
+            locEns[dd].stackit()
+            with open(pathPkl, 'wb') as f:
+                print(('saaving ' + kind + ' to pickle !'))
+                pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
+        else:
+            locEns[dd].stack = load_pickle2(pathPkl)
+            if not all(l in locEns[dd].stack.keys() for l in self.listvar):
+                raise Exception('Some of the ppvars you mentioned are not present in ', pathPkl,
+                                '\n listvars:', self.listvar, '\npickle file keys:', locEns[dd].stack.keys())
+            locEns[dd].isstacked = True
 
     def loadEnsPro(self, kind, catPro = False, isOl = False):
         if kind == 'Cl':
