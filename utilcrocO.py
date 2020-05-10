@@ -53,6 +53,13 @@ def parse_classes(options):
     return options
 
 
+def set_provars(options):
+    """"arrange the arg for the provars options"""
+    if 'all_notartes' in options.provars:
+        options.provars = ['TALB_ISBA', 'TS_ISBA', 'DSN_T_ISBA', 'WSN_T_ISBA']
+    return options
+
+
 def set_sensor(options):
     """
     BC, April 2020
@@ -180,7 +187,11 @@ class Pgd:
         self.npts = self.elev.size
         self.lat = np.squeeze(pgd.variables['XY'][:])
         self.lon = np.squeeze(pgd.variables['XX'][:])
-
+        # in the case of postes geometries, a "SUPER" PGD (enhanced with numposts ('station') and type of postes) is put at pathPGD
+        if 'station' in pgd.variables.keys():
+            self.station = np.squeeze(pgd.variables['station'][:])
+            self.type = np.squeeze(pgd.variables['type'][:])
+            self.massif = np.squeeze(pgd.variables['massif'][:])
         pgd.close()
 
 
@@ -480,8 +491,6 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     N['NAM_IO_OFFLINE'].LWRITE_TOPO = False
 
     # update assim vars in the namelist
-    # NAM_ENS
-    N['NAM_ENS'].NENS = options.nmembers
 
     # NAM_OBS
     sodaobs = setlistvars_obs(options.vars)
@@ -493,6 +502,10 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
         N.newblock('NAM_VAR')
     if 'NAM_ASSIM' not in list(N.keys()):
         N.newblock('NAM_ASSIM')
+    if 'NAM_ENS' not in list(N.keys()):
+        N.newblock('NAM_ENS')
+    # NAM_ENS
+    N['NAM_ENS'].NENS = options.nmembers
     N['NAM_OBS'].NOBSTYPE = len(sodaobs)
     N['NAM_OBS'].COBS_M = sodaobs
     N['NAM_OBS'].XERROBS_M = set_errors(sodaobs)

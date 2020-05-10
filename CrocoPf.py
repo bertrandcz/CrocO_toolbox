@@ -46,12 +46,13 @@ class CrocO(object):
 
     def prepare_namelist(self):
         """
-        Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
+        copy the namelist to the local dir
         """
-        if not os.path.exists('OPTIONS.nam'):
-            nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
-            namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
-            shutil.copyfile(namelist, 'OPTIONS_base.nam')
+        if os.path.exists('OPTIONS_base.nam'):
+            os.remove('OPTIONS_base.nam')
+        nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
+        namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
+        shutil.copyfile(namelist, 'OPTIONS_base.nam')
 
     def prepare_obs(self, date):
         """

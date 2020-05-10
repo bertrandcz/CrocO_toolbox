@@ -19,10 +19,10 @@ import random
 import sys
 import time
 
-from CrocoPf import CrocoPf, CrocOObs
+from CrocoPf import CrocoPf, CrocoObs
 from CrocoPp import CrocoPp
 from utilcrocO import read_conf, Opt, ImmutableOpt, Pgd, area, parse_classes,\
-    read_opts_in_namelist, set_sensor
+    read_opts_in_namelist, set_sensor, set_provars
 
 
 usage = 'crocO --opts'
@@ -38,9 +38,6 @@ def parse_options(arguments):
     parser.add_option("--xpidol",
                       type="string", action="store", dest="xpidol", default=None,
                       help="xpid of the associated openloop crocO run (if any)")
-    parser.add_option("--xpidobs",
-                      type="string", action="store", dest="xpidobs", default=None,
-                      help="xpid of the associated observations")
     parser.add_option("-d",
                       type = 'string', action = 'callback', callback = callvars, dest='dates', default = None,
                       help = "pre/post-proc : Specify a date to work on (PREP files on that date must exist). post-proc :must be a subset of conf.assimdates.")
@@ -72,7 +69,7 @@ def parse_options(arguments):
     parser.add_option("--classes_id", type = 'string', action="callback", callback=callvars, default = None,
                       help="specify analyzed ids of classes separated by commas ex : 145,146,147")
     parser.add_option("-o",
-                      action = 'store', type = 'string', dest='saverep', default = "",
+                      action = 'store', type = 'string', dest='saverep', default = None,
                       help= 'name of the postproc/type_of_anal/ without /')
     parser.add_option("--pf",
                       action = 'store', dest = 'pf', default = None, type = 'choice',
@@ -91,6 +88,9 @@ def parse_options(arguments):
     parser.add_option('--sensor',
                       action = 'store', dest = 'sensor', type = 'string', default = None,
                       help ='provide sensor name for OBS reading (MODIS, pleiades...).')
+    parser.add_option('--sensor_in',
+                      action = 'store', dest = 'sensor_in', type = 'string', default = None,
+                      help ='When masking obs from an existing sensor, provide it as an argument')
     parser.add_option("--archive_synth",
                       action = 'store_true', dest = 'archive_synth', default = False,
                       help = 'specify if you want to archive the synthetical obs with its mask or not.')
@@ -109,6 +109,9 @@ def parse_options(arguments):
     parser.add_option("--readtruth",
                       action = 'store_true', dest = 'readtruth', default = False,
                       help = 'read truth from openloop run (synthetic experiments only. synth must be defined in either opts or conf file.')
+    parser.add_option("--readoper",
+                      action = 'store_true', dest = 'readoper', default = False,
+                      help = 'read oper pickle file @TODO remove from master branch.')
     parser.add_option("--notreadpro",
                       action = 'store_true', dest = 'notreadpro', default = False,
                       help = 'do NOT read pro files or the pickles EnsPro*')
@@ -125,21 +128,25 @@ def parse_options(arguments):
     parser.add_option("-b", "--begin",
                       action="store", type="string", dest="datedeb", default=None,
                       help="Date to start the simulation (YYYYMMDD): MANDATORY OPTION")
-
     parser.add_option("-e", "--end",
                       action="store", type="string", dest="datefin", default=None,
                       help="Date to finish the simulation (YYYYMMDD): MANDATORY OPTION (unless --oper)")
-
     parser.add_option("-f", "--forcing",
                       action="store", type="string", dest="forcing", default=None,
                       help="path of the forcing file or of the directory with the forcing files - default: None")
-
     parser.add_option("--escroc",
                       action="store", type="string", dest="escroc", default=None,
                       help="ESCROC subensemble")
     parser.add_option("--spinup",
                       action='store', type='string', dest = 'spinup', default=None,
                       help='path to the pgd and prep files')
+    parser.add_option("--provars",
+                      action = 'callback', callback = callvars, dest = 'provars', default = ['all_notartes'],
+                      help = 'specify the list of variables to write down into the PRO files. (CSELECT in the namelist\n\
+                      Default : TALB_ISBA (albedo), TS_ISBA (Snow Surface temperature), DSN_T_ISBA (Snow Depth) and WSN_T_ISBA (Snow Water Equivalent).')
+    parser.add_option("--pathConf",
+                      action="store", type="string", dest="pathConf", default=None,
+                      help="specify an unusual pathConf")
 
     opts_no_defaults = Values()
     __, args = parser.parse_args(arguments, values=opts_no_defaults)
@@ -181,8 +188,10 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             print('you must prescribe an xpid (root of your experiment), located at $CROCOPATH/s2m/<geometry>/xpid/ and create it before the simulation')
     else:
         options.xpiddir = options.xpid
-    if options.xpidobs is not None:
-        options.xpidobsdir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.xpidobs + '/'
+    if options.sensor is not None:
+        options.sensordir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.sensor + '/'
+    if options.sensor_in is not None:
+        options.sensor_in_dir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.sensor_in + '/'
     if options.xpidol is not None:
         options.xpidoldir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpidol + '/'
 
@@ -199,12 +208,16 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
     else:
         options.pathPgd = pathPgd
         options.pgd = Pgd(options.pathPgd)
-    # convert the classes*args into more explicit variables
+    # convert the classes args into more explicit variables
     options = parse_classes(options)
+    # convert the provars arg
+    options = set_provars(options)
     if pathConf:
         # readConf is useful only when the path to the conf is implicit.
         readConf = True
-
+    elif options.pathConf:
+        pathConf = options.pathConf
+        readConf = True
     # load the conf file (not mandatory)
     if readConf is True:
         if pathConf is None:
@@ -261,7 +274,10 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
                     except ValueError:
                         test = datetime.datetime.strptime(conf.datefin, "%Y-%m-%d %H:%M:%S")
                         print('there should be a bug when reading the conf file with vortex. Not handled a the moment')
-                    conf.stopdates = conf.assimdates + [test]
+                    except TypeError:
+                        print('no datefin in conf file. probably generating obs.')
+                        test = None
+                    conf.stopdates = conf.assimdates + [test] if test else conf.assimdates
 
             options.dates = conf.assimdates
         # set openloop or not.
@@ -359,12 +375,14 @@ def execute(args):
         run = CrocoPf(options)
         pp = CrocoPp(options)
     elif options.todo == 'generobs':
-        run = CrocOObs(options)
+        run = CrocoObs(options)
+
+    return run
 
 
 if __name__ == '__main__':
     start_time = time.time()
 
-    execute(sys.argv)
+    run = execute(sys.argv)
     elapsed_time = time.time() - start_time
     print(elapsed_time)
