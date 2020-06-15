@@ -22,14 +22,14 @@ year = 2013
 xpid = 'ref2'
 
 
-def super_PGD(massifs, year, xpid, obsPath= os.environ['CROCOPATH']  + 's2m/postes/obs_csv/bd-clim_ML/OBS_2010080100_2020021023_types1346789.csv'):
+def super_PGD(massifs, year, xpidforcing, obsPath= os.environ['CROCOPATH']  + 's2m/postes/obs_csv/bd-clim_ML/OBS_2010080100_2020021023_types1346789.csv'):
 
-    vconf = 'postes_' + '_'.join(list(map(str, massifs))) + '_csv'
+    vconf = '_'.join(['postes'] + list(map(str, massifs)) + ['csv'])
     rootDir = os.environ['VORTEXPATH'] + '/s2m/' + vconf + '/spinup/'
     pgdPath = rootDir + '/pgd/PGD_' + vconf + '.nc'
     superpgdPath = rootDir + '/pgd/super_PGD_' + vconf + '.nc'
 
-    forcing = os.environ['VORTEXPATH'] + '/safran/' + vconf + '/' + xpid + '/mb0000/meteo/FORCING_{0}080106_{1}080106.nc'.format(year, year + 1)
+    forcing = os.environ['VORTEXPATH'] + '/safran/' + vconf + '/' + xpidforcing + '/mb0000/meteo/FORCING_{0}080106_{1}080106.nc'.format(year, year + 1)
 
     if os.path.exists(pgdPath):
         if os.path.exists(superpgdPath):

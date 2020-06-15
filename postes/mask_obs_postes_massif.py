@@ -11,22 +11,22 @@ import os
 import subprocess
 
 from consts import CROCO
+import numpy as np
 from postes.utilpostes import set_conf_everydate
 from utilcrocO import Pgd
 
 
-# # ####### PARAMETERS #####
-# vconf = 'postes_12_csv'
-# selMassif = [12]
-# xpidobs = 'all'
-# xpid = 'testmaskobs'
-# startY = 2013
-# endY = 2017
-# assimilate_every = 7
-# # in order to mask the obs that are not in the selected massif,
-# # we use the classesId argument of crocO.py
-def create_obs_massif_exclude_poste(vconf, selMassif, year, assimilate_every, alwaysX = []):
-    # the classesId are in Python index (0 for the first class/station.)
+def create_obs_massif_exclude_poste(vconf, selMassif, year, assimilate_every, alwaysX = [], return_dict = False):
+    """
+    this method allows to generate a set of sensors within a given geometry
+    by keeping, for each sensor, all observations but one.
+    also generates a sensor with all the observations.
+    Details:
+    -> assimilate only obs from a given selMassif of this geometry
+    -> within this selMassif, you can exclude the alwaysX posts from all the observations.
+    -> 'all' : all obs, including windy
+    -> 'alX' : all obs, excluding windy
+    """
     pgdPath = os.environ['VORTEXPATH'] + '/s2m/' + vconf + '/spinup/pgd/PGD_' + vconf + '.nc'
     pgd = Pgd(pgdPath)
     os.environ['CROCOPATH'] = os.environ['VORTEXPATH']
@@ -35,16 +35,44 @@ def create_obs_massif_exclude_poste(vconf, selMassif, year, assimilate_every, al
     print(classesId)
     sensor_in = '_'.join(map(str, selMassif))
     sensors = []
-    for i, stat in enumerate(pgd.station[classesId]):
+
+    # BC 10/05 : ensure the all and alX (if necess.) runs are ran.
+    # -1 will stand for the 'all' case
+    # alX will be necessarily ran since stations in alX are in pgd.station[classesId]
+    list_enum = np.append(pgd.station[classesId], -1)
+
+    if len(alwaysX) < 1:
+        alX = False
+    else:
+        alX = True
+    ret_dict = {}
+    for i, stat in enumerate(list_enum):
         # prevent from excluding twice
         # classesIdK is the Ids of stations KEPT for assimilation
         classesIdK = list(set([cl for j, cl in enumerate(classesId) if j != i and str(pgd.station[cl]) not in alwaysX]))
         classesIdArg = ','.join(list(map(str, classesIdK)))
-        listX = list(sorted(set([str(stat)] + alwaysX)))
-        statX = '-'.join(listX)
-        sensor = '_'.join(map(str, selMassif)) + '_X' + str(statX)
+        if alX:
+            if stat != -1:
+                listX = list(sorted(set([str(stat)] + alwaysX)))
+                statX = '-'.join(listX)
+                sensor = '_'.join(map(str, selMassif)) + '_X' + str(statX)
+                if str(stat) in alwaysX:
+                    ret_dict['alX'] = sensor
+                else:
+                    ret_dict[str(stat)] = sensor
+            else:
+                sensor = '_'.join(map(str, selMassif))
+                ret_dict['all'] = sensor
+
+        else:
+            if stat != -1:
+                sensor = '_'.join(map(str, selMassif)) + '_X' + str(stat)
+                ret_dict[str(stat)] = sensor
+            else:
+                sensor = '_'.join(map(str, selMassif))
+                ret_dict['all'] = sensor
         sensors.append(sensor)
-        xpidobs = os.environ['VORTEXPATH'] + '/s2m/' + vconf + '/obs/' + sensor
+
         pathConf = os.environ['VORTEXPATH'] + '/s2m/' + vconf + '/obs/' + sensor + '/conf/s2m_' + vconf + '_' + str(year) + '.ini'
         if not os.path.exists(pathConf):
             # generate a fake conf file with dates every 7days between startY and endY
@@ -65,10 +93,8 @@ def create_obs_massif_exclude_poste(vconf, selMassif, year, assimilate_every, al
                 '--pathConf', pathConf
             ]
             ret = subprocess.call(args)
-            """
-            if ret != 0:
-                raise Exception('something went wrong when creating the observationss')
-        else:
-            shutil.rmtree(xpidobs)
-            """
-    return list(set(sensors))
+
+    if return_dict:
+        return ret_dict
+    else:
+        return list(set(sensors))

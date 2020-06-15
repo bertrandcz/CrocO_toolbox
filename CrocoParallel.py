@@ -115,6 +115,7 @@ class CrocoParallel(CrocO):
         '''
         run
         '''
+        # progress_bar
         pbar = tqdm(self.options.assimdates)
         for dd in pbar:
             pbar.set_description('Propagating until: ' + dd)
@@ -194,8 +195,7 @@ class CrocoParallel(CrocO):
     def cleanup(self):
         os.chdir(self.xpiddir)
         for dd in self.options.stopdates:
-            for mbdir in self.mbdirs:
-                shutil.rmtree(dd)
+            shutil.rmtree(dd)
 
 
 class OfflinePools(CrocO):
@@ -218,7 +218,10 @@ class OfflinePools(CrocO):
     def setup(self):
 
         # prepare escroc configurations
-        self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.mblist)
+        # BC bugfix 03/06/20:
+        # self.mblist instead of self.options.members_id 
+        # (was running with the 40 first members of E1_notartes....)
+        self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.options.members_id)
         p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates)))
         p.map(self.mb_prepare, [[date, idate, mbdir, mb]for idate, date in enumerate(self.options.stopdates)
                                 for (mb, mbdir) in zip(self.mblist, self.mbdirs)])

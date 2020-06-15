@@ -37,19 +37,27 @@ def parse_classes(options):
     This function parses option arguments classes_e, classes_a, and classes_s into explicit conditions matching the options.pgd features
     classes_e = 'all' -> classes_e = ['600',...'3600']
     classes_a = 'all' -> classes_a = ['N','NW',...]
+
+    BC, June 2020: consider also classes_id 
     """
 
     # check for conf file (not necessarily defined in old conf files
     for attr in ['classes_e', 'classes_a', 'classes_s']:
         if not hasattr(options, attr):
             options.__setattr__(attr, None)
+    if options.classes_id is None:  # options.classes_id is exclusive with the others
+        gdef = True
+        if options.classes_e is not None or options.classes_a is not None or options.classes_s is not None:
+            gdef = False
+        if options.classes_e == 'all' or options.classes_e is None:
+            options.classes_e = sorted(np.unique(list(map(str, map(int, options.pgd.elev)))))
+        if options.classes_a == 'all' or options.classes_a is None:
+            options.classes_a = sorted(list(dictsAspect()[0].keys()))
+        if options.classes_s == 'all' or options.classes_s is None:
+            options.classes_s = ['0', '20', '40']
+        if gdef:
+            options.classes_id = list(map(str, range(options.pgd.npts)))
 
-    if options.classes_e == 'all' or options.classes_e is None:
-        options.classes_e = sorted(np.unique(list(map(str, map(int, options.pgd.elev)))))
-    if options.classes_a == 'all' or options.classes_a is None:
-        options.classes_a = sorted(list(dictsAspect()[0].keys()))
-    if options.classes_s == 'all' or options.classes_s is None:
-        options.classes_s = ['0', '20', '40']
     return options
 
 
@@ -273,7 +281,7 @@ def unpack_conf(arg):
     arg = "'toto'" or '"toto"' : return 'toto'
     arg = '2' : return 2
     arg = '2.3' : return 2.3
-    arg = 'toto.nam' :'return toto.nam'
+    arg = 'toto.nam' : return 'toto.nam'
     arg = '2.2,2.3' : return [2.2,2.3]
     arg = None : return None (NoneType)
 
@@ -284,6 +292,9 @@ def unpack_conf(arg):
     exception cases :
     - badly formatted str
     - mixed types in lists
+
+    BC 15/06/20 : moved to snowtools_git/tools/read_conf.py.
+    @TODO: delete from here when agreement from Matthieu
     """
     # first deal with the vortex case
     if "rangex" in arg:
@@ -331,6 +342,11 @@ def unpack_conf(arg):
 
 
 class ConfObj1L(dict):
+    """
+    BC 15/06/20 : moved to snowtools_git/tools/read_conf.py.
+    @TODO: delete from here when agreement from Matthieu
+    """
+
     def __init__(self, **kwargs):
         self.__dict__.update(self, **kwargs)
         for name, val in kwargs.items():
@@ -358,6 +374,8 @@ def conf2obj(conf):
     '''
     BC 01/04/20
     convert a ConfParser to a one-level dict then a one level dot.dict.
+    BC 15/05/20 : moved to snowtools_git/tools/read_conf.py.
+    @TODO: delete from here when agreement from Matthieu
     '''
 
     dict1 = dict()
@@ -372,8 +390,9 @@ def conf2obj(conf):
 
 def read_conf(pathconf, useVortex=True):
     '''
-    B. Cluzet
-    duplicated from evalSODA.util
+    B. Cluzet, april 2020
+    BC 15/05/20 : moved to snowtools_git/tools/read_conf.py.
+    @TODO: delete from here when agreement from Matthieu
     '''
     if not os.path.exists(pathconf):
         if os.path.exists(pathconf[0:-4] + '.foo'):
@@ -410,8 +429,19 @@ def read_conf(pathconf, useVortex=True):
 
 
 def dictErrors():
+    """
+    default observation error variances
+    Refs:
+    - reflectances : Wright et al., Charrois et al.
+    - snow depth [m^2] : Cluzet et al., (submitted to GMD)
+    - rest: a vista de nas.
+    """
     return {'B1': 0.00071, 'B2': 0.00046, 'B3': 0.00056, 'B4': 0.00056, 'B5': 0.002,
-            'B6': 0.0015, 'B7': 0.00078, 'SCF': 0.2, 'DEP': 0.01, 'SWE': 100, 'R52': 0.001, 'R54': 0.001}
+            'B6': 0.0015, 'B7': 0.00078,
+            'SCF': 0.2,
+            'DEP': 0.01,
+            'SWE': 100,
+            'R52': 0.001, 'R54': 0.001}
 
 
 def set_errors(argsoda):
@@ -469,8 +499,8 @@ def read_opts_in_namelist(options):
         N = n.parse(options.dates[0] + '/OPTIONS.nam')
         print(' read the PF params in namelist:', options.dates[0] + '/OPTIONS.nam')
     try:
-        options.nloc_pf = N['NAM_ASSIM'].NLOC_PF
         options.neff_pf = N['NAM_ASSIM'].NEFF_PF
+        options.xdloc_pf = N['NAM_ASSIM'].XDLOC_PF
         options.pf = N['NAM_ASSIM'].CPF_CROCUS
     except AttributeError:
         raise Exception('Some of the PF parameters are not defined in the namelist.')
@@ -526,6 +556,15 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
         print('be careful, old-formatted namelist !', 'LSEMIDISTR_CROCUS' 'LASSIM_CROCUS -> CPF_CROCUS, LCROCO')
         N['NAM_ASSIM'].delvar('LSEMIDISTR_CROCUS')
         N['NAM_ASSIM'].delvar('LASSIM_CROCUS')
+    if hasattr(N['NAM_ASSIM'], 'NLOC_PF'):
+        # option deleted in june 2020
+        print('be careful, old-formatted namelist !', 'NLOC_PF has been deleted.')
+        print('now, a localisation angle can be defined by setting XDLOC_PF (degrees) with the RLOCAL.')
+        print('let XDLOC_PF for a purely localised approach')
+        print('for the KLOCAL, NLOC_PF is not used as the max number')
+        print('of simultaneously assimilated obs per variable anymore')
+        print(' now this quantity is derived from the observations file itself')
+        raise Exception
     if options.pf != 'ol':
         N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
     else:
@@ -533,7 +572,8 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     N['NAM_ASSIM'].LCROCO = True
     N['NAM_ASSIM'].LASSIM = True
     N['NAM_ASSIM'].CASSIM_ISBA = 'PF   '
-    N['NAM_ASSIM'].NLOC_PF = options.nloc_pf
+    if options.xdloc_pf is not None:
+        N['NAM_ASSIM'].XDLOC_PF = options.xdloc_pf
     N['NAM_ASSIM'].NEFF_PF = options.neff
     N['NAM_ASSIM'].LEXTRAP_SEA = False
     N['NAM_ASSIM'].LEXTRAP_WATER = False
@@ -579,6 +619,23 @@ def get_trailing_number(s):
 def get_leading_number(s):
     m = re.search(r'^\d+', s)
     return str(int(m.group())) if m else None
+
+
+def split_list(options, opt, value, parser):
+    """
+    flexible splitting of comma separated reals: try to read it as int, if fails, as floats
+    """
+    if ',' in value:
+        try:
+            setattr(parser.values, options.dest, [int(y) for y in value.split(',')])
+        except ValueError:
+            setattr(parser.values, options.dest, [float(y) for y in value.split(',')])
+
+    else:
+        try:
+            setattr(parser.values, options.dest, [int(value)])
+        except ValueError:
+            setattr(parser.values, options.dest, [float(value)])
 
 
 def ftp_upload(localfile, remotefile, ftp):

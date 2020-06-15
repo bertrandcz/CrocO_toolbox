@@ -17,8 +17,10 @@ from utilcrocO import setlistvars_obs, setlistvars_var, setSubsetclasses,\
 from utils.prosimu import prosimu
 
 import netCDF4
-
 import numpy as np
+
+# suppress divide warnings in readPrep
+np.seterr(divide='ignore', invalid='ignore')
 
 
 class SemiDistributed(object):
@@ -76,7 +78,7 @@ class Obs(SemiDistributed):
             # BC 24/02 archive versio is not necessary for real obs.
             if isinstance(self, Real):
                 self.prepare_realmask()
-                self.create_new(self.Raw, self.maskpath, self.options, fromArch=True, maskit = True)
+                self.create_new(self.Raw, self.maskpath, self.options, fromObsArch=True, maskit = True)
             else:
                 archOk = self.prepare_archive(archive_synth=archive_synth)
                 if not archOk:
@@ -91,12 +93,12 @@ class Obs(SemiDistributed):
                 # loading archive and masking:
                 self.load_arch()
                 print('masking of archive from', self.archpath)
-                maskArch = self.create_new(self.Arch, self.sodaName, self.options, fromArch =True, maskit=True)
+                maskArch = self.create_new(self.Arch, self.sodaName, self.options, fromObsArch =True, maskit=True)
                 maskArch.close()
 
                 # third, create a synth archive if necessary:
                 if archive_synth:
-                    synth = self.create_new(self.Arch, self.synthpath, self.options, fromArch =True, maskit=True)
+                    synth = self.create_new(self.Arch, self.synthpath, self.options, fromObsArch =True, maskit=True)
                     synth.close()
                 self.close()
         else:
@@ -145,11 +147,11 @@ class Obs(SemiDistributed):
     def check_format(self):
         pass
 
-    def create_new(self, Raw, newFile, options, fromArch = False, maskit = False):
+    def create_new(self, Raw, newFile, options, fromObsArch = False, maskit = False):
         New = netCDF4.Dataset(newFile, 'w')
         if maskit:
             _, mask = self.subset_classes(self.pgd, options)
-            self.copydimsvars(Raw, New, self.listvar, fromArch = fromArch, mask=mask)
+            self.copydimsvars(Raw, New, self.listvar, fromObsArch = fromObsArch, mask=mask)
             self.computeratio(Raw, New, self.listvar, mask=mask)
         else:
             self.copydimsvars(Raw, New, self.listvar,)
@@ -158,16 +160,20 @@ class Obs(SemiDistributed):
     def subset_classes(self, pgd, options):
         """
         in the SODA copy of the observation file, remove classes where the assim shouldn't be performed
+        BC june 2020 return None if no class is masked
         """
+        print('options.classesId', options.classes_id)
 
         if options.classes_id is None:  # user can specify a list of classes instead of a selection by Elev,A,S
             subset, mask = setSubsetclasses(pgd, options.classes_e, options.classes_a, options.classes_s)
         else:
             subset = options.classes_id
-            mask = np.array([True if i in list(map(int, options.classes_id)) else False for i in range(self.pgd.npts)])
+            mask = [i in list(map(int, options.classes_id)) for i in range(self.pgd.npts)]
+        if np.sum(mask) == len(mask):
+            mask = None
         return subset, mask
 
-    def copydimsvars(self, Raw, New, nameVars, fromArch = False, mask = None):
+    def copydimsvars(self, Raw, New, nameVars, fromObsArch = False, mask = None):
         '''
         BC 5/02/19 from maskSentinel2.py
         copy nameVars from Raw to New netCDF Datasets (and copy dims before)
@@ -179,7 +185,7 @@ class Obs(SemiDistributed):
         for dimName, dim in list(Raw.dimensions.items()):
             New.createDimension(dimName, len(dim) if not dim.isunlimited() else None)
         for name in nameVars:  # name in arg format (b*, r**...)
-            if not fromArch:
+            if not fromObsArch:
                 readName = self.dictVarsRead[name]
             else:
                 readName = self.dictVarsWrite[name]
@@ -361,24 +367,15 @@ class Prep(SemiDistributed):
             self.data = dict()
             for var in self.listvar:
                 if var == 'DEP':
-                    # @TODO : BC 24/04/20 : this step is sooo slow when reading prep files... (because 100 variables must be read)
-                    # -> load in parallel and save WSN_VEG and RSN_VEG to cut down human time expense.
-                    # or load the PREP in parallel
-                    if hasattr(self, 'SWE_tot'):
-                        pass
-                    else:
-                        self.SWE_tot = self.read_tot(dd, 'SWE')
-                    rho_tot = self.read_tot(dd, 'RHO')
-                    self.data[var] = self.SWE_tot / rho_tot / np.cos(np.arctan(self.pgd.slope))
-
-                    # print(self.data[var])
+                    self.data[var] = np.nansum([dd.read('WSN_VEG' + str(i + 1)) / dd.read('RSN_VEG' + str(i + 1)) for i in range(0, 50)],
+                                               axis = 0) /\
+                        np.cos(np.arctan(self.pgd.slope))
                 elif var == 'SWE':
                     if hasattr(self, 'SWE_tot'):
                         pass
                     else:
-                        self.SWE_tot = self.read_tot(dd, 'SWE')
-                    self.data[var] = self.SWE_tot / np.cos(np.arctan(self.pgd.slope))
-                    # print(self.data[var])
+                        self.data[var] = np.nansum([dd.read('WSN_VEG' + str(i + 1)) for i in range(0, 50)], axis = 0) /\
+                            np.cos(np.arctan(self.pgd.slope))
                 elif 'R' in var:
                     self.data[var] = dd.read(self.loadDict['B' + var[1]]) / dd.read(self.loadDict['B' + var[2]])
                 else:
@@ -386,21 +383,13 @@ class Prep(SemiDistributed):
             dd.close()
             self.isloaded = True
 
-    def read_tot(self, dd, var):
-        """return the layers sum of SWE or density (RHO)
-        /!\ SWE is not reprojected"""
-        if var == 'SWE':
-            return np.nansum([dd.read('WSN_VEG' + str(i + 1)) for i in range(0, 50)], axis = 0)
-        elif var == 'RHO':
-            return np.nansum([dd.read('RSN_VEG' + str(i + 1)) for i in range(0, 50)], axis = 0)
-
 
 class PrepBg(Prep):
-    def __init__(self, date, mbid, options, directFromXp = True):
+    def __init__(self, date, mbid, options, fromArch = True):
         Prep.__init__(self, options)
         self.date = date
         self.ptinom = 'bg' + str(mbid)
-        if not directFromXp:
+        if not fromArch:
             self.sodaName = date + '/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
         else:
             # self.sodaName = '../../../test_160_OL@cluzetb/' + 'mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
@@ -408,11 +397,11 @@ class PrepBg(Prep):
 
 
 class PrepOl(Prep):
-    def __init__(self, date, mbid, options, directFromXp = True, isOl = False):
+    def __init__(self, date, mbid, options, fromArch = True, isOl = False):
         Prep.__init__(self, options)
         self.date = date
         self.ptinom = 'ol' + str(mbid)
-        if not directFromXp:
+        if not fromArch:
             self.sodaName = date + '/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
         else:
             if isOl:
@@ -422,12 +411,12 @@ class PrepOl(Prep):
 
 
 class PrepAn(Prep):
-    def __init__(self, date, mbid, options, directFromXp = True):
+    def __init__(self, date, mbid, options, fromArch = True):
         Prep.__init__(self, options)
         self.date = date
         self.ptinom = 'an' + str(mbid)
 
-        if not directFromXp:
+        if not fromArch:
             self.sodaName = date + '/SURFOUT' + str(mbid) + '.nc'
         else:
             self.sodaName = options.xpiddir + '/mb{0:04d}'.format(mbid) + '/an/PREP_' + date + '.nc'

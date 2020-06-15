@@ -21,6 +21,7 @@ import time
 
 from CrocoPf import CrocoPf, CrocoObs
 from CrocoPp import CrocoPp
+import numpy as np
 from utilcrocO import read_conf, Opt, ImmutableOpt, Pgd, area, parse_classes,\
     read_opts_in_namelist, set_sensor, set_provars
 
@@ -67,7 +68,7 @@ def parse_options(arguments):
     parser.add_option("--classes_e", type = 'string', action="callback", callback=callvars, default = None,
                       help="specify analyzed elev classes ex : 1800,2100,2400,2700")
     parser.add_option("--classes_id", type = 'string', action="callback", callback=callvars, default = None,
-                      help="specify analyzed ids of classes separated by commas ex : 145,146,147")
+                      help="specify analyzed PYTHON (starting at 0) ids of classes separated by commas ex : 145,146,147. Exclusive with classes_e,a,s")
     parser.add_option("-o",
                       action = 'store', type = 'string', dest='saverep', default = None,
                       help= 'name of the postproc/type_of_anal/ without /')
@@ -75,8 +76,9 @@ def parse_options(arguments):
                       action = 'store', dest = 'pf', default = None, type = 'choice',
                       choices=('global', 'klocal', 'rlocal', 'ol'),
                       help='choose pf algorithm : global, rlocal, klocal.')
-    parser.add_option("--nloc_pf", action = 'store', dest = 'nloc_pf', default = None, type = int,
-                      help='set the localization radius (1->+oo) or the k-localization counter (1->+oo).')
+    parser.add_option("--xdloc_pf", type = 'string', action = "callback", callback = callunits, default = None,
+                      help = "specify the localisation angle (default unit in degrees) for the rlocal pf." +
+                      " if not default specify the units after a semicolon e.g. : 1.9:m, 1.9:km, 1.9:deg, 1.9:rad")
     parser.add_option("--neff", action = 'store', dest = 'neff', default = 0, type = int,
                       help='set the Neff target value for the inflation factor. 1 to deactivate localization.')
     parser.add_option('--synth',
@@ -92,7 +94,8 @@ def parse_options(arguments):
                       action = 'store', dest = 'sensor_in', type = 'string', default = None,
                       help ='When masking obs from an existing sensor, provide it as an argument')
     parser.add_option("--archive_synth",
-                      action = 'store_true', dest = 'archive_synth', default = False,
+                      action = 'store_true', dest = 'archive_synth',
+                      default = True,  # BC 11/06/20 @TODO : fix local pf pp bugs with archive_synth=False
                       help = 'specify if you want to archive the synthetical obs with its mask or not.')
     parser.add_option("--no_need_masking",
                       action = 'store_true', dest = 'no_need_masking', default = False,
@@ -124,7 +127,7 @@ def parse_options(arguments):
                       help=" absolute path to the archive (default=xpid)")
     parser.add_option("-n",
                       type = 'string', dest = 'namelist',
-                      default = os.environ['SNOWTOOLS_CEN'] + '/DATA/OPTIONS_V81_NEW_OUTPUTS_NC.nam')
+                      default = None)
     parser.add_option("-b", "--begin",
                       action="store", type="string", dest="datedeb", default=None,
                       help="Date to start the simulation (YYYYMMDD): MANDATORY OPTION")
@@ -165,6 +168,29 @@ def callvars(option, opt, value, parser):
         setattr(parser.values, option.dest, value)
 
 
+def callunits(option, opt, value, parser):
+    """
+    BC 09/06/20 : units converter for xdloc_pf.
+    """
+    print(value)
+    if type(value) is not float:
+        ll = value.split(':')
+        ll[0] = float(ll[0])
+        if ll[1] == 'deg':
+            ret = ll[0]
+        elif ll[1] == 'm':
+            ret = ll[0] / 6371000.
+        elif ll[1] == 'km':
+            ret = ll[0] / 6371. * 180. / np.pi
+        elif ll[1] == 'rad':
+            ret = ll[0] * 180 / np.pi
+        else:
+            raise Exception('supported units :deg, m, km, rad.')
+        setattr(parser.values, option.dest, ret )
+    else:  # normal case
+        setattr(parser.values, option.dest, value)
+
+
 def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPgd = None, mutable=False):
     """
     This methods allows to parse, format and check the options of the crocO command and merge them with those written in the configuration file (pathConf, if any).
@@ -188,13 +214,20 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             print('you must prescribe an xpid (root of your experiment), located at $CROCOPATH/s2m/<geometry>/xpid/ and create it before the simulation')
     else:
         options.xpiddir = options.xpid
+    if (options.classes_e is not None or options.classes_a is not None or options.classes_s is not None) and options.classes_id is not None:
+        raise Exception('classes_id is exclusive with the other classes args.')
     if options.sensor is not None:
         options.sensordir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.sensor + '/'
     if options.sensor_in is not None:
         options.sensor_in_dir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/obs/' + options.sensor_in + '/'
     if options.xpidol is not None:
         options.xpidoldir = options.crocOpath + '/' + options.vapp + '/' + options.vconf + '/' + options.xpidol + '/'
-
+    if options.namelist is None:
+        options.namelist = os.environ['SNOWTOOLS_CEN'] + '/DATA/OPTIONS_V81_NEW_OUTPUTS_NC.nam',
+        print("forcing the namelist path to its default value :", options.namelist)
+        options.namelist_is_default = True
+    else:
+        options.namelist_is_default = False
     if options.todo != 'generobs' and options.synth and options.sensor:
         raise Exception(" either you are running a synth experiment from scratch (--synth) or you are using pre-generated observations (--sensor)")
     # load the PGD (mandatory), it is key to describe the working geometry.
@@ -373,6 +406,7 @@ def execute(args):
         run = CrocoPp(options)
     elif options.todo in ['pf', 'pfpython']:
         run = CrocoPf(options)
+        run.run()
         pp = CrocoPp(options)
     elif options.todo == 'generobs':
         run = CrocoObs(options)

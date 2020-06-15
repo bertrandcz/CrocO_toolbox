@@ -51,24 +51,10 @@ def read_mask(options):
                 f = open(filename, 'rb')
 
         imask[dd] = dict()
-        for var in options.vars:
-            imask[dd][var] = np.empty((npts, options.nloc_pf), dtype = int)
-        il = 0
-        il4 = 0
-        il5 = 0
-        for line in f:
-            data = np.array(line.split(',')[0:-1])
-            if il % 2 == 0:
-                imask[dd]['B4'][il4, :] = data  # convert into PYTHON class indices
-                imask[dd]['B4'][il4, :] = imask[dd]['B4'][il4, :] - 1.
-                il4 += 1
-            else:
-                imask[dd]['B5'][il5, :] = data  # convert into PYTHON class indices
-                imask[dd]['B5'][il5, :] = imask[dd]['B5'][il5, :] - 1.
-                il5 += 1
-            il += 1
-        imask[dd]['B4'] = np.ma.masked_where(imask[dd]['B4'] == -1., imask[dd]['B4'] )
-        imask[dd]['B5'] = np.ma.masked_where(imask[dd]['B5'] == -1., imask[dd]['B5'] )
+        data = np.array([[int(v) - 1 for v in line.split(',')[0:-1]] for line in f])
+        for iv, var in enumerate(options.vars):
+            imask[dd][var] = data[iv::len(options.vars)]
+            imask[dd][var] = np.ma.masked_where(imask[dd][var] == -1, imask[dd][var])
     return imask
 
 

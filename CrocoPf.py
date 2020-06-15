@@ -50,7 +50,13 @@ class CrocO(object):
         """
         if os.path.exists('OPTIONS_base.nam'):
             os.remove('OPTIONS_base.nam')
-        nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
+        if self.options.namelist_is_default is True:
+            nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
+        elif os.path.exists(self.options.namelist):
+            nampathnormal = self.options.namelist
+        else:
+            print('the prescribed namelist ' + self.options.namelist + ' does not exist')
+
         namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
         shutil.copyfile(namelist, 'OPTIONS_base.nam')
 
@@ -107,8 +113,13 @@ class CrocoPf(CrocO):
                 path = self.crocOdir + '/' + saverep + '/' + dd
             if dd in self.options.dates:
                 if os.path.exists(path):
-                    shutil.rmtree(path)
-                os.makedirs(path)
+                    # bc slight change for local tests where it is painful to have the rep deleted each time. (pwd error)
+                    for dirpath, _, filenames in os.walk(path):
+                        # Remove regular files, ignore directories
+                        for filename in filenames:
+                            os.remove(os.path.join(dirpath, filename))
+                else:
+                    os.makedirs(path)
                 if self.options.pf != 'ol':
                     self.prepare_sodaenv(path, dd)
             else:
@@ -196,7 +207,7 @@ class CrocoPf(CrocO):
                 if plot:
                     plt.figure()
                 self.pf = ParticleFilter(self.xpiddir, self.options, dd)
-                _, resample = self.pf.localize(k=self.options.nloc_pf, errobs_factor=self.options.fact, plot = plot)
+                _, resample = self.pf.localize(k=self.options.pgd.npts, errobs_factor=self.options.fact, plot = plot)
                 _, gresample = self.pf.globalize(errobs_factor=self.options.fact, plot = plot)
                 print(('gres', gresample))
                 self.pf.pag = self.pf.analyze(gresample)

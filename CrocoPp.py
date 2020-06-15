@@ -174,29 +174,30 @@ class CrocoPp(CrocO):
     def loadEnsPrep(self, kind, isOl = False):
         # if local pp (e.g. pp of a run on local machine)
         if self.options.todo == 'pfpp' or self.options.todo == 'pf':
-            directFromXp = False
+            fromArch = False
         else:
-            directFromXp = True
-
-        if kind == 'bg':
-            locEns = {dd: PrepEnsBg(self.options, dd, directFromXp=directFromXp) for dd in self.options.dates}
-        elif kind == 'an':
-            locEns = {dd: PrepEnsAn(self.options, dd, directFromXp=directFromXp) for dd in self.options.dates}
-        else:
-            locEns = {dd: PrepEnsOl(self.options, dd, isOl=isOl, directFromXp=directFromXp) for dd in self.options.dates}
-
-        p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates)))
-        p.map(self.loadEnsPrepDate_parallel, [[locEns, dd, kind, isOl] for dd in self.options.dates])
+            fromArch = True
+        # BC june 2020: manager is used to share the dict between nodes
+        manager = multiprocessing.Manager()
+        locEns = manager.dict()
+        p = multiprocessing.Pool(min(multiprocessing.cpu_count(), len(self.options.dates)))
+        p.map(self.loadEnsPrepDate_parallel, [[locEns, dd, kind, isOl, fromArch] for dd in self.options.dates])
         p.close()
         p.join()
-
-        return locEns
+        return dict(locEns)
 
     def loadEnsPrepDate_parallel(self, largs):
         locEns  = largs[0]
         dd = largs[1]
         kind = largs[2]
         isOl = largs[3]
+        fromArch = largs[4]
+        if kind == 'bg':
+            local = PrepEnsBg(self.options, dd, fromArch=fromArch)
+        elif kind == 'an':
+            local = PrepEnsAn(self.options, dd, fromArch=fromArch)
+        else:
+            local = PrepEnsOl(self.options, dd, isOl=isOl, fromArch=fromArch)
         if (kind == 'ol' and isOl is False):
             pathPkl = self.xpidoldir + '/crampon/' + self.options.saverep + '/' +\
                 kind + '_' + dd + '.pkl'
@@ -212,16 +213,17 @@ class CrocoPp(CrocO):
         if not os.path.exists(pathPkl):
             print(' unsuccesfull loading', pathPkl, )
             print(('loading ' + kind + ' ens for date : ', dd))
-            locEns[dd].stackit()
+            local.stackit()
             with open(pathPkl, 'wb') as f:
                 print(('saaving ' + kind + ' to pickle !'))
-                pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(local.stack, f, protocol=pickle.HIGHEST_PROTOCOL)
         else:
-            locEns[dd].stack = load_pickle2(pathPkl)
-            if not all(l in locEns[dd].stack.keys() for l in self.listvar):
-                raise Exception('Some of the ppvars you mentioned are not present in ', pathPkl,
-                                '\n listvars:', self.listvar, '\npickle file keys:', locEns[dd].stack.keys())
-            locEns[dd].isstacked = True
+            local.stack = load_pickle2(pathPkl)
+            if not all(l in local.stack.keys() for l in self.listvar):
+                raise Exception('Some of the ppvars you mentioned are not present in ', os.getcwd() + '/' + pathPkl,
+                                '\n listvars:', self.listvar, '\npickle file keys:', local.stack.keys())
+            local.isstacked = True
+        locEns[dd] = local
 
     def loadEnsPro(self, kind, catPro = False, isOl = False):
         if kind == 'Cl':
@@ -323,7 +325,9 @@ class CrocoPp(CrocO):
         else:
             if self.options.synth is not None:
                 print('sssynth', self.options.synth)
-                print('reading synthetic assimilated obs. in ' + self.pathArch)
+                print('reading synthetic truth obs. in ' + self.pathArch)
+                print('reading synthetic assimilated obs. in ' + self.pathSynth)
+
                 self.obsArch = {dd: FromXp(self.pathArch, dd, self.options) for dd in self.options.dates}
                 self.obsSynth = {dd: FromXp(self.pathSynth, dd, self.options) for dd in self.options.dates}
                 for dd in self.options.dates:

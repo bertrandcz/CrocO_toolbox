@@ -7,10 +7,10 @@ Created on Thu Jan 16 15:07:26 2020
 """
 
 import os
-import time
 
 import netCDF4
 
+import numpy as np
 import xml.etree.ElementTree as ET
 
 
@@ -41,22 +41,32 @@ def find_metadata(filepath = os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml',
     return listp, listpnb, listpname
 
 
-def find_name_station(station, filepath=os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml'):
+def find_name_station(stations, filepath=os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml'):
     '''
     BC 17/02/20
-    find the string name of a station ID
+    find the string name of a station ID or list of IDS.
     '''
 
     tree = ET.parse(filepath)
     root = tree.getroot()
-    listp = []
-    for site in root[1].findall('Site'):
-        if str(station) in site.find('number').text:
-            ret = site.find('name').text.strip()
-    try:
+    ret = []
+    # usually, stations is a numpy array or an int32...
+    if np.issubdtype(stations, np.integer):
+        stations = [stations]
+    for station in stations:
+        for site in root[1].findall('Site'):
+            if str(station) in site.find('number').text:
+                name = site.find('name').text.strip()
+        try:
+            ret.append(name)
+            del name
+        except UnboundLocalError:
+            print('there is no station ', station, 'in the database ', filepath)
+
+    if len(ret) == 1:
+        return ret[0]
+    else:
         return ret
-    except UnboundLocalError:
-        print('there is no station ', station, 'in the database ', filepath)
 
 
 def slice_file_listpnb(fileIn, fileOut, listpnb):
