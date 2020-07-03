@@ -10,7 +10,7 @@ which will be used for the post-processing of data.
 import os
 import shutil
 
-import netCDF4
+import netCDF4  # @UnresolvedImport
 
 import numpy as np
 import pandas as pd

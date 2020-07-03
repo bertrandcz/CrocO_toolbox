@@ -8,8 +8,7 @@ from scores.ensemble import EnsembleScores
 
 import numpy as np
 
-
-def compute_CRPSS_ol_oper(runs, xps, selMassif, alwaysXclude):
+def compute_CRPSS_ol_oper(runs, xps, selMassif, alwaysXclude=[]):
     '''
     compute the CRPSS of each element of runs versus the openloop and the oper run
     return matrices of CRPSS with rows and cols sorted by not excluded/excluded and then by elevation
@@ -40,38 +39,45 @@ def compute_CRPSS_ol_oper(runs, xps, selMassif, alwaysXclude):
     list_enum.append('all')
 
     for ii, station in enumerate(list_enum):
-        run = runs[station]
 
-        mobs = [i for i, t in enumerate(run.obsTs['time'])
-                if (t.hour == 6 and ((t.year == year and t.month > 9) or (t.month < 7 and t.year == year + 1)))]
-        mensAn = [i for i, t in enumerate(run.ensProAn['time']) if (t.hour == 6 and (t.month > 9 or t.month < 7))]
-        mensOl = [i for i, t in enumerate(run.ensProOl['time']) if (t.hour == 6 and (t.month > 9 or t.month < 7))]
-        moper = [i for i, t in enumerate(run.oper['time']) if (t.hour == 6 and (t.month > 9 or t.month < 7))]
-        obs = np.ma.masked_invalid(run.obsTs['DEP'][mobs, :][:, classesId])
-        ensAn = run.ensProAn['DEP'][mensAn, :, :][:, classesId, :]
-        ensOl = run.ensProOl['DEP'][mensOl, :, :][:, classesId, :]
-        oper = run.oper['DEP'][moper, :][:, classesId]
-        CRPSAn = np.array([EnsembleScores(list(range(ensAn.shape[0])),
-                                          list(range(ensAn.shape[0])),
-                                          obs[:, cl],
-                                          ensAn[:, cl, :].T,
-                                          ).CRPS_decomp() for cl in range(len(classesId))])
-        CRPS_ol = np.array([EnsembleScores(list(range(ensOl.shape[0])),
-                                           list(range(ensOl.shape[0])),
-                                           obs[:, cl],
-                                           ensOl[:, cl, :].T,
-                                           ).CRPS_decomp() for cl in range(len(classesId))])
-        CRPS_oper = np.array([EnsembleScores(list(range(oper.shape[0])),
-                                             list(range(oper.shape[0])),
-                                             obs[:, cl],
-                                             oper[:, cl, :].T,
-                                             ).CRPS_decomp() for cl in range(len(classesId))])
-        CRPSS_oper[ii, :] = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 0] / CRPS_oper[i, 0] if CRPS_oper[i, 0] > 0. else np.nan
-                                                           for i in range(CRPSAn.shape[0])]))
-        ReliS_oper[ii, :] = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 1] / CRPS_oper[i, 1] if CRPS_oper[i, 0] > 0. else np.nan
-                                                           for i in range(CRPSAn.shape[0])]))
-        CRPSS_ol[ii, :] = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 0] / CRPS_ol[i, 0] if CRPS_ol[i, 0] > 0. else np.nan
-                                                         for i in range(CRPSAn.shape[0])]))
-        ReliS_ol[ii, :] = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 1] / CRPS_ol[i, 1] if CRPS_ol[i, 0] > 0. else np.nan
-                                                         for i in range(CRPSAn.shape[0])]))
+        run = runs[station]
+        CRPSS_oper[ii, :], ReliS_oper[ii, :], CRPSS_ol[ii, :], ReliS_ol[ii, :] = CRPSS_ol_oper(run, year, classesId)
+
     return CRPSS_ol, ReliS_ol, CRPSS_oper, ReliS_oper, classesId, classesId_AlX, classesId_noAlX
+
+
+def CRPSS_ol_oper(run, year, classesId):
+    mobs = [i for i, t in enumerate(run.obsTs['time'])
+            if (t.hour == 6 and ((t.year == year and t.month > 9) or (t.month < 7 and t.year == year + 1)))]
+    mensAn = [i for i, t in enumerate(run.ensProAn['time']) if (t.hour == 6 and (t.month > 9 or t.month < 7))]
+    mensOl = [i for i, t in enumerate(run.ensProOl['time']) if (t.hour == 6 and (t.month > 9 or t.month < 7))]
+    moper = [i for i, t in enumerate(run.oper['time']) if (t.hour == 6 and (t.month > 9 or t.month < 7))]
+    obs = np.ma.masked_invalid(run.obsTs['DEP'][mobs, :][:, classesId])
+    ensAn = run.ensProAn['DEP'][mensAn, :, :][:, classesId, :]
+    ensOl = run.ensProOl['DEP'][mensOl, :, :][:, classesId, :]
+    oper = run.oper['DEP'][moper, :][:, classesId]
+    CRPSAn = np.array([EnsembleScores(list(range(ensAn.shape[0])),
+                                      list(range(ensAn.shape[0])),
+                                      obs[:, cl],
+                                      ensAn[:, cl, :].T,
+                                      ).CRPS_decomp() for cl in range(len(classesId))])
+    CRPS_ol = np.array([EnsembleScores(list(range(ensOl.shape[0])),
+                                       list(range(ensOl.shape[0])),
+                                       obs[:, cl],
+                                       ensOl[:, cl, :].T,
+                                       ).CRPS_decomp() for cl in range(len(classesId))])
+    CRPS_oper = np.array([EnsembleScores(list(range(oper.shape[0])),
+                                         list(range(oper.shape[0])),
+                                         obs[:, cl],
+                                         oper[:, cl, :].T,
+                                         ).CRPS_decomp() for cl in range(len(classesId))])
+    CRPSS_oper = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 0] / CRPS_oper[i, 0] if CRPS_oper[i, 0] > 0. else np.nan
+                                                for i in range(CRPSAn.shape[0])]))
+    ReliS_oper = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 1] / CRPS_oper[i, 1] if CRPS_oper[i, 0] > 0. else np.nan
+                                                for i in range(CRPSAn.shape[0])]))
+    CRPSS_ol = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 0] / CRPS_ol[i, 0] if CRPS_ol[i, 0] > 0. else np.nan
+                                              for i in range(CRPSAn.shape[0])]))
+    ReliS_ol = np.ma.masked_invalid(np.array([1 - CRPSAn[i, 1] / CRPS_ol[i, 1] if CRPS_ol[i, 0] > 0. else np.nan
+                                              for i in range(CRPSAn.shape[0])]))
+
+    return CRPSS_ol, ReliS_ol, CRPSS_oper, ReliS_oper

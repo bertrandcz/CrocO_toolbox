@@ -23,7 +23,7 @@ from utils.dates import get_list_dates_files
 from tqdm import tqdm
 
 from CrocoPf import CrocO, CrocoPf
-from utilcrocO import area, check_namelist_soda
+from utilcrocO import area, check_namelist_soda, dump_conf
 
 
 class CrocoParallel(CrocO):
@@ -53,13 +53,7 @@ class CrocoParallel(CrocO):
         - options into conf file in conf dir
         - namelist copy into conf dir
         """
-        if not os.path.exists(self.xpiddir + '/conf/'):
-            os.makedirs(self.xpiddir + '/conf/')
-        conffile = vortex_conf_file(self.xpiddir + '/conf/s2m_' + self.options.vconf + '.ini')
-        conffile.new_class('DEFAULT')
-        for attr, value in self.options.__dict__.items():
-            conffile.write_field(attr, value)
-        conffile.close()
+        _ = dump_conf(self.xpiddir + '/conf/s2m_' + self.options.vconf + '.ini', self.options)
 
         # the namelist is roughly copied and receives
         # common necessary modifications (updateloc ?)
@@ -219,7 +213,7 @@ class OfflinePools(CrocO):
 
         # prepare escroc configurations
         # BC bugfix 03/06/20:
-        # self.mblist instead of self.options.members_id 
+        # self.mblist instead of self.options.members_id
         # (was running with the 40 first members of E1_notartes....)
         self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.options.members_id)
         p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates)))

@@ -22,6 +22,51 @@ from utilcrocO import ftpconnect, area
 from utilpp import read_alpha, read_part, read_mask, read_BG, load_pickle2
 
 
+def loadEnsPrepDate_parallel(largs):
+    """ 
+    BC 24/06/20 externalized this fucntion for python2 compatibility (if class method, throws this exception):
+    https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-multiprocessing-pool-map/7309686#7309686
+    """
+    pp = largs[0]
+    locEns  = largs[1]
+    dd = largs[2]
+    kind = largs[3]
+    isOl = largs[4]
+    fromArch = largs[5]
+    if kind == 'bg':
+        local = PrepEnsBg(pp.options, dd, fromArch=fromArch)
+    elif kind == 'an':
+        local = PrepEnsAn(pp.options, dd, fromArch=fromArch)
+    else:
+        local = PrepEnsOl(pp.options, dd, isOl=isOl, fromArch=fromArch)
+    if (kind == 'ol' and isOl is False):
+        pathPkl = pp.xpidoldir + '/crampon/' + pp.options.saverep + '/' +\
+            kind + '_' + dd + '.pkl'
+    else:
+        pathPkl = kind + '_' + dd + '.pkl'
+    pathpklbeauf = pathPkl + '.foo'
+    if not os.path.islink(pathPkl):
+        if os.path.exists(pathpklbeauf):
+            try:
+                os.symlink(pathpklbeauf, pathPkl)
+            except FileExistsError:
+                pass
+    if not os.path.exists(pathPkl):
+        print(' unsuccesfull loading', pathPkl, )
+        print(('loading ' + kind + ' ens for date : ', dd))
+        local.stackit()
+        with open(pathPkl, 'wb') as f:
+            print(('saaving ' + kind + ' to pickle !'))
+            pickle.dump(local.stack, f, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        local.stack = load_pickle2(pathPkl)
+        if not all(l in local.stack.keys() for l in pp.listvar):
+            raise Exception('Some of the ppvars you mentioned are not present in ', os.getcwd() + '/' + pathPkl,
+                            '\n listvars:', pp.listvar, '\npickle file keys:', local.stack.keys())
+        local.isstacked = True
+    locEns[dd] = local
+
+
 class CrocoPp(CrocO):
     '''
     class meant to post-process beaufix cycled assimilation runs (similar to deprecated SodaXP)
@@ -50,7 +95,7 @@ class CrocoPp(CrocO):
         os.chdir(self.crocOdir + '/' + self.options.saverep)
 
         # load the PGD (useful for pp)
-        if not os.path.exists('PGD.nc'):
+        if not os.path.exists('PGD.nc') and not os.path.islink('PGD.nc'):
             os.symlink(self.options.crocOpath + '/s2m/' + self.options.vconf + '/spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
         self.pgd = Pgd('PGD.nc')
 
@@ -177,53 +222,57 @@ class CrocoPp(CrocO):
             fromArch = False
         else:
             fromArch = True
-        # BC june 2020: manager is used to share the dict between nodes
-        manager = multiprocessing.Manager()
-        locEns = manager.dict()
-        p = multiprocessing.Pool(min(multiprocessing.cpu_count(), len(self.options.dates)))
-        p.map(self.loadEnsPrepDate_parallel, [[locEns, dd, kind, isOl, fromArch] for dd in self.options.dates])
-        p.close()
-        p.join()
-        return dict(locEns)
+        # on beaufix, cannot straightforwardly parallelize the reading of preps
+        if 'beaufix' in os.uname()[1]:
+            if kind == 'bg':
+                locEns = {dd: PrepEnsBg(self.options, dd, fromArch=fromArch) for dd in self.options.dates}
+            elif kind == 'an':
+                print('didodidodi', self.options.dates, self.datefin.strftime('%Y%m%d%H'), type(self.options.dates[0]), type(self.datefin.strftime('%Y%m%d%H')))
 
-    def loadEnsPrepDate_parallel(self, largs):
-        locEns  = largs[0]
-        dd = largs[1]
-        kind = largs[2]
-        isOl = largs[3]
-        fromArch = largs[4]
-        if kind == 'bg':
-            local = PrepEnsBg(self.options, dd, fromArch=fromArch)
-        elif kind == 'an':
-            local = PrepEnsAn(self.options, dd, fromArch=fromArch)
+                locEns = {dd: PrepEnsAn(self.options, dd, fromArch=fromArch) for dd in self.options.dates if dd != self.datefin.strftime('%Y%m%d%H')}
+            else:
+                locEns = {dd: PrepEnsOl(self.options, dd, isOl=isOl, fromArch=fromArch) for dd in self.options.dates}
+
+            for dd in locEns.keys():
+                if (kind == 'ol' and isOl is False):
+                    pathPkl = self.xpidoldir + '/crocO/' + self.options.saverep + '/' +\
+                        kind + '_' + dd + '.pkl'
+                else:
+                    pathPkl = kind + '_' + dd + '.pkl'
+                pathpklbeauf = pathPkl + '.foo'
+                if not os.path.islink(pathPkl):
+                    if os.path.exists(pathpklbeauf):
+                        try:
+                            os.symlink(pathpklbeauf, pathPkl)
+                        except FileExistsError:
+                            pass
+                if not os.path.exists(pathPkl):
+                    print(' unsuccesfull loading', pathPkl, )
+                    print(('loading ' + kind + ' ens for date : ', dd))
+                    locEns[dd].stackit()
+                    with open(pathPkl, 'wb') as f:
+                        print(('saaving ' + kind + ' to pickle !'))
+                        pickle.dump(locEns[dd].stack, f, protocol=pickle.HIGHEST_PROTOCOL)
+                else:
+                    locEns[dd].stack = load_pickle2(pathPkl)
+                    if not all(l in locEns[dd].stack.keys() for l in self.listvar):
+                        raise Exception('Some of the ppvars you mentioned are not present in ', pathPkl,
+                                        '\n listvars:', self.listvar, '\npickle file keys:', locEns[dd].stack.keys())
+                    locEns[dd].isstacked = True
+            return locEns
+
         else:
-            local = PrepEnsOl(self.options, dd, isOl=isOl, fromArch=fromArch)
-        if (kind == 'ol' and isOl is False):
-            pathPkl = self.xpidoldir + '/crampon/' + self.options.saverep + '/' +\
-                kind + '_' + dd + '.pkl'
-        else:
-            pathPkl = kind + '_' + dd + '.pkl'
-        pathpklbeauf = pathPkl + '.foo'
-        if not os.path.islink(pathPkl):
-            if os.path.exists(pathpklbeauf):
-                try:
-                    os.symlink(pathpklbeauf, pathPkl)
-                except FileExistsError:
-                    pass
-        if not os.path.exists(pathPkl):
-            print(' unsuccesfull loading', pathPkl, )
-            print(('loading ' + kind + ' ens for date : ', dd))
-            local.stackit()
-            with open(pathPkl, 'wb') as f:
-                print(('saaving ' + kind + ' to pickle !'))
-                pickle.dump(local.stack, f, protocol=pickle.HIGHEST_PROTOCOL)
-        else:
-            local.stack = load_pickle2(pathPkl)
-            if not all(l in local.stack.keys() for l in self.listvar):
-                raise Exception('Some of the ppvars you mentioned are not present in ', os.getcwd() + '/' + pathPkl,
-                                '\n listvars:', self.listvar, '\npickle file keys:', local.stack.keys())
-            local.isstacked = True
-        locEns[dd] = local
+            # BC june 2020: manager is used to share the dict between nodes
+            try:
+                manager = multiprocessing.Manager()
+                locEns = manager.dict()
+                p = multiprocessing.Pool(min(multiprocessing.cpu_count(), len(self.options.dates)))
+                p.map(loadEnsPrepDate_parallel, [[self, locEns, dd, kind, isOl, fromArch] for dd in self.options.dates])
+            except Exception as _:
+                p.close()
+            p.close()
+            p.join()
+            return dict(locEns)
 
     def loadEnsPro(self, kind, catPro = False, isOl = False):
         if kind == 'Cl':
@@ -338,12 +387,33 @@ class CrocoPp(CrocO):
                 self.obsReal = {dd: Real(self.pathReal, dd, self.options) for dd in self.options.dates}
                 for dd in self.options.dates:
                     self.obsReal[dd].load()
-                print('reading observation timeseries (pickle from csv file)')
                 pathObsTs = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor +\
-                    '/obs_{0}_{1}_2013010106_2018123106.pkl'.format(self.options.sensor, self.options.vconf)
+                    '/obs_{0}_{1}_{2}100106_{3}063006.pkl'.format(self.options.sensor,
+                                                                  self.options.vconf,
+                                                                  self.datedeb.strftime('%Y'),
+                                                                  int(self.datedeb.strftime('%Y')) + 1)
+                print('reading observation timeseries (pickle from csv file) in ')
+                print(pathObsTs)
                 if not os.path.exists(pathObsTs):
-                    os.symlink(self.options.crocOpath + '/s2m/' + self.options.vconf +
-                               '/obs/all/obs_all_{0}_2013010106_2018123106.pkl'.format(self.options.vconf), pathObsTs)
+                    if '_X' in self.options.sensor:
+                        sensorBase = self.options.sensor.split('X')[0][0:-1]
+                        os.symlink(self.options.crocOpath + '/s2m/' + self.options.vconf +
+                                   '/obs/{0}/obs_{0}_{1}_{2}100106_{3}063006.pkl'.format(sensorBase,
+                                                                                         self.options.vconf,
+                                                                                         self.datedeb.strftime('%Y'),
+                                                                                         int(self.datedeb.strftime('%Y')) + 1),
+                                   pathObsTs)
+                    else:
+                        # BC 30/06/20: some day replace with a link to a yearly file/
+                        try:
+                            os.symlink(self.options.crocOpath + '/s2m/' + self.options.vconf +
+                                       '/obs/{0}/obs_all_{0}_2013010106_2018123106.pkl'.format(self.options.vconf,
+                                                                                               self.datedeb.strftime('%Y'),
+                                                                                               int(self.datedeb.strftime('%Y')) + 1
+                                                                                               ),
+                                       pathObsTs)
+                        except FileExistsError:
+                            pass
                 self.obsTs = load_pickle2(pathObsTs)
 
     def readOper(self):

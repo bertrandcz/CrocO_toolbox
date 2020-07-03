@@ -8,7 +8,7 @@ Created on Thu Jan 16 15:07:26 2020
 
 import os
 
-import netCDF4
+import netCDF4  # @UnresolvedImport
 
 import numpy as np
 import xml.etree.ElementTree as ET
@@ -51,7 +51,7 @@ def find_name_station(stations, filepath=os.environ['SNOWTOOLS_CEN'] + '/DATA/ME
     root = tree.getroot()
     ret = []
     # usually, stations is a numpy array or an int32...
-    if np.issubdtype(stations, np.integer):
+    if np.issubdtype(stations, np.integer):  # @TODO: still a bug here for int...
         stations = [stations]
     for station in stations:
         for site in root[1].findall('Site'):

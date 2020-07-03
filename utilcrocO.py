@@ -1,3 +1,4 @@
+# !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''
 Created on 6 févr. 2019
@@ -7,7 +8,8 @@ Created on 6 févr. 2019
 utils suited for crocO interface only
 '''
 
-from bronx.datagrip.namelist import NamelistParser
+from argparse import Namespace
+import copy
 import datetime
 from ftplib import FTP
 from netrc import netrc
@@ -15,10 +17,14 @@ from optparse import Values
 import os
 import re
 import shutil
+import sys
 
-import netCDF4
+import six
 
+from bronx.datagrip.namelist import NamelistParser
+import netCDF4  # @UnresolvedImport
 import numpy as np
+from tasks.vortex_kitchen import vortex_conf_file
 
 
 def dictsAspect():
@@ -38,11 +44,11 @@ def parse_classes(options):
     classes_e = 'all' -> classes_e = ['600',...'3600']
     classes_a = 'all' -> classes_a = ['N','NW',...]
 
-    BC, June 2020: consider also classes_id 
+    BC, June 2020: consider also classes_id
     """
 
     # check for conf file (not necessarily defined in old conf files
-    for attr in ['classes_e', 'classes_a', 'classes_s']:
+    for attr in ['classes_e', 'classes_a', 'classes_s', 'classes_id']:
         if not hasattr(options, attr):
             options.__setattr__(attr, None)
     if options.classes_id is None:  # options.classes_id is exclusive with the others
@@ -71,7 +77,7 @@ def set_provars(options):
 def set_sensor(options):
     """
     BC, April 2020
-    if necessary, and if no sensorhas been provieded, create a sensor arg from the option args.
+    if necessary, and if no sensor has been provided, create a sensor arg from the option args.
     """
 
     try:
@@ -154,7 +160,7 @@ def dictvarsPro():
             'DEP': 'DSN_T_ISBA', 'SWE': 'WSN_T_ISBA'}
 
 
-class Opt(Values):
+class Opt(Namespace):
     """
     Opt is an object representing options of a command.
     This class is initialized with a dict.
@@ -428,6 +434,21 @@ def read_conf(pathconf, useVortex=True):
     return conf
 
 
+def dump_conf(pathConf, options):
+    """
+    dump an options object into a conf file.
+    """
+    dirname = os.path.dirname(pathConf)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    conffile = vortex_conf_file(pathConf, mode = 'w')
+    conffile.new_class('DEFAULT')
+    for attr, value in options.__dict__.items():
+        conffile.write_field(attr, value)
+    conffile.close()
+    return 0
+
+
 def dictErrors():
     """
     default observation error variances
@@ -502,6 +523,7 @@ def read_opts_in_namelist(options):
         options.neff_pf = N['NAM_ASSIM'].NEFF_PF
         options.xdloc_pf = N['NAM_ASSIM'].XDLOC_PF
         options.pf = N['NAM_ASSIM'].CPF_CROCUS
+        options.lloo_pf = N['NAM_ASSIM'].LLOO_PF
     except AttributeError:
         raise Exception('Some of the PF parameters are not defined in the namelist.')
 
@@ -550,7 +572,11 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     N['NAM_VAR'].NVAR = N['NAM_OBS'].NOBSTYPE
     N['NAM_VAR'].CVAR_M = sodavar
     N['NAM_VAR'].NNCV = N['NAM_OBS'].NNCO
-
+    if 'NAM_ISBA_SNOWn' in N:
+        if hasattr(N['NAM_ISBA_SNOWn'], 'CSNOWMETAMO'):
+            if N['NAM_ISBA_SNOWn'].CSNOWMETAMO == 'B92':
+                print("caution, CSNOWMETAMO ='B92' does not exist anymore. Replacing by C13")
+                N['NAM_ISBA_SNOWn'].CSNOWMETAMO = 'C13'
     # NAM_ASSIM
     if hasattr(N['NAM_ASSIM'], 'LSEMIDISTR_CROCUS') or hasattr(N['NAM_ASSIM'], 'LASSIM_CROCUS'):
         print('be careful, old-formatted namelist !', 'LSEMIDISTR_CROCUS' 'LASSIM_CROCUS -> CPF_CROCUS, LCROCO')
@@ -572,8 +598,13 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     N['NAM_ASSIM'].LCROCO = True
     N['NAM_ASSIM'].LASSIM = True
     N['NAM_ASSIM'].CASSIM_ISBA = 'PF   '
-    if options.xdloc_pf is not None:
-        N['NAM_ASSIM'].XDLOC_PF = options.xdloc_pf
+    if hasattr(options, 'xdloc_pf'):
+        if options.xdloc_pf is not None:
+            N['NAM_ASSIM'].XDLOC_PF = options.xdloc_pf
+    if hasattr(options, 'lloo_pf'):
+        N['NAM_ASSIM'].LLOO_PF = options.lloo_pf
+    else:
+        N['NAM_ASSIM'].LLOO_PF = False
     N['NAM_ASSIM'].NEFF_PF = options.neff
     N['NAM_ASSIM'].LEXTRAP_SEA = False
     N['NAM_ASSIM'].LEXTRAP_WATER = False
@@ -624,6 +655,7 @@ def get_leading_number(s):
 def split_list(options, opt, value, parser):
     """
     flexible splitting of comma separated reals: try to read it as int, if fails, as floats
+    for optparse (deprecated
     """
     if ',' in value:
         try:
@@ -636,6 +668,25 @@ def split_list(options, opt, value, parser):
             setattr(parser.values, options.dest, [int(value)])
         except ValueError:
             setattr(parser.values, options.dest, [float(value)])
+
+
+def split_list_argparse(value):
+    """
+    BC june 2020
+    flexible splitting of comma separated reals: try to read it as int, if fails, as floats
+    for argparse
+    """
+    if ',' in value:
+        try:
+            ret = [int(y) for y in value.split(',')]
+        except ValueError:
+            ret = [float(y) for y in value.split(',')]
+    else:
+        try:
+            ret = [int(value)]
+        except ValueError:
+            ret = [float(value)]
+    return ret
 
 
 def ftp_upload(localfile, remotefile, ftp):
@@ -657,3 +708,19 @@ def ftp_upload(localfile, remotefile, ftp):
         return
     fp.close()
     print("after upload " + localfile + " to " + remotefile)
+
+
+def merge_two_dicts(x, y):
+    """
+    source : https://stackoverflow.com/questions/38987/how-do-i-merge-two-dictionaries-in-a-single-expression-in-python"
+    """
+#     if sys.version_info >= (3, 5):
+#         z = {**x, **y}
+#     else:
+#         z = x.copy()   # start with x's keys and values
+#         z.update(y)    # modifies z with y's keys and values & returns None
+#     return z
+    for key, value in six.iteritems(y):
+        x[key] = value
+
+    return x

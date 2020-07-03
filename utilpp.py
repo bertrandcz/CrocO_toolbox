@@ -141,8 +141,8 @@ def load_pickle2(pathPkl):
     https://stackoverflow.com/questions/28218466/unpickling-a-python-2-object-with-python-3
     '''
     with open(pathPkl, 'rb') as f:
-        print(('loading from pickle ! ', pathPkl))
-        gg = pickle.load(f, encoding = 'latin1')
+        print('loading from pickle ! ', pathPkl)
+        gg = pickle.load(f, encoding = 'latin1')  # @TODO: fix python2 compatibility (encoding does not exist)
     return gg
 
 

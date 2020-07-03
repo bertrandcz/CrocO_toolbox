@@ -16,7 +16,7 @@ from utilcrocO import setlistvars_obs, setlistvars_var, setSubsetclasses,\
     dictvarsPrep
 from utils.prosimu import prosimu
 
-import netCDF4
+import netCDF4  # @UnresolvedImport
 import numpy as np
 
 # suppress divide warnings in readPrep
@@ -148,6 +148,8 @@ class Obs(SemiDistributed):
         pass
 
     def create_new(self, Raw, newFile, options, fromObsArch = False, maskit = False):
+        if os.path.exists(newFile):
+            os.remove(newFile)
         New = netCDF4.Dataset(newFile, 'w')
         if maskit:
             _, mask = self.subset_classes(self.pgd, options)
@@ -162,7 +164,6 @@ class Obs(SemiDistributed):
         in the SODA copy of the observation file, remove classes where the assim shouldn't be performed
         BC june 2020 return None if no class is masked
         """
-        print('options.classesId', options.classes_id)
 
         if options.classes_id is None:  # user can specify a list of classes instead of a selection by Elev,A,S
             subset, mask = setSubsetclasses(pgd, options.classes_e, options.classes_a, options.classes_s)

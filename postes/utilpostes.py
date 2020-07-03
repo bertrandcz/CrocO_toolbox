@@ -11,7 +11,7 @@ on beaufix, generate  conf file with the appropriate assimilation dates (for ex.
 import datetime
 import os
 
-import netCDF4
+import netCDF4  # @UnresolvedImport
 
 import numpy as np
 import pandas as pd
