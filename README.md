@@ -68,7 +68,7 @@ First of all, thouroughly read the documentation of CrocO within the snowtools m
 - Apply stochastic perturbations on the forcing to generate an *ensemble of forcings* (snowtools/tools/makeForcingEnsemble.py or snowtools_git/tools/job_gener_pert_forcings.py)
 - Prepare the assimilation sequence : create a configuration file with the assimilation dates and the ESCROC member ids. choose your PF configuration (to be directly written in the namelist).
 - launch the assimilation sequence (or an openloop) on Meteo-France HPC system (inspiring on pproc_scripts/multilaunch.py) or locally (inspiring on examples/launch_parallel_local.py).
-- the [experiment/archive map](https://github.com/bertrandcz/CrocO_toolbox/doc/xp.png) gives you an overview of the experiment and archive file structure. 
+- the [experiment/archive map](https://github.com/bertrandcz/CrocO_toolbox/tree/master/doc/xp.png) gives you an overview of the experiment and archive file structure. 
 - post process the archive into pickle files (using CrocoPp.py, inspiring on examples/launch_parallel_local.py or pproc_scripts/multipp.py)
 - once an experiment has succeeded, you can also play around with the Particle Filter, applying it on the background PREPS of specific dates (using CrocoPf.py, inspiring on examples/local_pf_run.py).
 - enjoy :)
