@@ -329,7 +329,10 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             conf.openloop = 'off'
         # in case the pf arg has not been provided, or in case of local test of the pf,
         # do not overwrite conf.openloop
-        if options.pf is None or options.todo == 'pf':
+        if options.todo == 'parallelpp':
+            options.openloop = conf.openloop
+            options = read_opts_in_namelist(options)
+        elif options.pf is None or options.todo == 'pf':
             options.openloop = conf.openloop
         elif options.pf == 'ol':
             options.openloop = 'on'
@@ -353,7 +356,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             else:
                 try:
                     options = set_sensor(options)
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError) as _:
                     pass
         else:
             if hasattr(conf, 'sensor'):

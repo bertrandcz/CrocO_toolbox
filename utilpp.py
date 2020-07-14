@@ -35,7 +35,6 @@ def read_part(options):
 
 
 def read_mask(options):
-    npts = 187
     imask = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
@@ -45,10 +44,10 @@ def read_mask(options):
         else:  # =='parallelpp'
             try:
                 filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt.foo'
-                f = open(filename, 'rb')
+                f = open(filename, 'r')
             except FileNotFoundError:
                 filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt'
-                f = open(filename, 'rb')
+                f = open(filename, 'r')
 
         imask[dd] = dict()
         data = np.array([[int(v) - 1 for v in line.split(',')[0:-1]] for line in f])
@@ -67,14 +66,14 @@ def read_BG(options):
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
             filename = dd + '/BG_CORR'
-            f = open(filename, 'r')
+            f = open(filename, 'rb')
         else:  # =='parallelpp'
             try:
                 filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt.foo'
-                f = open(filename, 'rb')
+                f = open(filename, 'r')
             except FileNotFoundError:
                 filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt'
-                f = open(filename, 'rb')
+                f = open(filename, 'r')
 
         bg[dd] = dict()
         data = np.array([[float(v) for v in line.split(',')[0:-1]] for line in f])
@@ -184,7 +183,7 @@ def old_read_truth(run, var, baseline = False):
 
 def RMSE(ens, truth, aggrTime = False, aggrDomain = True):
     """
-    (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble median over a domain.
+    (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble mean over a domain.
     (aggrtime = True, aggrDomain = False): domain variant, time averaged RMSE
 
     IN: ens (ndate, npts, nmembers)
@@ -193,14 +192,14 @@ def RMSE(ens, truth, aggrTime = False, aggrDomain = True):
     """
     if aggrDomain:
         if not aggrTime:
-            return np.sqrt(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 1))
+            return np.ma.sqrt(np.ma.mean(np.square(np.ma.mean(ens, axis = 2) - truth), axis = 1))
         else:
-            return np.sqrt(np.mean(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 1)))
+            return np.ma.sqrt(np.ma.mean(np.ma.mean(np.square(np.ma.mean(ens, axis = 2) - truth), axis = 1)))
     else:
         if not aggrTime:
-            return np.sqrt(np.square(np.mean(ens, axis = 2) - truth))
+            return np.ma.sqrt(np.square(np.ma.mean(ens, axis = 2) - truth))
         else:
-            return np.sqrt(np.mean(np.square(np.mean(ens, axis = 2) - truth), axis = 0))
+            return np.ma.sqrt(np.ma.mean(np.square(np.ma.mean(ens, axis = 2) - truth), axis = 0))
 
 
 def spread(ens, aggrTime = False, aggrDomain = True):
@@ -211,22 +210,43 @@ def spread(ens, aggrTime = False, aggrDomain = True):
     """
     if aggrDomain:
         if not aggrTime:
-            return np.sqrt(np.mean(np.array(
-                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
-                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
+            return np.ma.sqrt(np.ma.mean(np.ma.array(
+                [np.ma.mean((m - np.ma.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.ma.mean(ens, axis = 2).T)]
             ), axis = 0))
         else:
-            return np.sqrt(np.mean(np.mean(np.array(
-                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
-                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
+            return np.ma.sqrt(np.ma.mean(np.ma.mean(np.ma.array(
+                [np.ma.mean((m - np.ma.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.ma.mean(ens, axis = 2).T)]
             ), axis = 0)))
     else:
         if not aggrTime:
-            return np.sqrt(np.array(
-                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
-                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)]
+            return np.ma.sqrt(np.ma.array(
+                [np.ma.mean((m - np.ma.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.ma.mean(ens, axis = 2).T)]
             )).T
         else:
-            return np.sqrt(np.array(np.mean(
-                [np.mean((m - np.expand_dims(meanPt, axis = 1))**2, axis = 1)
-                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.mean(ens, axis = 2).T)], axis=1))).T
+            return np.ma.sqrt(np.ma.array(np.ma.mean(
+                [np.ma.mean((m - np.ma.expand_dims(meanPt, axis = 1))**2, axis = 1)
+                 for (m, meanPt) in zip(np.rollaxis(ens, 1), np.ma.mean(ens, axis = 2).T)], axis=1))).T
+
+
+def bias(ens, truth, aggrTime = False, aggrDomain = True):
+    """
+    (aggrtime = False, aggrDomain = False): time-variant bias of an ensemble mean over a domain.
+    (aggrtime = True, aggrDomain = False): domain variant, time averaged RMSE
+
+    IN: ens (ndate, npts, nmembers)
+        truth    (ndate, npts)
+    OUT: RMSE(ndate)
+    """
+    if aggrDomain:
+        if not aggrTime:
+            return np.ma.mean(np.ma.mean(ens, axis = 2) - truth, axis = 1)
+        else:
+            return np.ma.mean(np.ma.mean(np.ma.mean(ens, axis = 2) - truth, axis = 1))
+    else:
+        if not aggrTime:
+            return np.ma.mean(ens, axis = 2) - truth
+        else:
+            return np.ma.mean(np.ma.mean(ens, axis = 2) - truth, axis = 0)

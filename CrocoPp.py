@@ -179,9 +179,10 @@ class CrocoPp(CrocO):
         if not self.isOl:
             self.alpha = read_alpha(self.options)
             self.part = read_part(self.options)
-            if self.options.pf == 'klocal':
+            if self.options.pf in ['rlocal', 'klocal']:
                 self.mask = read_mask(self.options)
-                self.BG = read_BG(self.options)
+                if self.options.pf == 'klocal':
+                    self.BG = read_BG(self.options)
 
     def readEnsPro(self, catPro = False, readOl = False, readClim = False):
         if not self.isOl:

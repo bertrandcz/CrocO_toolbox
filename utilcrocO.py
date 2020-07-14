@@ -507,25 +507,27 @@ def read_opts_in_namelist(options):
     read pf parameters in namelist
     """
     n = NamelistParser()
-    if hasattr(options, 'kind'):
-        if options.todo != 'pfpp':
-            try:
-                N = n.parse(options.xpiddir + 'conf/namelist.surfex.foo')
-                print(' read the PF params in namelist:',
-                      options.xpiddir + 'conf/namelist.surfex.foo')
-            except FileNotFoundError:
-                N = n.parse(options.xpiddir + '/conf/OPTIONS.nam')
-                print(' read the PF params in namelist:', options.xpiddir + '/conf/OPTIONS.nam')
+
+    if options.todo != 'pfpp':
+        try:
+            N = n.parse(options.xpiddir + 'conf/namelist.surfex.foo')
+            print(' read the PF params in namelist:',
+                  options.xpiddir + 'conf/namelist.surfex.foo')
+        except FileNotFoundError:
+            N = n.parse(options.xpiddir + '/conf/OPTIONS.nam')
+            print(' read the PF params in namelist:', options.xpiddir + '/conf/OPTIONS.nam')
     else:
         N = n.parse(options.dates[0] + '/OPTIONS.nam')
         print(' read the PF params in namelist:', options.dates[0] + '/OPTIONS.nam')
     try:
         options.neff_pf = N['NAM_ASSIM'].NEFF_PF
         options.xdloc_pf = N['NAM_ASSIM'].XDLOC_PF
-        options.pf = N['NAM_ASSIM'].CPF_CROCUS
+        options.pf = N['NAM_ASSIM'].CPF_CROCUS.lower()
         options.lloo_pf = N['NAM_ASSIM'].LLOO_PF
     except AttributeError:
         raise Exception('Some of the PF parameters are not defined in the namelist.')
+
+    return options
 
 
 def check_namelist_soda(options, pathIn= None, pathOut = None):

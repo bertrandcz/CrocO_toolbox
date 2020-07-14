@@ -41,7 +41,7 @@ class MapPostes(Pie):
                 # @TODO: something smart.
                 pass
 
-    def plot(self, tag_postes = False, tag_massifs = True, plotCircle = True):
+    def plot(self, tag_postes = False, tag_massifs = True, plotCircle = True, vmin = -1, vmax = 1, cmap = 'RdBu'):
         fig, ax = plt.subplots()
 
         for mnum, massif in self.massifs.items():
@@ -49,7 +49,7 @@ class MapPostes(Pie):
             if tag_massifs:
                 ax.annotate(massif.name, massif.center)
         ax.scatter(self.sdObj.pgd.lon, self.sdObj.pgd.lat, c = self.sdObj.data['DEP'],
-                   cmap = 'RdBu', vmin = -1, vmax = 1, zorder = 100)
+                   cmap = cmap, vmin = vmin, vmax = vmax, zorder = 100)
         if tag_postes:
             for ipt in range(self.sdObj.pgd.npts):
                 ax.annotate(str(self.sdObj.pgd.station[ipt]), (self.sdObj.pgd.lon[ipt], self.sdObj.pgd.lat[ipt]),)
