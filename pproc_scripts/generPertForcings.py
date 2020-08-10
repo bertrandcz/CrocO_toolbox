@@ -21,7 +21,7 @@ for year in [2013, 2014, 2015, 2016]:
     forcName = refPath + 'FORCING_{0}080106_{1}080106.nc'.format(year, year + 1)
     print(sys.argv)
     paramPath = sys.argv[1] if len(sys.argv) > 1 else os.environ['SNOWTOOLS_CEN'] + '/tools/param.txt'
-    nmembers = 160
+    nmembers = 40
     brutalImp = '--brutalImp'
     outDir = rootPath + 'forcing_{0}{1}B_31D_11_t1500_160/'.format(year, year + 1)
     if not os.path.exists(outDir):
@@ -35,5 +35,5 @@ for year in [2013, 2014, 2015, 2016]:
     # visualize
     if not os.path.exists(outDir + "viz"):
         os.mkdir(outDir + 'viz')
-    cmd2 = os.environ['SNOWTOOLS_CEN'] + 'tools/VizForEnsemble.py -r ' + outDir + ' -o ' + outDir + 'viz'
+    cmd2 = os.environ['SNOWTOOLS_CEN'] + '/tools/VizForEnsemble.py -r ' + outDir + ' -o ' + outDir + 'viz'
     os.system(cmd2)

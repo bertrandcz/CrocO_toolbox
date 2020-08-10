@@ -42,7 +42,6 @@ if __name__ == '__main__':
         '--vars', assimvars,
         '--escroc', 'E1notartes',
         '--xpid', 'testOl',
-        '--xpidobs', '12',
         '--todo', 'parallel',
         '--spinup', os.environ['VORTEXPATH'] + '/s2m/' + vconf + '/spinup/',
         '--arch', archtest,

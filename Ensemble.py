@@ -73,27 +73,27 @@ class PrepEns(Ensemble):
 
 class PrepEnsOl(PrepEns):
 
-    def __init__(self, options, date, directFromXp = True, isOl = False):
+    def __init__(self, options, date, fromArch = True, isOl = False):
         PrepEns.__init__(self, options, date)
         for mb in range(1, self.nmembers + 1):
-            self.ens[mb] = PrepOl(date, mb, options, directFromXp = directFromXp, isOl = isOl)
+            self.ens[mb] = PrepOl(date, mb, options, fromArch = fromArch, isOl = isOl)
 
 
 class PrepEnsBg(PrepEns):
 
-    def __init__(self, options, date, directFromXp = True):
+    def __init__(self, options, date, fromArch = True):
         PrepEns.__init__(self, options, date)
 
         for mb in range(1, self.nmembers + 1):
-            self.ens[mb] = PrepBg(date, mb, options, directFromXp = directFromXp)
+            self.ens[mb] = PrepBg(date, mb, options, fromArch = fromArch)
 
 
 class PrepEnsAn(PrepEns):
 
-    def __init__(self, options, date, directFromXp = True):
+    def __init__(self, options, date, fromArch = True):
         PrepEns.__init__(self, options, date)
         for mb in range(1, self.nmembers + 1):
-            self.ens[mb] = PrepAn(date, mb, options, directFromXp = directFromXp)
+            self.ens[mb] = PrepAn(date, mb, options, fromArch = fromArch)
 
 
 class PrepEnsAbs(PrepEns):

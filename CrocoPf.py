@@ -28,7 +28,7 @@ class CrocO(object):
         self.xpiddir = options.xpiddir
 
         if not os.path.exists(self.xpiddir):
-            if self.options.todo == 'parallel':
+            if self.options.todo == 'parallel'or (self.options.todo == 'generobs' and self.options.synth is None):
                 os.mkdir(self.xpiddir)
             else:
                 raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
@@ -46,12 +46,19 @@ class CrocO(object):
 
     def prepare_namelist(self):
         """
-        Prepare and check the namelist (LWRITE_TOPO must be false for SODA)
+        copy the namelist to the local dir
         """
-        if not os.path.exists('OPTIONS.nam'):
+        if os.path.exists('OPTIONS_base.nam'):
+            os.remove('OPTIONS_base.nam')
+        if self.options.namelist_is_default is True:
             nampathnormal = self.xpiddir + 'conf/OPTIONS_base.nam'
-            namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
-            shutil.copyfile(namelist, 'OPTIONS_base.nam')
+        elif os.path.exists(self.options.namelist):
+            nampathnormal = self.options.namelist
+        else:
+            print('the prescribed namelist ' + self.options.namelist + ' does not exist')
+
+        namelist = nampathnormal if os.path.exists(nampathnormal) else self.xpiddir + 'conf/namelist.surfex.foo'
+        shutil.copyfile(namelist, 'OPTIONS_base.nam')
 
     def prepare_obs(self, date):
         """
@@ -64,8 +71,8 @@ class CrocO(object):
             self.obs.prepare(archive_synth = self.options.archive_synth)
 
         else:
-            # real obs are obtained in xpidobs
-            self.obs = Real(self.options.xpidobsdir, date, self.options)
+            # either we are dealing with real obs or we are masking it.
+            self.obs = Real(self.options.sensordir, date, self.options)
             self.obs.prepare(archive_synth = self.options.archive_synth, no_need_masking = self.options.no_need_masking)
 
 
@@ -98,14 +105,23 @@ class CrocoPf(CrocO):
         os.chdir(self.crocOdir + '/' + saverep)
         for dd in self.options.dates:
             if self.options.todo == 'parallel':
-                path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
+                if self.options.pf != 'ol':
+                    path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
+                else:  # no need to create workSODA in openloop case
+                    path = self.crocOdir + '/' + saverep + '/' + dd + '/'
             else:
                 path = self.crocOdir + '/' + saverep + '/' + dd
             if dd in self.options.dates:
                 if os.path.exists(path):
-                    shutil.rmtree(path)
-                os.makedirs(path)
-                self.prepare_sodaenv(path, dd)
+                    # bc slight change for local tests where it is painful to have the rep deleted each time. (pwd error)
+                    for dirpath, _, filenames in os.walk(path):
+                        # Remove regular files, ignore directories
+                        for filename in filenames:
+                            os.remove(os.path.join(dirpath, filename))
+                else:
+                    os.makedirs(path)
+                if self.options.pf != 'ol':
+                    self.prepare_sodaenv(path, dd)
             else:
                 print(('prescribed date ' + dd + 'does not exist in the experiment, remove it.'))
                 self.options.dates.remove(dd)
@@ -191,7 +207,7 @@ class CrocoPf(CrocO):
                 if plot:
                     plt.figure()
                 self.pf = ParticleFilter(self.xpiddir, self.options, dd)
-                _, resample = self.pf.localize(k=self.options.nloc_pf, errobs_factor=self.options.fact, plot = plot)
+                _, resample = self.pf.localize(k=self.options.pgd.npts, errobs_factor=self.options.fact, plot = plot)
                 _, gresample = self.pf.globalize(errobs_factor=self.options.fact, plot = plot)
                 print(('gres', gresample))
                 self.pf.pag = self.pf.analyze(gresample)
@@ -207,13 +223,15 @@ class CrocoPf(CrocO):
         """
         os.chdir(self.xpiddir + date + '/workSODA')
         self.prepare_preps(date)
-        print('launching SODA on ', date)
+        # print('launching SODA on ', date)
         with open('soda.out', 'w') as f:
             p = subprocess.call('./soda.exe', stdout=f)
+            if p != 0:
+                raise RuntimeError('SODA crashed, check ', os.getcwd() + f)
         os.chdir('..')
 
 
-class CrocOObs(CrocO):
+class CrocoObs(CrocO):
 
     def __init__(self, options):
         CrocO.__init__(self, options)
@@ -227,11 +245,10 @@ class CrocOObs(CrocO):
             os.mkdir(self.options.saverep)
         os.chdir(self.options.saverep)
         for dd in self.options.dates:
-            if dd in self.options.dates:
-                if os.path.exists(dd):
-                    # pass
-                    shutil.rmtree(dd)
-                os.mkdir(dd)
-                os.chdir(dd)
-                self.prepare_obs(dd)
-                os.chdir('..')
+            if os.path.exists(dd):
+                # pass
+                shutil.rmtree(dd)
+            os.mkdir(dd)
+            os.chdir(dd)
+            self.prepare_obs(dd)
+            os.chdir('..')

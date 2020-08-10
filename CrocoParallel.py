@@ -7,8 +7,6 @@ Created on 26 mars 2020
 The aim of CrocoParallel class is to provide an alternative to vortex to perform CROCO parallalized runs.
 Many of its features are similar to snowtools_git/tasks/crocO* files
 '''
-from CrocoPf import CrocO, CrocoPf
-from bronx.datagrip.namelist import NamelistParser
 import datetime
 import glob
 import multiprocessing
@@ -18,10 +16,14 @@ import subprocess
 from tasks.vortex_kitchen import vortex_conf_file
 import time
 from tools.change_prep import prep_tomodify
-from tools.update_namelist import update_surfex_namelist_object
-from utilcrocO import area, check_namelist_soda, convertdate
+from tools.update_namelist import update_surfex_namelist_file
 from utils.ESCROCsubensembles import ESCROC_subensembles
 from utils.dates import get_list_dates_files
+
+from tqdm import tqdm
+
+from CrocoPf import CrocO, CrocoPf
+from utilcrocO import area, check_namelist_soda, dump_conf
 
 
 class CrocoParallel(CrocO):
@@ -51,16 +53,26 @@ class CrocoParallel(CrocO):
         - options into conf file in conf dir
         - namelist copy into conf dir
         """
-        if not os.path.exists(self.xpiddir + '/conf/'):
-            os.makedirs(self.xpiddir + '/conf/')
-        conffile = vortex_conf_file(self.xpiddir + '/conf/conf.ini')
-        conffile.new_class('DEFAULT')
-        for attr, value in self.options.__dict__.items():
-            conffile.write_field(attr, value)
-        conffile.close()
+        _ = dump_conf(self.xpiddir + '/conf/s2m_' + self.options.vconf + '.ini', self.options)
 
-        # the namelist is roughly copied and receives a check.
+        # the namelist is roughly copied and receives
+        # common necessary modifications (updateloc ?)
+        # a check for SODA
         shutil.copyfile(self.options.namelist, self.xpiddir + '/conf/OPTIONS_base.nam')
+        cwd = os.getcwd()
+        os.chdir(self.xpiddir + '/conf/')
+        update_surfex_namelist_file(
+            datetime.datetime.strptime(self.options.datedeb, '%Y%m%d%H'),
+            dateend = datetime.datetime.strptime(self.options.datefin, '%Y%m%d%H'),
+            namelistfile="OPTIONS_base.nam",
+            # the two following arguments enable to save lot of setup time
+            # by assuming that the location has been previously set (e.g. by the spinup experiment)
+            # and that the simulation ends before the forcing lat time step.
+            updateloc = False,
+            no_caution = True,
+            cselect = self.options.provars
+        )
+        os.chdir(cwd)
         check_namelist_soda(self.options, self.xpiddir + '/conf/OPTIONS_base.nam', self.xpiddir + '/conf/OPTIONS_base.nam')
 
     def get_spinup(self):
@@ -85,13 +97,22 @@ class CrocoParallel(CrocO):
         # however, the links to prep must be done just before the soda run itself
         # hence, they are encapsulated inside run_parallel() class method
         self.sodas = CrocoPf(self.options)  # first because prepare the directories.
+        self.soda_time = time.time() - self.start_time
         self.escrocs = OfflinePools(self.options)
+        self.escroc_time = time.time() - self.start_time - self.soda_time
+        self.setup_time = time.time() - self.start_time
+        print('setup duration:', self.setup_time)
+        print('|         soda:', self.soda_time)
+        print('|       escroc:', self.escroc_time)
 
     def run(self, cleanup=False):
         '''
         run
         '''
-        for dd in self.options.assimdates:
+        # progress_bar
+        pbar = tqdm(self.options.assimdates)
+        for dd in pbar:
+            pbar.set_description('Propagating until: ' + dd)
             #  - spawn offline
             self.escrocs.run(dd)
 
@@ -156,9 +177,10 @@ class CrocoParallel(CrocO):
                 if os.path.exists('/'.join([self.xpiddir, date, 'workSODA']) + '/BG_CORR'):
                     shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/BG_CORR', 'workSODA/BG_CORR_' + date + '.txt')
                     shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/IMASK', 'workSODA/IMASK_' + date + '.txt')
-        if os.path.exists('conf/'):
-            shutil.rmtree('conf/')
-        shutil.copytree(self.xpiddir + 'conf/', 'conf/')
+        if self.options.arch != self.xpiddir:
+            if os.path.exists('conf/'):
+                shutil.rmtree('conf/')
+            shutil.copytree(self.xpiddir + 'conf/', 'conf/')
         # @TODO: also archive the observations.
 
         elapsed_time = time.time() - start_time
@@ -167,8 +189,7 @@ class CrocoParallel(CrocO):
     def cleanup(self):
         os.chdir(self.xpiddir)
         for dd in self.options.stopdates:
-            for mbdir in self.options.nmembers:
-                shutil.rmtree(dd + ' /' + mbdir)
+            shutil.rmtree(dd)
 
 
 class OfflinePools(CrocO):
@@ -191,14 +212,15 @@ class OfflinePools(CrocO):
     def setup(self):
 
         # prepare escroc configurations
-        self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.mblist)
-
-        for idate, date in enumerate(self.options.stopdates):
-            for (mb, mbdir) in zip(self.mblist, self.mbdirs):
-                self.prepare_offline_env(date, idate, mbdir, mb)
-                # prepare the pgd and prep files.
-                # in Local parallel sequence, must be done only once the corresponding SODA run has produced the files
-                self.prepare_prep(date, self.options.stopdates[idate - 1], mb)
+        # BC bugfix 03/06/20:
+        # self.mblist instead of self.options.members_id
+        # (was running with the 40 first members of E1_notartes....)
+        self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.options.members_id)
+        p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates)))
+        p.map(self.mb_prepare, [[date, idate, mbdir, mb]for idate, date in enumerate(self.options.stopdates)
+                                for (mb, mbdir) in zip(self.mblist, self.mbdirs)])
+        p.close()
+        p.join()
         os.chdir(self.xpiddir)
 
     def prepare_offline_env(self, date, idate, mbdir, mb):
@@ -243,23 +265,20 @@ class OfflinePools(CrocO):
         # BC copied from vortex.cen.algo.ensemble.py
         physical_options = self.escroc_confs.physical_options[mb - 1]  # to check : I think mb starts at 1
         snow_parameters = self.escroc_confs.snow_parameters[mb - 1]
-
-        n = NamelistParser()
-        namelist_base = n.parse("OPTIONS_base.nam")
         # SOOOOO SLOW....
-        update_surfex_namelist_object(
-            namelist_base,
-            datebegin       = datetime.datetime.strptime(
+        update_surfex_namelist_file(
+            datetime.datetime.strptime(
                 self.options.stopdates[idate - 1] if idate - 1 > 0 else self.options.datedeb, '%Y%m%d%H'),
             dateend         = datetime.datetime.strptime(date, '%Y%m%d%H'),
-            updateloc       = True,  # BC 27/03/20 not sure about that.
             physicaloptions = physical_options,
-            snowparameters  = snow_parameters
+            snowparameters  = snow_parameters,
+            namelistfile="OPTIONS_base.nam",
+            updateloc = False,
+            no_caution = True,
         )
-        namSURFEX = open('OPTIONS.nam', 'w')
-        namSURFEX.write(namelist_base.dumps())
-        namSURFEX.close()
-        check_namelist_soda(self.options, 'OPTIONS.nam')
+        shutil.copyfile("OPTIONS_base.nam", "OPTIONS.nam")
+        # check is useless (done uin the mother namelist)
+        # check_namelist_soda(self.options)
 
     def prepare_prep(self, date, dateprev, mb):
         '''
@@ -300,17 +319,27 @@ class OfflinePools(CrocO):
                     'PREP.nc')
 
     def run(self, date):
-        print('launching escroc until ', date)
+        # print('launching escroc until ', date)
         p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers))
         p.map(self.mb_run, [['/'.join([self.xpiddir, date, mbdir]), mbdir] for mbdir in self.mbdirs])
         p.close()
         p.join()
-        print('escroc step is done.')
+        # print('escroc step is done.')
+
+    def mb_prepare(self, largs):
+        "'' parallelized preparation since it takes sooo much time to edit namelists..."""
+        date = largs[0]
+        idate = largs[1]
+        mbdir = largs[2]
+        mb = largs[3]
+        self.prepare_offline_env(date, idate, mbdir, mb)
+        # prepare the pgd and prep files.
+        # in Local parallel sequence, must be done only once the corresponding SODA run has produced the files
+        self.prepare_prep(date, self.options.stopdates[idate - 1], mb)
 
     def mb_run(self, largs):
         path = largs[0]
         mbdir = largs[1]
         os.chdir(path)
-        print(mbdir, ' launched')
         with open('offline.out', 'w') as f:
             subprocess.call('./offline.exe', stdout=f)
