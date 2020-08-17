@@ -394,6 +394,7 @@ def conf2obj(conf):
     return ConfObj1L(**dict1)
 
 
+"""
 def read_conf(pathconf, useVortex=True):
     '''
     B. Cluzet, april 2020
@@ -404,7 +405,7 @@ def read_conf(pathconf, useVortex=True):
         if os.path.exists(pathconf[0:-4] + '.foo'):
             shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
         else:
-            raise FileNotFoundError('no conf file at this path :', pathconf)
+            raise IOError('no conf file at this path :', pathconf)
 
     def open_conf_no_vtx(pathconf):
         try:
@@ -432,6 +433,7 @@ def read_conf(pathconf, useVortex=True):
     else:
         conf = open_conf_no_vtx(pathconf)
     return conf
+"""
 
 
 def dump_conf(pathConf, options):
@@ -513,7 +515,7 @@ def read_opts_in_namelist(options):
             N = n.parse(options.xpiddir + 'conf/namelist.surfex.foo')
             print(' read the PF params in namelist:',
                   options.xpiddir + 'conf/namelist.surfex.foo')
-        except FileNotFoundError:
+        except IOError:
             N = n.parse(options.xpiddir + '/conf/OPTIONS.nam')
             print(' read the PF params in namelist:', options.xpiddir + '/conf/OPTIONS.nam')
     else:

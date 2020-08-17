@@ -25,7 +25,7 @@ def read_part(options):
             try:
                 filename = options.xpiddir + '/workSODA/PART_' + dd + '.txt.foo'
                 f = open(filename, 'rb')
-            except FileNotFoundError:
+            except IOError:
                 filename = options.xpiddir + '/workSODA/PART_' + dd + '.txt'
                 f = open(filename, 'rb')
         gg3[dd] = np.genfromtxt(f,
@@ -45,7 +45,7 @@ def read_mask(options):
             try:
                 filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt.foo'
                 f = open(filename, 'r')
-            except FileNotFoundError:
+            except IOError:
                 filename = options.xpiddir + '/workSODA/IMASK_' + dd + '.txt'
                 f = open(filename, 'r')
 
@@ -71,7 +71,7 @@ def read_BG(options):
             try:
                 filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt.foo'
                 f = open(filename, 'r')
-            except FileNotFoundError:
+            except IOError:
                 filename = options.xpiddir + '/workSODA/BG_CORR_' + dd + '.txt'
                 f = open(filename, 'r')
 
@@ -93,7 +93,7 @@ def read_alpha(options):
             try:
                 filename = options.xpiddir + '/workSODA/ALPHA_' + dd + '.txt.foo'
                 f = open(filename, 'r')
-            except FileNotFoundError:
+            except IOError:
                 filename = options.xpiddir + '/workSODA/ALPHA_' + dd + '.txt'
                 f = open(filename, 'r')
         for line in f:

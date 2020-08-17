@@ -21,9 +21,9 @@ import time
 from CrocoPf import CrocoPf, CrocoObs
 from CrocoPp import CrocoPp
 import numpy as np
-from utilcrocO import read_conf, Opt, ImmutableOpt, Pgd, area, parse_classes,\
+from utilcrocO import Opt, ImmutableOpt, Pgd, area, parse_classes,\
     read_opts_in_namelist, set_sensor, set_provars, merge_two_dicts
-
+from tools import read_conf
 
 # from optparse import OptionParser, Values
 usage = 'crocO --opts'
@@ -246,7 +246,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
         try:
             options.pathPgd = '/'.join([os.environ['CROCOPATH'], options.vapp, options.vconf, 'spinup/pgd/PGD_']) + area(options.vconf) + '.nc'
             options.pgd = Pgd(options.pathPgd)
-        except FileNotFoundError:
+        except IOError:
             raise Exception('I could not find the PGD in the spinup dir.',
                             'help me with pathPgd=<path to conf file>')
     else:
@@ -269,7 +269,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
                 confPath = options.xpiddir + '/conf/' + options.vapp + '_' + options.vconf + '.ini'
                 print('opening conf file : ', confPath)
                 conf = read_conf(confPath, useVortex = useVortex)
-            except FileNotFoundError:
+            except IOError:
                 raise Exception('I could not find the conf file by myself', 'help me with pathConf=<path to conf file>')
         else:
             conf = read_conf(pathConf, useVortex=useVortex)
