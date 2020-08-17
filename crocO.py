@@ -23,7 +23,7 @@ from CrocoPp import CrocoPp
 import numpy as np
 from utilcrocO import Opt, ImmutableOpt, Pgd, area, parse_classes,\
     read_opts_in_namelist, set_sensor, set_provars, merge_two_dicts
-from tools import read_conf
+from tools.read_conf import read_conf
 
 # from optparse import OptionParser, Values
 usage = 'crocO --opts'
