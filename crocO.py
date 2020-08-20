@@ -23,7 +23,7 @@ from CrocoPp import CrocoPp
 import numpy as np
 from utilcrocO import Opt, ImmutableOpt, Pgd, area, parse_classes,\
     read_opts_in_namelist, set_sensor, set_provars, merge_two_dicts
-from tools import read_conf
+from tools.read_conf import read_conf
 
 # from optparse import OptionParser, Values
 usage = 'crocO --opts'
@@ -51,7 +51,7 @@ def parse_args(arguments):
     parser.add_argument("--todo",
                         action = 'store', type = str, dest='todo', default = None,
                         choices=('generobs', 'localrun', 'pfpp', 'parallelpp', 'pf', 'pfpython', 'parallel'),
-                        help= 'type of evaluation. pfpp : post-process local run of the pf (previously ran --todo {pf,pfpython}). parallelpp: load post-processing done on beaufix.')
+                        help= 'type of evaluation. pfpp : post-process local run of the pf (previously ran --todo {pf,pfpython}). parallelpp: pp on beaufix or load post-processing done on beaufix.')
     parser.add_argument("--nmembers",
                         action = 'store', type = int, dest='nmembers', default = None,
                         help= 'specify the number of members.')
@@ -190,7 +190,7 @@ def callunits(value):
         if ll[1] == 'deg':
             ret = ll[0]
         elif ll[1] == 'm':
-            ret = ll[0] / 6371000.
+            ret = ll[0] / 6371000. * 180. / np.pi
         elif ll[1] == 'km':
             ret = ll[0] / 6371. * 180. / np.pi
         elif ll[1] == 'rad':
@@ -209,7 +209,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
     The returned object has immutable attributes.
     - readConf : load a conf file, naively looking for a conf file in the xpiddir.
     - pathConf : help finding the conf file.
-    - pathPgd : help finding the conf file.
+    - pathPgd : help finding the pgd file.
     - mutable : NOT RECOMMENDED: if True, return a mutable option object (lazy useful solution for pp on beaufix)
     """
     options, no_default_opts = parse_args(args[1:])
@@ -329,9 +329,10 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             conf.openloop = 'off'
         # in case the pf arg has not been provided, or in case of local test of the pf,
         # do not overwrite conf.openloop
-        if options.todo == 'parallelpp':
+        if options.todo == 'parallelpp' and 'beaufix' not in os.uname()[1]:  # BC 07/2020 dirty patch
             options.openloop = conf.openloop
-            options = read_opts_in_namelist(options)
+            if options.openloop != 'on':
+                options = read_opts_in_namelist(options)
         elif options.pf is None or options.todo == 'pf':
             options.openloop = conf.openloop
         elif options.pf == 'ol':
