@@ -189,8 +189,10 @@ class Pgd:
     """
 
     def __init__(self, pathPGD):
-
-        pgd = netCDF4.Dataset(pathPGD)
+        try:
+            pgd = netCDF4.Dataset(pathPGD)
+        except RuntimeError or OSError:
+            raise OSError('PGD not found.')
         bugfix = pgd.variables['BUG']
         if bugfix == 0:
             raise Exception(' Version of your PGD is deprecated (BUG==0) please update it by rerunning a spinup so that BUG>=1')
@@ -204,8 +206,13 @@ class Pgd:
         # in the case of postes geometries, a "SUPER" PGD (enhanced with numposts ('station') and type of postes) is put at pathPGD
         if 'station' in pgd.variables.keys():
             self.station = np.squeeze(pgd.variables['station'][:])
-            self.type = np.squeeze(pgd.variables['type'][:])
             self.massif = np.squeeze(pgd.variables['massif'][:])
+            # BC 11/20 type_nivo corresponds to the most recent file format and is not mandatory
+            # for simulations 9onlyused for post-processing so far
+            if 'type_nivo' in pgd.variables.keys():
+                self.type_nivo = np.squeeze(pgd.variables['type_nivo'][:])
+                self.type_poste_actuel = np.squeeze(pgd.variables['type_poste_actuel'][:])
+                self.reseau_poste_actuel = np.squeeze(pgd.variables['reseau_poste_actuel'][:])
         pgd.close()
 
 
