@@ -224,7 +224,8 @@ class CrocoPp(CrocO):
         else:
             fromArch = True
         # on beaufix, cannot straightforwardly parallelize the reading of preps
-        if 'beaufix' in os.uname()[1]:
+        # BC 30/09/20: don get what the hell happens on sxcen.
+        if 'beaufix' in os.uname()[1] or 'sxcen' in os.uname()[1]:
             if kind == 'bg':
                 locEns = {dd: PrepEnsBg(self.options, dd, fromArch=fromArch) for dd in self.options.dates}
             elif kind == 'an':
@@ -267,7 +268,7 @@ class CrocoPp(CrocO):
             try:
                 manager = multiprocessing.Manager()
                 locEns = manager.dict()
-                p = multiprocessing.Pool(min(multiprocessing.cpu_count(), len(self.options.dates)))
+                p = multiprocessing.Pool(min(max(multiprocessing.cpu_count() - 4, 1), len(self.options.dates)))
                 p.map(loadEnsPrepDate_parallel, [[self, locEns, dd, kind, isOl, fromArch] for dd in self.options.dates])
             except Exception as _:
                 p.close()

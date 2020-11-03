@@ -13,14 +13,13 @@ import multiprocessing
 import os
 import shutil
 import subprocess
-from tasks.vortex_kitchen import vortex_conf_file
 import time
 from tools.change_prep import prep_tomodify
 from tools.update_namelist import update_surfex_namelist_file
 from utils.ESCROCsubensembles import ESCROC_subensembles
 from utils.dates import get_list_dates_files
 
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from CrocoPf import CrocO, CrocoPf
 from utilcrocO import area, check_namelist_soda, dump_conf
@@ -110,9 +109,10 @@ class CrocoParallel(CrocO):
         run
         '''
         # progress_bar
-        pbar = tqdm(self.options.assimdates)
-        for dd in pbar:
-            pbar.set_description('Propagating until: ' + dd)
+        # pbar = tqdm(self.options.assimdates)
+        # for dd in pbar:
+        for dd in self.options.assimdates:
+            # pbar.set_description('Propagating until: ' + dd)
             #  - spawn offline
             self.escrocs.run(dd)
 
