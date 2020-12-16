@@ -191,8 +191,10 @@ class Pgd:
     def __init__(self, pathPGD):
         try:
             pgd = netCDF4.Dataset(pathPGD)
-        except RuntimeError or OSError:
-            raise OSError('PGD not found.')
+        except OSError:
+            raise OSError('PGD not found at' + os.getcwd() + '/' + pathPGD)
+        except RuntimeError:
+            raise OSError('PGD not found at' + os.getcwd() + '/' + pathPGD)
         bugfix = pgd.variables['BUG']
         if bugfix == 0:
             raise Exception(' Version of your PGD is deprecated (BUG==0) please update it by rerunning a spinup so that BUG>=1')

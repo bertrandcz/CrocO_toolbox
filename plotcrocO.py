@@ -16,10 +16,11 @@ from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-
+from postes.explore_metadata import find_name_station  # BC Dec2020: potentially fails in some branches.
 
 if 'beaufix' not in os.uname()[1]:
     import seaborn as sns
+# matplotlib 2.0.0 is required (e.g. colors.)
 
 
 class Pie(object):
@@ -120,11 +121,12 @@ class Pie(object):
                                 if self.focusColors[iCl] > -0.5:
                                     _ = sax.scatter(1. / len(self.sel + 1.) - 1. / 20.,
                                                     (self.rmax - self.sdObj.pgd.elev[cl] - 300) / 300.,
-                                                    c = self.focusColors[iCl], cmap = self.cmap_f,
+                                                    color = 'k',
                                                     vmin = 0., vmax = 1.,
                                                     zorder = 10, s=9)
                                 else:
-                                    _ = sax.scatter(1. / len(self.sel + 1.) - 1. / 20., (self.rmax - self.sdObj.pgd.elev[cl] - 300) / 300.,
+                                    _ = sax.scatter(1. / len(self.sel + 1.) - 1. / 20.,
+                                                    (self.rmax - self.sdObj.pgd.elev[cl] - 300) / 300.,
                                                     c = 'r', zorder = 10, s=15)
                                 if not leg2ok:
                                     xy = [0, (self.rmax - 600 - 300) / 300.]
@@ -397,7 +399,7 @@ def cpdfs(options, pb, pa, obsReal, cl, alpha = None):
     return CRPS_verif
 
 
-def snsscatter_2class(options, pb, pa, obsReal, var, cl1, cl2, focusCl, savefig = False):
+def snsscatter_2class_old(options, pb, pa, obsReal, var, cl1, cl2, focusCl, savefig = False):
 
     p = sns.JointGrid(x = pb.stack[var][cl1, :], y = pb.stack[var][cl2, :])
     p = p.plot_joint(plt.scatter, s = 40, alpha = 0.5)
@@ -519,3 +521,143 @@ def plot_part_cesar(pb, pa, obsReal, cl, varName, alpha = None, savefig = False)
     plt.xticks([])
     if savefig:
         plt.savefig('../pie/PartFilter.png')
+
+
+def snsscatter_2class(options, pb, pa, obsReal, var, cl1, cl2, focusCl, savefig=False, errobs=None,
+                      plotAn=True, plotVerif=True,
+                      xmin = 0.,
+                      xmax = 0.5,
+                      ymin = 0,
+                      ymax = 2.):
+    # cl1 on x-axis, cl2 on y-axis
+
+    if cl1 in focusCl and cl2 not in focusCl:
+        xmin = -0.4
+        xmax = 1.7
+        ymin = -0.05
+        ymax = 0.5
+        p = sns.JointGrid(x=pb.stack[var][cl1, :], y=pb.stack[var][cl2, :],
+                          ratio=4, xlim=(xmin, xmax), ylim=(ymin, ymax))
+        p.fig.set_figwidth(cm2inch(8.5, 54)[0])
+        p.fig.set_figheight(cm2inch(99, 8.5)[1])
+        p = p.plot_joint(plt.scatter, s=40, alpha=0.5)
+        p = p.plot_joint(sns.kdeplot, color='0.7', zorder=-30)
+        plt.text(-0.2, 0.3, '$p(x_1,x_2)$', color='C0')
+        if errobs is None:
+            plt.axvline(obsReal.data[var][cl1],
+                        color='C3', linewidth=3, alpha=0.5)
+        else:
+            # scan for the obs
+            plt.fill_betweenx([ymin,
+                               ymax],
+                              obsReal.data[var][cl1] - np.sqrt(errobs),
+                              x2=obsReal.data[var][cl1] + np.sqrt(errobs), color='C3', alpha=0.5)
+            plt.annotate('$y_1^o$', (obsReal.data[var][cl1], ymin), (obsReal.data[var][cl1], 0.05), color='C3',
+                         arrowprops=dict(arrowstyle='->'), ha='center')
+            plt.annotate('$2 \sigma_o$', (obsReal.data[var][cl1] + 0.15, ymax - 0.05),
+                         (obsReal.data[var][cl1] - 0.15, ymax - 0.05), color='C3',
+                         arrowprops=dict(arrowstyle='<->'), ha='right', va='center')
+            # histogram for the obs
+            # assimilated obs
+            xs_marg_obs = np.arange(obsReal.data[var][cl1] - 3 * np.sqrt(errobs),
+                                    obsReal.data[var][cl1] + 3 * np.sqrt(errobs), 0.01)
+            p.ax_marg_x.plot(xs_marg_obs,
+                             1 / (np.sqrt(errobs) * np.sqrt(2 * np.pi)) *
+                             np.exp(-0.5 * (xs_marg_obs - obsReal.data[var][cl1])**2 / errobs), color='C3')
+            # verification obs
+            if plotVerif:
+                ys_marg_obs = np.arange(obsReal.data[var][cl2] - 3 * np.sqrt(errobs),
+                                        obsReal.data[var][cl2] + 3 * np.sqrt(errobs), 0.01)
+                p.ax_marg_y.plot(1 / (np.sqrt(errobs) * np.sqrt(2 * np.pi)) *
+                                 np.exp(-0.5 * (ys_marg_obs -
+                                                obsReal.data[var][cl2])**2 / errobs), ys_marg_obs,
+                                 color='C3')
+#                 plt.annotate('$y_2^o$', (xmax, obsReal.data[var][cl2]),
+#                              (xmax - 0.4, obsReal.data[var][cl2]), color='C3',
+#                              arrowprops=dict(arrowstyle='->'),
+#                              va='center')
+        # scatter the observation
+        if plotVerif:
+            plt.scatter(obsReal.data[var][cl1], obsReal.data[var]
+                        [cl2], color='C3', s=200, marker='*', zorder=200)
+    elif cl2 in focusCl and cl1 not in focusCl:
+        p = sns.JointGrid(x=pb.stack[var][cl1, :], y=pb.stack[var][cl2, :],
+                          ratio=4, xlim=(xmin, xmax), ylim=(ymin, ymax))
+        p.fig.set_figwidth(cm2inch(8.5, 54)[0])
+        p.fig.set_figheight(cm2inch(99, 8.5)[1])
+        p = p.plot_joint(plt.scatter, s=40, alpha=0.5)
+        # contours
+        #p = p.plot_joint(sns.kdeplot, color = '0.7', zorder = -30)
+#         plt.text(-0.2,0.3, '$p(x_1,x_2)$', color = 'C0')
+        if errobs is None:
+            plt.axhline(obsReal.data[var][cl2],
+                        color='C3', linewidth=3, alpha=0.5)
+        else:
+            # scan for the obs
+            plt.fill_between([xmin,
+                              xmax],
+                             obsReal.data[var][cl2] - np.sqrt(errobs),
+                             y2=obsReal.data[var][cl2] + np.sqrt(errobs), color='C3', alpha=0.5)
+#             plt.annotate('$y_1^o$', (obsReal.data[var][cl1],ymin),(obsReal.data[var][cl1],0.05 ), color = 'C3',
+#                          arrowprops = dict(arrowstyle = '->'), ha = 'center')
+#             plt.annotate('$2 \sigma_o$', (obsReal.data[var][cl1] +0.15,ymax - 0.05),
+#                          (obsReal.data[var][cl1] - 0.15,ymax - 0.05 ), color = 'C3',
+#                          arrowprops = dict(arrowstyle = '<->'), ha = 'right', va = 'center')
+            # histogram for the obs
+            # assimilated obs
+            ys_marg_obs = np.arange(obsReal.data[var][cl2] - 3 * np.sqrt(errobs),
+                                    obsReal.data[var][cl2] + 3 * np.sqrt(errobs), 0.01)
+            p.ax_marg_y.plot(
+                1 / (np.sqrt(errobs) * np.sqrt(2 * np.pi)) *
+                np.exp(-0.5 * (ys_marg_obs - obsReal.data[var][cl2])**2 / errobs), ys_marg_obs, color='C3')
+            p.ax_marg_y.set_xlim([0, 9])
+            p.ax_marg_x.set_ylim([0, 10.5])
+            # verification obs
+            if plotVerif:
+                xs_marg_obs = np.arange(obsReal.data[var][cl1] - 3 * np.sqrt(errobs),
+                                        obsReal.data[var][cl1] + 3 * np.sqrt(errobs), 0.01)
+                p.ax_marg_x.plot(xs_marg_obs, 1 / (np.sqrt(errobs) * np.sqrt(2 * np.pi)) *
+                                 np.exp(-0.5 * (xs_marg_obs -
+                                                obsReal.data[var][cl1])**2 / errobs),
+                                 color='C3')
+#                 plt.annotate('$y_2^o$', (xmax, obsReal.data[var][cl2]),
+#                              (xmax - 0.4, obsReal.data[var][cl2] ), color = 'C3',
+#                              arrowprops = dict(arrowstyle = '->'),
+#                               va = 'center')
+        # scatter the observation
+        if plotVerif:
+            plt.scatter(obsReal.data[var][cl1], obsReal.data[var]
+                        [cl2], color='C3', s=200, marker='*', zorder=200)
+    elif cl1 in focusCl and cl2 in focusCl:
+        plt.scatter(obsReal.data[var][cl1], obsReal.data[var]
+                    [cl2], color='C3', s=100, marker='*')
+
+#     sns.kdeplot(data = pb.stack[var][cl1, :],
+#                      color='b',ax = p.ax_marg_x)
+#     sns.kdeplot(data = pa.stack[var][cl1, :],
+#                      color='C2',ax = p.ax_marg_x)
+#     sns.kdeplot(data = pb.stack[var][cl2, :],
+#                      color='b',ax = p.ax_marg_y, vertical = True)
+#     sns.kdeplot(data = pa.stack[var][cl2, :],
+#                      color='C2',ax = p.ax_marg_y, vertical = True)
+    p.ax_marg_x.hist(pb.stack[var][cl1, :], color='C0',
+                     density=True, histtype='step', lw=1.5, bins=15)
+    p.ax_marg_y.hist(pb.stack[var][cl2, :], color='C0', orientation='horizontal',
+                     density=True, histtype='step', lw=1.5, bins=15)
+    if plotAn:
+        p.ax_marg_x.hist(pa.stack[var][cl1, :], color='C2',
+                         density=True, histtype='step', lw=1.5, bins=15)
+        p.ax_marg_y.hist(pa.stack[var][cl2, :], color='C2', orientation='horizontal',
+                         density=True, histtype='step', lw=1.5, bins=15)
+
+        plt.scatter(pa.stack[var][cl1, :], pa.stack[var]
+                    [cl2, :], color='C2', s=40, alpha=0.5)
+        plt.text(0.97, 0.14, '$p(x_1,x_2|y_1^o)$', color='C2')
+    p.fig.subplots_adjust(left=0.17, bottom=0.17)
+    plt.xlabel('$p_1$:' + find_name_station(
+        options.pgd.station[cl1]) + ' ({0}m)'.format(int(options.pgd.elev[cl1])))
+    plt.ylabel('$p_2$:' + find_name_station(
+        options.pgd.station[cl2]) + ' ({0}m)'.format(int(options.pgd.elev[cl2])))
+    # p.ax_joint.set_aspect('equal')  # equal aspect ratio
+
+    plt.show()

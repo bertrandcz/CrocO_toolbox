@@ -389,6 +389,7 @@ class CrocoPp(CrocO):
                 self.obsReal = {dd: Real(self.pathReal, dd, self.options) for dd in self.options.dates}
                 for dd in self.options.dates:
                     self.obsReal[dd].load()
+
                 pathObsTs = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor +\
                     '/obs_{0}_{1}_{2}100106_{3}063006.pkl'.format(self.options.sensor,
                                                                   self.options.vconf,
@@ -414,9 +415,16 @@ class CrocoPp(CrocO):
                                                                                                int(self.datedeb.strftime('%Y')) + 1
                                                                                                ),
                                        pathObsTs)
+                            self.obsTs = load_pickle2(pathObsTs)
                         except FileExistsError:
+                            try:
+                                self.obsTs = load_pickle2(pathObsTs)
+                            except FileNotFoundError:  # no obsTs file (makes some sense too.)
+                                pass
+                        except FileNotFoundError:  # no obsTs file (makes some sense too.)
                             pass
-                self.obsTs = load_pickle2(pathObsTs)
+                else:
+                    self.obsTs = load_pickle2(pathObsTs)
 
     def readOper(self):
         """
