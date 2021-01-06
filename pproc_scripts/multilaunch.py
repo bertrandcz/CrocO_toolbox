@@ -5,7 +5,8 @@ Created on 15 oct. 2019
 @author: cluzetb
 '''
 import os
-from tasks.vortex_kitchen import vortex_conf_file
+# @TODO: update with the new vortex conf object
+from tasks.vortex_kitchen import Vortex_conf_file
 
 from consts import CROCO
 from crocO import set_options
@@ -94,10 +95,10 @@ for year in years:
                 if os.path.exists(pathConfRun):
                     print('remove vortex conf_file')
                     os.remove(pathConfRun)
-                confRun = vortex_conf_file(pathConfRun, mode='w')
-                confRun.new_class('DEFAULT')
-                confRun.write_field('assimdates', ','.join(options.dates))
-                confRun.write_field('members_id', ','.join(map(str, options.members_id)))
+                confRun = Vortex_conf_file(pathConfRun, mode='w')
+                confRun.add_block('DEFAULT')
+                confRun.set_field('DEFAULT', 'assimdates', ','.join(options.dates))
+                confRun.set_field('DEFAULT', 'members_id', ','.join(map(str, options.members_id)))
                 confRun.close()
 
             # 2.  launch the run

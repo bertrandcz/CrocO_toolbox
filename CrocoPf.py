@@ -104,13 +104,8 @@ class CrocoPf(CrocO):
 
         os.chdir(self.crocOdir + '/' + saverep)
         for dd in self.options.dates:
-            if self.options.todo == 'parallel':
-                if self.options.pf != 'ol':
-                    path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
-                else:  # no need to create workSODA in openloop case
-                    path = self.crocOdir + '/' + saverep + '/' + dd + '/'
-            else:
-                path = self.crocOdir + '/' + saverep + '/' + dd
+            path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
+
             if dd in self.options.dates:
                 if os.path.exists(path):
                     # bc slight change for local tests where it is painful to have the rep deleted each time. (pwd error)
@@ -173,7 +168,7 @@ class CrocoPf(CrocO):
                     self.build_link(mb + 1, mb, date, dateAssSoda)
             else:
                 self.build_link(mb, mb, date, dateAssSoda)
-        # a link fro PREP...1.nc to PREP.nc is also necessary for SODA
+        # a link from PREP...1.nc to PREP.nc is also necessary for SODA
         if not os.path.exists('PREP.nc'):
             os.symlink('PREP_' + dateAssSoda + '_PF_ENS1.nc', 'PREP.nc')
 
@@ -195,7 +190,7 @@ class CrocoPf(CrocO):
         """spawn soda in each date directory"""
         os.system('ulimit -s unlimited')
         for dd in self.options.dates:
-            os.chdir(dd)
+            os.chdir(dd + '/workSODA/')
             if self.options.todo != 'pfpython':
                 os.system('./soda.exe')
             else:

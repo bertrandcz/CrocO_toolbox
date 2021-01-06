@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from postes.explore_metadata import find_name_station  # BC Dec2020: potentially fails in some branches.
 
-if 'beaufix' not in os.uname()[1]:
+if 'beaufix' not in os.uname()[1] and 'belenos' not in os.uname()[1]:
     import seaborn as sns
 # matplotlib 2.0.0 is required (e.g. colors.)
 

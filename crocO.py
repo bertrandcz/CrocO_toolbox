@@ -328,7 +328,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             conf.openloop = 'off'
         # in case the pf arg has not been provided, or in case of local test of the pf,
         # do not overwrite conf.openloop
-        if options.todo == 'parallelpp' and 'beaufix' not in os.uname()[1]:  # BC 07/2020 dirty patch
+        if options.todo == 'parallelpp' and 'beaufix' not in os.uname()[1] and 'belenos' not in os.uname()[1]:  # BC 07/2020 dirty patch
             options.openloop = conf.openloop
             if options.openloop != 'on':
                 options = read_opts_in_namelist(options)

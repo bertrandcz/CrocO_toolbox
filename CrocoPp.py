@@ -224,13 +224,12 @@ class CrocoPp(CrocO):
         else:
             fromArch = True
         # on beaufix, cannot straightforwardly parallelize the reading of preps
+        # error: The "default" UnstructuredGeometry object does not exist yet"
         # BC 30/09/20: don get what the hell happens on sxcen.
-        if 'beaufix' in os.uname()[1] or 'sxcen' in os.uname()[1]:
+        if 'beaufix' in os.uname()[1] or 'sxcen' in os.uname()[1] or 'belenos' in os.uname()[1]:
             if kind == 'bg':
                 locEns = {dd: PrepEnsBg(self.options, dd, fromArch=fromArch) for dd in self.options.dates}
             elif kind == 'an':
-                print('didodidodi', self.options.dates, self.datefin.strftime('%Y%m%d%H'), type(self.options.dates[0]), type(self.datefin.strftime('%Y%m%d%H')))
-
                 locEns = {dd: PrepEnsAn(self.options, dd, fromArch=fromArch) for dd in self.options.dates if dd != self.datefin.strftime('%Y%m%d%H')}
             else:
                 locEns = {dd: PrepEnsOl(self.options, dd, isOl=isOl, fromArch=fromArch) for dd in self.options.dates}

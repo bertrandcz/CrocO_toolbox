@@ -20,7 +20,7 @@ def read_part(options):
     gg3 = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
-            filename = dd + '/PART'
+            filename = dd + '/workSODA/PART'
             f = open(filename, 'rb')
         else:  # =='parallelpp'
             try:
@@ -39,7 +39,7 @@ def read_mask(options):
     imask = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
-            filename = dd + '/IMASK'
+            filename = dd + '/workSODA/IMASK'
             f = open(filename, 'r')
 
         else:  # =='parallelpp'
@@ -66,7 +66,7 @@ def read_BG(options):
     bg = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
-            filename = dd + '/BG_CORR'
+            filename = dd + '/workSODA/BG_CORR'
             f = open(filename, 'rb')
         else:  # =='parallelpp'
             try:
@@ -88,7 +88,7 @@ def read_alpha(options):
     alpha = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf' or options.todo == 'pf':
-            filename = dd + '/ALPHA'
+            filename = dd + '/workSODA/ALPHA'
             f = open(filename, 'r')
         else:  # =='parallelpp'
             try:

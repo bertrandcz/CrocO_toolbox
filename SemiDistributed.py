@@ -3,7 +3,7 @@
 Created on 5 févr. 2019
 
 @author: cluzetb
-Classes manipulation Semi-distributed objects :
+Classes manipulation Semi-distributed objects (or objects in the postes geometry):
 - preparing/faking/ synthetic observations observations within crocO framework
 - loading prep files/obervations
 - ...
@@ -103,8 +103,12 @@ class Obs(SemiDistributed):
                 self.close()
         else:
             # if no masking/modif is needed, just link the file:
-            if not os.path.exists or not os.path.islink(self.sodaName):
-                os.symlink(self.path, self.sodaName)
+            if not os.path.exists(self.sodaName) or not os.path.islink(self.sodaName):
+                try:
+                    os.symlink(self.path, self.sodaName)
+                except OSError:
+                    print(self.path, self.sodaName)
+                    raise Exception
 
     def prepare_realmask(self):
         self.maskpath = self.sodaName
@@ -306,7 +310,9 @@ class Real(Obs):
         else:
             # BC 30/03/20 change that could cause bugs
             # self.sodaName = sensordir + self.vortexname
-            self.sodaName = options.xpiddir + '/' + date + '/workSODA/' + self.sodaName
+            # BC changed again jan 2021
+            # self.sodaName = options.xpiddir + '/' + date + '/workSODA/' + self.sodaName
+            self.sodaName = options.xpiddir + '/crocO/' + options.saverep + '/' + date + '/workSODA/' + self.sodaName
             # overwrite vortexname
             self.vortexname = sensordir + self.vortexname
             self.path = self.vortexname
@@ -391,7 +397,7 @@ class PrepBg(Prep):
         self.date = date
         self.ptinom = 'bg' + str(mbid)
         if not fromArch:
-            self.sodaName = date + '/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
+            self.sodaName = date + '/workSODA/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
         else:
             # self.sodaName = '../../../test_160_OL@cluzetb/' + 'mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
             self.sodaName = options.xpiddir + '/mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
@@ -403,7 +409,7 @@ class PrepOl(Prep):
         self.date = date
         self.ptinom = 'ol' + str(mbid)
         if not fromArch:
-            self.sodaName = date + '/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
+            self.sodaName = date + '/workSODA/PREP_' + convertdate(date).strftime('%y%m%dH%H') + '_PF_ENS' + str(mbid) + '.nc'
         else:
             if isOl:
                 self.sodaName = options.xpiddir + '/mb{0:04d}'.format(mbid) + '/bg/PREP_' + date + '.nc'
@@ -418,7 +424,7 @@ class PrepAn(Prep):
         self.ptinom = 'an' + str(mbid)
 
         if not fromArch:
-            self.sodaName = date + '/SURFOUT' + str(mbid) + '.nc'
+            self.sodaName = date + '/workSODA/SURFOUT' + str(mbid) + '.nc'
         else:
             self.sodaName = options.xpiddir + '/mb{0:04d}'.format(mbid) + '/an/PREP_' + date + '.nc'
 

@@ -9,22 +9,18 @@ utils suited for crocO interface only
 '''
 
 from argparse import Namespace
-import copy
 import datetime
 from ftplib import FTP
 from netrc import netrc
-from optparse import Values
 import os
 import re
-import shutil
-import sys
 
 import six
 
 from bronx.datagrip.namelist import NamelistParser
 import netCDF4  # @UnresolvedImport
 import numpy as np
-from tasks.vortex_kitchen import vortex_conf_file
+from tasks.vortex_kitchen import Vortex_conf_file
 
 
 def dictsAspect():
@@ -452,10 +448,10 @@ def dump_conf(pathConf, options):
     dirname = os.path.dirname(pathConf)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
-    conffile = vortex_conf_file(pathConf, mode = 'w')
-    conffile.new_class('DEFAULT')
+    conffile = Vortex_conf_file(options, pathConf, mode = 'w')
+    conffile.add_block('DEFAULT')
     for attr, value in options.__dict__.items():
-        conffile.write_field(attr, value)
+        conffile.set_field('DEFAULT', attr, value)
     conffile.close()
     return 0
 
