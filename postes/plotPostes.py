@@ -17,8 +17,13 @@ import matplotlib.pyplot as plt
 from crocO import callunits
 from matplotlib.collections import PatchCollection
 from utilplot import cm2inch
-import matplotlib.gridspec as gridspec
-from mpl_toolkits.basemap import Basemap
+import cartopy.crs as ccrs
+import matplotlib.ticker as mticker
+import matplotlib as mpl
+from cartopy.io import srtm
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from cartopy.io import LocatedImage
+from matplotlib.ticker import FormatStrFormatter
 
 
 class Massif(object):
@@ -79,7 +84,11 @@ class MapPostes(Pie):
         Pie.__init__(self, *args, **kwargs)
         # load shapefile of massifs from the alps and pyrenees into a same shp.
         # (https://gis.stackexchange.com/questions/103033/using-pyshp-to-merge-two-shapefiles)
-
+        self.mountains = {0: 'alpes', 1: 'pyrenees'}
+        self.axis = {}
+        self.xlims = {}
+        self.ylims = {}
+        self.extent = {}
         self.setMassifShapes()
 
     def setMassifShapes(self):
@@ -94,94 +103,124 @@ class MapPostes(Pie):
                 # @TODO: something smart.
                 pass
 
-    def plot(self, ax = None, tag_postes = False, tag_massifs = True,
-             plotCircle = True, vmin = -1, vmax = 1, cmap = 'RdBu', colorbar = False, background = False):
-        if ax is None:
-            fig = plt.figure(figsize = cm2inch(12.5, 6))
-            gs = gridspec.GridSpec(1, 2, width_ratios=[0.97, 0.03],
-                                   wspace = 0.05,
-                                   bottom = 0.08,
-                                   top = 0.95,
-                                   left = 0.08,
-                                   right = 0.9,
-                                   )
+    def prepare_background(self, ax = None, background = True, tag_massifs = False, resolution = 'high'):
+        """
+        Bc june 2021 quick hack to submit my paper.
+        """
+        if ax is not None:
+            raise Exception(' not implemented yet, please be patient Bber')
+        projection = ccrs.PlateCarree()
+        self.fig = plt.figure(figsize = cm2inch(12, 10), constrained_layout = True)
+        self.gs = self.fig.add_gridspec(2, 10, height_ratios = [3, 1])  # height aspect ratio btw alps/pyr is 2.9888... :)
+        gs = self.gs
+        plt.subplots_adjust(top = .92, bottom = .03)
+        for i, mountain in self.mountains.items():
+            if i == 0:
+                self.axis[mountain] = self.fig.add_subplot(gs[i, 0:7], projection =projection)
+            else:
+                self.axis[mountain] = self.fig.add_subplot(gs[i, :], projection =projection)
+            ax = self.axis[mountain]
+            ax.set_anchor('W')
+            gl = ax.gridlines()
+            gl.xlabels_top = False
+            gl.xlabels_top = True
+            gl.ylabels_left = True
+            gl.ylabels_right = False
+            gl.xlines = True
+            if i == 0:
+                gl.xlocator = mticker.FixedLocator(np.arange(5, 8.5, 1.))
+                gl.ylocator = mticker.FixedLocator(np.arange(43.5, 47., 0.5))
+                gl.xformatter = LONGITUDE_FORMATTER
+                gl.yformatter = LATITUDE_FORMATTER
+            else:
+                gl.xlocator = mticker.FixedLocator(np.arange(-1.5, 3.5, 1.))
+                gl.ylocator = mticker.FixedLocator(np.arange(42, 44, 0.5))
+                gl.xformatter = LONGITUDE_FORMATTER
+                gl.yformatter = LATITUDE_FORMATTER
 
-            ax = plt.subplot(gs[0])
+            for mnum, massif in self.massifs.items():
+                if mountain_from_massif([mnum]) == [mountain]:
+                    ax.plot(massif.x, massif.y, color = 'k', zorder = 2)
+                # trick to limit to the alps/pyrenees
 
-        else:
-            fig = plt.gcf()
-        for mnum, massif in self.massifs.items():
-            ax.plot(massif.x, massif.y, color = 'k', zorder = 2)
-            if tag_massifs:
-                ax.annotate(massif.name, massif.center)
-        gg = ax.scatter(self.sdObj.pgd.lon, self.sdObj.pgd.lat, c = self.sdObj.data['DEP'],
-                        cmap = cmap, vmin = vmin, vmax = vmax, zorder = 100, s=6)
-        if tag_postes:
-            for ipt in range(self.sdObj.pgd.npts):
-                ax.annotate(str(self.sdObj.pgd.station[ipt]), (self.sdObj.pgd.lon[ipt], self.sdObj.pgd.lat[ipt]),)
+                if tag_massifs:
+                    ax.annotate(massif.name, massif.center)
 
-        if hasattr(self, 'focusCl'):
-            ax.scatter(self.sdObj.pgd.lon[self.focusCl], self.sdObj.pgd.lat[self.focusCl],
-                       c= 'r', zorder = 1000)
-            # stars on the 11 highest values
-            #  need to exclude the nans
-            nNan = len(self.sdObj.data['DEP']) - self.sdObj.data['DEP'].count()
-            print('number of nans', nNan)
-            bestargs = np.ma.argsort(self.sdObj.data['DEP'])[(-nNan - 10):(- nNan)][::-1]
-            _ = ax.scatter(self.sdObj.pgd.lon[bestargs], self.sdObj.pgd.lat[bestargs],
-                           c= 'g', zorder = 1000, marker = '*')
-        xmin = ax.get_xlim()[0]
-        ymax = ax.get_ylim()[1]
-        ymin = ax.get_ylim()[0]
-        xmax = ax.get_xlim()[1]
-        # plot a circle
-        if 'local' in self.sdObj.ptinom and plotCircle:
+            self.xlims[mountain] = ax.get_xlim()
+            self.ylims[mountain] = ax.get_ylim()
 
-            radius = callunits(self.sdObj.ptinom.split(',')[1].split(' ')[0])
-            circle = plt.Circle((xmin + 1.1 * radius, ymax - 1.1 * radius), radius, color = 'g', fill = False)
-            ax.add_artist(circle)
-        ax.set_aspect('equal')
+            self.extent[mountain] = self.xlims[mountain] + self.ylims[mountain]
+            ax.set_extent(self.extent[mountain])
+            if background:
+                # Add a background image downloaded installed in .local/.../cartopy and converted into .png (see cartopy doc)
+                ax.background_img(extent = self.extent[mountain], name = 'ne_shaded_high', resolution = resolution)
 
-        # shaded background
-        if background:
+    def plot_scatter_postes(self, tag_postes = False, tag_massifs = True,
+                            plotCircle = True, cmap = 'RdBu', vmin=-0.5, vmax=.5, colorbar  = True ):
+        for i, mountain in self.mountains.items():
+            ax = self.axis[mountain]
+            _ = ax.scatter(self.sdObj.pgd.lon, self.sdObj.pgd.lat, c = self.sdObj.data['DEP'],
+                           cmap = cmap, vmin = vmin, vmax = vmax, zorder = 100, s=6)
+            if tag_postes:
+                for ipt in range(self.sdObj.pgd.npts):
+                    ax.annotate(str(self.sdObj.pgd.station[ipt]), (self.sdObj.pgd.lon[ipt], self.sdObj.pgd.lat[ipt]),)
 
-            m = Basemap(projection='cyl', llcrnrlat=ymin, llcrnrlon=xmin,
-                        urcrnrlat=ymax, urcrnrlon=xmax,
-                        resolution='i')
-            m.arcgisimage(service='World_Shaded_Relief', xpixels = 1000)
-            m.drawrivers()
-            m.drawcountries()
-            m.drawparallels(np.arange(42., 47.5, 1.), labels=[True, False, False, True])
-            m.drawmeridians(np.arange(-1., 9.5, 1.), labels=[False, True, True, False])
+            # plot a circle on the alps
+            if i == 0:
+                if 'local' in self.sdObj.ptinom and plotCircle:
 
-        # colorbar
+                    radius = callunits(self.sdObj.ptinom.split(',')[1].split(' ')[0])
+                    circle = plt.Circle((self.xlims[mountain][0] + 1.1 * radius, self.ylims[mountain][1] - 1.1 * radius), radius, color = 'g', fill = False, lw = 3)
+                    ax.add_artist(circle)
+
         if colorbar:
-            step = (vmax - vmin) / 10
-            cb = plt.colorbar(gg, cax=plt.subplot(gs[1]), ticks=np.arange(vmin, vmax + step, step))
-        # title
-        # plt.title(self.sdObj.ptinom)
+            self.add_colorbar(vmin = vmin, vmax = vmax, cmap = cmap)
 
-    def plot_massifs_color(self, dictmassif, ax = None, vmin = 0, vmax = 1, cmap = 'viridis'):
+    def plot_massifs_color(self, dictmassif, ax = None, vmin = 0, vmax = 1, cmap = 'viridis', colorbar = False):
         """
         BC, 03/09/20
-        plot the polygons of the massifs filled with a value frm dictmassif
+        plot the polygons of the massifs filled with a value from dictmassif
 
         """
         # print(plt.cm.__dict__)
         cmap = plt.cm.__dict__[cmap]
         norm = plt.Normalize(vmin, vmax)
+        for _, mountain in self.mountains.items():
+            ax = self.axis[mountain]
+            patches = []
+            for mnum in self.massifs:
+                if mountain_from_massif([mnum])[0] == mountain:
+                    color = cmap(norm(dictmassif[mnum]))
+                    self.massifs[mnum].polygon.set_color(color)
+                    patches.append(self.massifs[mnum].polygon)
+            pc = PatchCollection(patches,
+                                 match_original=True,
+                                 edgecolor='k',
+                                 linewidths=1.,
+                                 zorder=2
+                                 )
+            ax.add_collection(pc)
+            ax.autoscale()
+        if colorbar:
+            self.add_colorbar(vmin = 0, vmax = np.max(list(dictmassif.values())), cmap = cmap)
 
-        patches = []
-        for massif in self.massifs:
-            color = cmap(norm(dictmassif[massif]))
-            self.massifs[massif].polygon.set_color(color)
-            patches.append(self.massifs[massif].polygon)
-        pc = PatchCollection(patches,
-                             match_original=True,
-                             edgecolor='k',
-                             linewidths=1.,
-                             zorder=2
-                             )
-        # print(pc.__dict__)
-        ax.add_collection(pc)
-        ax.autoscale()
+    def add_colorbar(self, vmin = -1, vmax = 1, cmap = 'RdBu'):
+        step = (vmax - vmin) / 10
+        ax = self.fig.add_subplot(self.gs[0, 8:9])
+        ax.set_anchor('W')
+        norm = plt.Normalize(vmin, vmax)
+        gggg = mpl.cm.ScalarMappable(norm = norm, cmap = cmap)
+        gggg.set_array(np.arange(vmin, vmax, 10))  # divide by 10 for obs/km/yr
+        _ = plt.colorbar(gggg, cax=ax, ticks=np.arange(vmin, vmax + step, step))
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+
+def shade(located_elevations):
+    """
+    Given an array of elevations in a LocatedImage, add a relief (shadows) to
+    give a realistic 3d appearance.
+
+    """
+    new_img = srtm.add_shading(located_elevations.image,
+                               azimuth=135, altitude=15)
+    return LocatedImage(new_img, located_elevations.extent)

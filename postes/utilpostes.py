@@ -181,6 +181,8 @@ def mountain_from_massif(massifs):
     out:list
     """
     mountains = []
+    if isinstance(massifs, np.int32):
+        massifs = [massifs]
     for massif in massifs:
         #         if massif in [5]:
         #             mountains.append('beaufortain')
