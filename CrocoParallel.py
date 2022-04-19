@@ -242,14 +242,19 @@ class OfflinePools(CrocO):
         os.symlink(self.options.forcing + '/' + mbdir + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
                    'FORCING.nc')
         # prepare ecoclimap binaries
-        if not os.path.exists('ecoclimapI_covers_param.bin'):
+        if os.path.exists('ecoclimapI_covers_param.bin') or os.path.islink('ecoclimapI_covers_param.bin'):
+            os.remove('ecoclimapI_covers_param.bin')
+            os.remove('ecoclimapII_eu_covers_param.bin')
+            os.remove('drdt_bst_fit_60.nc')
             os.symlink(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapI_covers_param.bin', 'ecoclimapI_covers_param.bin')
             os.symlink(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapII_eu_covers_param.bin', 'ecoclimapII_eu_covers_param.bin')
             # flanner stuff
             os.symlink(self.exesurfex + '/../MY_RUN//DATA/CROCUS/drdt_bst_fit_60.nc', 'drdt_bst_fit_60.nc')
-        if not os.path.exists('offline.exe'):
+        if os.path.exists('offline.exe') or os.path.islink('offline.exe'):
+            os.remove('offline.exe')
             os.symlink(self.exesurfex + '/OFFLINE', 'offline.exe')
-        if not os.path.exists('PGD.nc'):
+        if os.path.exists('PGD.nc') or os.path.islink('PGD.nc'):
+            os.remove('PGD.nc')
             os.symlink(self.xpiddir + 'spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
 
         # prepare the namelist with the right escroc options
