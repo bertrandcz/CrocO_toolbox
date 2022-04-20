@@ -76,7 +76,7 @@ First of all, thouroughly read the documentation of CrocO within the snowtools m
 ## License information
 ---
 
-**CrocO_toolbox is licensed under CECILL-C, see [license](<https://github.com/bertrandcz/CrocO_toolbox/LICENCE.txt>) for terms & conditions for usage, and a DISCLAIMER OF ALL WARRANTIES.
+**CrocO_toolbox** is licensed under CECILL-C, see [license](<https://github.com/bertrandcz/CrocO_toolbox/LICENCE.txt>) for terms & conditions for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
 DISCLAIMER: This version of CrocO_toolbox is under peer review. Please use this software with caution, ask for assistance if needed, and let us know any feedback you may have.
 
