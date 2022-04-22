@@ -719,6 +719,23 @@ def ftp_upload(localfile, remotefile, ftp):
     print("after upload " + localfile + " to " + remotefile)
 
 
+def safe_create_link(src, dst, exc_broken = True):
+    '''
+    create a symbolic link
+    issue a message if src does not exist and exc_broken = True
+    overwrites the link if exists or broken
+
+    '''
+    # remove preexisting-potentially broken link
+    if os.path.exists(dst) or os.path.islink(dst):
+        os.remove(dst)
+    os.symlink(src, dst)
+    if exc_broken:
+        if os.path.islink(dst) and not os.path.exists(dst):
+            # leave broken link (useful for debugging) but raise Exception
+            raise Exception('safe_create_link: {0} does not exist'.format(src))
+
+
 def merge_two_dicts(x, y):
     """
     source : https://stackoverflow.com/questions/38987/how-do-i-merge-two-dictionaries-in-a-single-expression-in-python"

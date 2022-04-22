@@ -9,7 +9,7 @@ from SemiDistributed import Synthetic, Real
 import os
 import shutil
 import subprocess
-from utilcrocO import convertdate, check_namelist_soda
+from utilcrocO import convertdate, check_namelist_soda, safe_create_link
 
 import matplotlib.pyplot as plt
 

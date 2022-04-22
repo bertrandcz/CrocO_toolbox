@@ -22,7 +22,7 @@ from utils.dates import get_list_dates_files
 from tqdm import tqdm
 
 from CrocoPf import CrocO, CrocoPf
-from utilcrocO import area, check_namelist_soda, dump_conf
+from utilcrocO import area, check_namelist_soda, dump_conf, safe_create_link
 
 
 class CrocoParallel(CrocO):
@@ -234,25 +234,16 @@ class OfflinePools(CrocO):
             'yearly')  # return lists with only one item
         date_begin_forc = date_begin_forc[0]  # replace one-item list by item.
         date_end_forc = date_end_forc[0]
-        if os.path.exists('FORCING.nc') or os.path.islink('FORCING.nc'):
-            os.remove('FORCING.nc')
-        os.symlink(self.options.forcing + '/' + mbdir + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
+        safe_create_link(self.options.forcing + '/' + mbdir + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
                    'FORCING.nc')
         # prepare ecoclimap binaries
-        if os.path.exists('ecoclimapI_covers_param.bin') or os.path.islink('ecoclimapI_covers_param.bin'):
-            os.remove('ecoclimapI_covers_param.bin')
-            os.remove('ecoclimapII_eu_covers_param.bin')
-            os.remove('drdt_bst_fit_60.nc')
-            os.symlink(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapI_covers_param.bin', 'ecoclimapI_covers_param.bin')
-            os.symlink(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapII_eu_covers_param.bin', 'ecoclimapII_eu_covers_param.bin')
+
+        safe_create_link(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapI_covers_param.bin', 'ecoclimapI_covers_param.bin')
+        safe_create_link(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapII_eu_covers_param.bin', 'ecoclimapII_eu_covers_param.bin')
             # flanner stuff
-            os.symlink(self.exesurfex + '/../MY_RUN//DATA/CROCUS/drdt_bst_fit_60.nc', 'drdt_bst_fit_60.nc')
-        if os.path.exists('offline.exe') or os.path.islink('offline.exe'):
-            os.remove('offline.exe')
-            os.symlink(self.exesurfex + '/OFFLINE', 'offline.exe')
-        if os.path.exists('PGD.nc') or os.path.islink('PGD.nc'):
-            os.remove('PGD.nc')
-            os.symlink(self.xpiddir + 'spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
+        safe_create_link(self.exesurfex + '/../MY_RUN//DATA/CROCUS/drdt_bst_fit_60.nc', 'drdt_bst_fit_60.nc')
+        safe_create_link(self.exesurfex + '/OFFLINE', 'offline.exe')
+        safe_create_link(self.xpiddir + 'spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
 
         # prepare the namelist with the right escroc options
         self.prepare_namelist_offline(date, idate, mb)
@@ -288,37 +279,22 @@ class OfflinePools(CrocO):
         '''
 
         if date == self.options.stopdates[0]:
-            try:
-                os.symlink(self.xpiddir + '/spinup/prep/PREP.nc', 'PREP.nc')
-            except Exception:
-                os.remove('PREP.nc')
-                os.symlink(self.xpiddir + '/spinup/prep/PREP.nc', 'PREP.nc')
+            safe_create_link(self.xpiddir + '/spinup/prep/PREP.nc', 'PREP.nc')
 
         else:
             self.link_build(mb, dateprev)
 
     def link_build(self, mb, dateprev):
-        if self.options.pf and self.options.pf != 'ol':
-            try:
-                os.symlink(
+        # this links are broken on creation, but exist once SURFOUT have been created.
+        if self.options.pf != 'ol':
+            safe_create_link(
                     self.xpiddir + '/' + dateprev + '/workSODA/SURFOUT' + str(mb) + '.nc',
-                    'PREP.nc')
-            except Exception:
-                os.remove('PREP.nc')
-                os.symlink(
-                    self.xpiddir + '/' + dateprev + '/workSODA/SURFOUT' + str(mb) + '.nc',
-                    'PREP.nc')
+                'PREP.nc', exc_broken = False)
         # ol case
         else:
-            try:
-                os.symlink(
+            safe_create_link(
                     self.xpiddir + '/' + dateprev + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc',
-                    'PREP.nc')
-            except Exception:
-                os.remove('PREP.nc')
-                os.symlink(
-                    self.xpiddir + '/' + dateprev + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc',
-                    'PREP.nc')
+                'PREP.nc', exc_broken = False)
 
     def run(self, date):
         # print('launching escroc until ', date)
