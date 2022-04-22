@@ -24,6 +24,7 @@ from cartopy.io import srtm
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from cartopy.io import LocatedImage
 from matplotlib.ticker import FormatStrFormatter
+import math
 
 
 class Massif(object):
@@ -131,7 +132,7 @@ class MapPostes(Pie):
                     gs[i, :], projection=projection)
             ax = self.axis[mountain]
             ax.set_anchor('W')
-            gl = ax.gridlines()
+            gl = ax.gridlines(zorder=3, alpha=0.5)
             gl.xlabels_top = False
             gl.xlabels_top = True
             gl.ylabels_left = True
@@ -208,11 +209,41 @@ class MapPostes(Pie):
                         fill=False,
                         lw=3)
                     ax.add_artist(circle)
+                    angle_rad = 0
+                    ax.arrow(self.xlims[mountain][0] + 1.1 * radius,
+                             self.ylims[mountain][1] - 1.1 * radius,
+                             (radius - 0.1) * math.cos(angle_rad),
+                             (radius - 0.1) * math.sin(angle_rad),
+                             head_width=0.1,
+                             head_length=0.1,
+                             fc='g',
+                             ec='g')
+                    coords = (self.xlims[mountain][0] + 1.2 * radius,
+                              self.ylims[mountain][1] - 0.75 * radius)
+                    print(coords)
+                    ax.annotate('35 km',
+                                coords,
+                                xycoords='data',
+                                ha='center',
+                                va='center',
+                                fontsize=7, c = 'g')
 
         if colorbar:
-            self.add_colorbar(vmin = vmin, vmax = vmax, cmap = cmap)
+            self.add_colorbar(vmin=vmin,
+                              vmax=vmax,
+                              cmap=cmap,
+                              cbar_steps=cbar_steps,
+                              cbar_title=cbar_title)
 
-    def plot_massifs_color(self, dictmassif, ax = None, vmin = 0, vmax = 1, cmap = 'viridis', colorbar = False):
+    def plot_massifs_color(self,
+                           dictmassif,
+                           ax=None,
+                           vmin=0,
+                           vmax=1,
+                           cmap='viridis',
+                           colorbar=False,
+                           cbar_steps=4,
+                           cbar_title=''):
         """
         BC, 03/09/20
         plot the polygons of the massifs filled with a value from dictmassif
@@ -236,17 +267,38 @@ class MapPostes(Pie):
             ax.add_collection(pc)
             ax.autoscale()
         if colorbar:
-            self.add_colorbar(vmin = 0, vmax = np.max(list(dictmassif.values())), cmap = cmap)
+            self.add_colorbar(vmin=0,
+                              vmax=np.max(list(dictmassif.values())),
+                              cmap=cmap,
+                              cbar_steps=cbar_steps,
+                              cbar_title=cbar_title)
 
-    def add_colorbar(self, vmin = -1, vmax = 1, cmap = 'RdBu'):
-        step = (vmax - vmin) / 10
-        ax = self.fig.add_subplot(self.gs[0, 8:9])
+    def add_colorbar(self,
+                     vmin=-1,
+                     vmax=1,
+                     cmap='RdBu',
+                     cbar_steps=4,
+                     cbar_title=''):
+        step = (vmax - vmin) / cbar_steps
+        #ax = self.fig.add_subplot(self.gs[0, 8:9])
+        gssub = self.gs[0, 8:9].subgridspec(2, 1, height_ratios=[1, 8])
+        ax = plt.subplot(gssub[0])
+        _ = ax.text(0.7,
+                    0.,
+                    cbar_title,
+                    horizontalalignment='center',
+                    verticalalignment='center',
+                    transform=ax.transAxes)
+        ax.axis('off')
+        ax = plt.subplot(gssub[1])
         ax.set_anchor('W')
         norm = plt.Normalize(vmin, vmax)
-        gggg = mpl.cm.ScalarMappable(norm = norm, cmap = cmap)
-        gggg.set_array(np.arange(vmin, vmax, 10))  # divide by 10 for obs/km/yr
-        _ = plt.colorbar(gggg, cax=ax, ticks=np.arange(vmin, vmax + step, step))
-        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        gggg = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+        gggg.set_array(np.arange(vmin, vmax, 5))  # divide by 10 for obs/km/yr
+        cb = plt.colorbar(gggg,
+                          cax=ax,
+                          ticks=np.arange(vmin, vmax + step, step))
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
 
 def shade(located_elevations):
