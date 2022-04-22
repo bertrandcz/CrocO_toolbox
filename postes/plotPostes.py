@@ -42,11 +42,13 @@ class MassifReal(Massif):
 
     def __init__(self, *args):
         Massif.__init__(self, *args)
-        self.inProj = Proj(init = 'epsg:27572')  # EPSG code of the native NTF_Lambert_II_Carto
-        self.outProj = Proj(init = 'epsg:4326')
+        # EPSG code of the native NTF_Lambert_II_Carto
+        self.inProj = Proj(init='epsg:27572')
+        self.outProj = Proj(init='epsg:4326')
         mass = mountain_from_massif([self.massifnum])[0]
         mmass = mass if 'orlu' not in mass else 'pyrenees'
-        sf = shp.Reader(os.environ['SNOWTOOLS_CEN' ] + '/DATA/massifs_' + mmass + '.shp')
+        sf = shp.Reader(os.environ['SNOWTOOLS_CEN'] + '/DATA/massifs_' +
+                        mmass + '.shp')
 
         for shape in sf.shapeRecords():
             if shape.record[1] == self.massifnum:
@@ -54,7 +56,8 @@ class MassifReal(Massif):
                 x = [i[0] for i in shape.shape.points[:]]
                 y = [i[1] for i in shape.shape.points[:]]
                 self.x, self.y = transform(self.inProj, self.outProj, x, y)
-                self.polygon = Polygon([(xx, yy) for xx, yy in zip(self.x, self.y)])
+                self.polygon = Polygon([(xx, yy)
+                                        for xx, yy in zip(self.x, self.y)])
                 self.center = [np.mean(self.x), np.mean(self.y)]
                 self.area = shape.record[4]
                 break
@@ -103,22 +106,29 @@ class MapPostes(Pie):
                 # @TODO: something smart.
                 pass
 
-    def prepare_background(self, ax = None, background = True, tag_massifs = False, resolution = 'high'):
+    def prepare_background(self,
+                           ax=None,
+                           background=True,
+                           tag_massifs=False,
+                           resolution='high'):
         """
         Bc june 2021 quick hack to submit my paper.
         """
         if ax is not None:
             raise Exception(' not implemented yet, please be patient Bber')
         projection = ccrs.PlateCarree()
-        self.fig = plt.figure(figsize = cm2inch(12, 10), constrained_layout = True)
-        self.gs = self.fig.add_gridspec(2, 10, height_ratios = [3, 1])  # height aspect ratio btw alps/pyr is 2.9888... :)
+        self.fig = plt.figure(figsize=cm2inch(12, 10), constrained_layout=True)
+        # height aspect ratio btw alps/pyr is 2.9888... :)
+        self.gs = self.fig.add_gridspec(2, 10, height_ratios=[3, 1])
         gs = self.gs
-        plt.subplots_adjust(top = .92, bottom = .03)
+        plt.subplots_adjust(top=.92, bottom=.03)
         for i, mountain in self.mountains.items():
             if i == 0:
-                self.axis[mountain] = self.fig.add_subplot(gs[i, 0:7], projection =projection)
+                self.axis[mountain] = self.fig.add_subplot(
+                    gs[i, 0:7], projection=projection)
             else:
-                self.axis[mountain] = self.fig.add_subplot(gs[i, :], projection =projection)
+                self.axis[mountain] = self.fig.add_subplot(
+                    gs[i, :], projection=projection)
             ax = self.axis[mountain]
             ax.set_anchor('W')
             gl = ax.gridlines()
@@ -140,7 +150,7 @@ class MapPostes(Pie):
 
             for mnum, massif in self.massifs.items():
                 if mountain_from_massif([mnum]) == [mountain]:
-                    ax.plot(massif.x, massif.y, color = 'k', zorder = 2)
+                    ax.plot(massif.x, massif.y, color='k', zorder=2)
                 # trick to limit to the alps/pyrenees
 
                 if tag_massifs:
@@ -153,24 +163,50 @@ class MapPostes(Pie):
             ax.set_extent(self.extent[mountain])
             if background:
                 # Add a background image downloaded installed in .local/.../cartopy and converted into .png (see cartopy doc)
-                ax.background_img(extent = self.extent[mountain], name = 'ne_shaded_high', resolution = resolution)
+                ax.background_img(extent=self.extent[mountain],
+                                  name='ne_shaded_high',
+                                  resolution=resolution)
 
-    def plot_scatter_postes(self, tag_postes = False, tag_massifs = True,
-                            plotCircle = True, cmap = 'RdBu', vmin=-0.5, vmax=.5, colorbar  = True ):
+    def plot_scatter_postes(self,
+                            tag_postes=False,
+                            tag_massifs=True,
+                            plotCircle=True,
+                            cmap='RdBu',
+                            vmin=-0.5,
+                            vmax=.5,
+                            colorbar=True,
+                            cbar_steps=4,
+                            cbar_title=''):
         for i, mountain in self.mountains.items():
             ax = self.axis[mountain]
-            _ = ax.scatter(self.sdObj.pgd.lon, self.sdObj.pgd.lat, c = self.sdObj.data['DEP'],
-                           cmap = cmap, vmin = vmin, vmax = vmax, zorder = 100, s=6)
+            _ = ax.scatter(self.sdObj.pgd.lon,
+                           self.sdObj.pgd.lat,
+                           c=self.sdObj.data['DEP'],
+                           cmap=cmap,
+                           vmin=vmin,
+                           vmax=vmax,
+                           zorder=100,
+                           s=6)
             if tag_postes:
                 for ipt in range(self.sdObj.pgd.npts):
-                    ax.annotate(str(self.sdObj.pgd.station[ipt]), (self.sdObj.pgd.lon[ipt], self.sdObj.pgd.lat[ipt]),)
+                    ax.annotate(
+                        str(self.sdObj.pgd.station[ipt]),
+                        (self.sdObj.pgd.lon[ipt], self.sdObj.pgd.lat[ipt]),
+                    )
 
             # plot a circle on the alps
             if i == 0:
                 if 'local' in self.sdObj.ptinom and plotCircle:
 
-                    radius = callunits(self.sdObj.ptinom.split(',')[1].split(' ')[0])
-                    circle = plt.Circle((self.xlims[mountain][0] + 1.1 * radius, self.ylims[mountain][1] - 1.1 * radius), radius, color = 'g', fill = False, lw = 3)
+                    radius = callunits(
+                        self.sdObj.ptinom.split(',')[1].split(' ')[0])
+                    circle = plt.Circle(
+                        (self.xlims[mountain][0] + 1.1 * radius,
+                         self.ylims[mountain][1] - 1.1 * radius),
+                        radius,
+                        color='g',
+                        fill=False,
+                        lw=3)
                     ax.add_artist(circle)
 
         if colorbar:
@@ -182,7 +218,6 @@ class MapPostes(Pie):
         plot the polygons of the massifs filled with a value from dictmassif
 
         """
-        # print(plt.cm.__dict__)
         cmap = plt.cm.__dict__[cmap]
         norm = plt.Normalize(vmin, vmax)
         for _, mountain in self.mountains.items():
@@ -197,8 +232,7 @@ class MapPostes(Pie):
                                  match_original=True,
                                  edgecolor='k',
                                  linewidths=1.,
-                                 zorder=2
-                                 )
+                                 zorder=2)
             ax.add_collection(pc)
             ax.autoscale()
         if colorbar:
@@ -222,5 +256,6 @@ def shade(located_elevations):
 
     """
     new_img = srtm.add_shading(located_elevations.image,
-                               azimuth=135, altitude=15)
+                               azimuth=135,
+                               altitude=15)
     return LocatedImage(new_img, located_elevations.extent)
