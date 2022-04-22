@@ -120,7 +120,7 @@ class CrocoParallel(CrocO):
             # - spawn soda (if not openloop and not on the last timestep.
             if self.options.pf != 'ol' and dd != self.options.datefin:
                 self.sodas.run_parallel(dd)
-            # report on the time spent
+        # report on the time spent
         elapsed_time = time.time() - self.start_time
         print('elapsed time(setup and simu) :', elapsed_time)
 
@@ -240,12 +240,12 @@ class OfflinePools(CrocO):
         date_begin_forc = date_begin_forc[0]  # replace one-item list by item.
         date_end_forc = date_end_forc[0]
         safe_create_link(self.options.forcing + '/' + mbdir + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
-                   'FORCING.nc')
+                         'FORCING.nc')
         # prepare ecoclimap binaries
 
         safe_create_link(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapI_covers_param.bin', 'ecoclimapI_covers_param.bin')
         safe_create_link(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapII_eu_covers_param.bin', 'ecoclimapII_eu_covers_param.bin')
-            # flanner stuff
+        # flanner stuff
         safe_create_link(self.exesurfex + '/../MY_RUN//DATA/CROCUS/drdt_bst_fit_60.nc', 'drdt_bst_fit_60.nc')
         safe_create_link(self.exesurfex + '/OFFLINE', 'offline.exe')
         safe_create_link(self.xpiddir + 'spinup/pgd/PGD_' + area(self.options.vconf) + '.nc', 'PGD.nc')
@@ -293,12 +293,12 @@ class OfflinePools(CrocO):
         # this links are broken on creation, but exist once SURFOUT have been created.
         if self.options.pf != 'ol':
             safe_create_link(
-                    self.xpiddir + '/' + dateprev + '/workSODA/SURFOUT' + str(mb) + '.nc',
+                self.xpiddir + '/' + dateprev + '/workSODA/SURFOUT' + str(mb) + '.nc',
                 'PREP.nc', exc_broken = False)
         # ol case
         else:
             safe_create_link(
-                    self.xpiddir + '/' + dateprev + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc',
+                self.xpiddir + '/' + dateprev + '/mb{0:04d}'.format(mb) + '/SURFOUT.nc',
                 'PREP.nc', exc_broken = False)
 
     def run(self, date):
