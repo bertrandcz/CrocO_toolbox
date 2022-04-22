@@ -19,7 +19,7 @@ from tools.update_namelist import update_surfex_namelist_file
 from utils.ESCROCsubensembles import ESCROC_subensembles
 from utils.dates import get_list_dates_files
 
-# from tqdm import tqdm
+from tqdm import tqdm
 
 from CrocoPf import CrocO, CrocoPf
 from utilcrocO import area, check_namelist_soda, dump_conf
@@ -109,19 +109,16 @@ class CrocoParallel(CrocO):
         run
         '''
         # progress_bar
-        # pbar = tqdm(self.options.assimdates)
-        # for dd in pbar:
-        for dd in self.options.assimdates:
-            # pbar.set_description('Propagating until: ' + dd)
+        pbar = tqdm(self.options.assimdates + [self.options.datefin])
+        for dd in pbar:
+            pbar.set_description('Ensemble simulation until ' + dd)
             #  - spawn offline
             self.escrocs.run(dd)
 
-            # - spawn escroc (if not openloop)
-            if self.options.pf and self.options.pf != 'ol':
+            # - spawn soda (if not openloop and not on the last timestep.
+            if self.options.pf != 'ol' and dd != self.options.datefin:
                 self.sodas.run_parallel(dd)
             # report on the time spent
-        # last propagation
-        self.escrocs.run(self.options.datefin)
         elapsed_time = time.time() - self.start_time
         print('elapsed time(setup and simu) :', elapsed_time)
 
