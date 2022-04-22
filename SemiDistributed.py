@@ -103,12 +103,12 @@ class Obs(SemiDistributed):
                 self.close()
         else:
             # if no masking/modif is needed, just link the file:
-            if not os.path.exists(self.sodaName) or not os.path.islink(self.sodaName):
+            if not os.path.exists(self.sodaName): # or not os.path.islink(self.sodaName):
                 try:
                     os.symlink(self.path, self.sodaName)
-                except OSError:
+                except FileNotFoundError:
                     print(self.path, self.sodaName)
-                    raise Exception
+                    raise Exception('obs.prepare: ' + self.path + ' does not exist')
 
     def prepare_realmask(self):
         self.maskpath = self.sodaName

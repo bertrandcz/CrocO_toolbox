@@ -218,11 +218,11 @@ class CrocoPf(CrocO):
         """
         os.chdir(self.xpiddir + date + '/workSODA')
         self.prepare_preps(date)
-        # print('launching SODA on ', date)
+        print('launching SODA on ', date)
         with open('soda.out', 'w') as f:
             p = subprocess.call('./soda.exe', stdout=f)
             if p != 0:
-                raise RuntimeError('SODA crashed, check ', os.getcwd() + f)
+                raise RuntimeError('SODA crashed, check ', os.getcwd() + str(f))
         os.chdir('..')
 
 

@@ -548,7 +548,6 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     else:
         N = n.parse(pathIn)
     # LWRITE_TOPO must be false if we want ISBA_ANALYSIS.out to write
-    print('force LWRITE_TOPO to .FALSE.')
     N['NAM_IO_OFFLINE'].LWRITE_TOPO = False
 
     # update assim vars in the namelist

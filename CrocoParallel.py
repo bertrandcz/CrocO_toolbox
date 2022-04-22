@@ -301,7 +301,7 @@ class OfflinePools(CrocO):
     def run(self, date):
         # print('launching escroc until ', date)
         p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers))
-        p.map(self.mb_run, [['/'.join([self.xpiddir, date, mbdir]), mbdir] for mbdir in self.mbdirs])
+        p.map(self.mb_run, [['/'.join([self.xpiddir, date, mbdir])] for mbdir in self.mbdirs])
         p.close()
         p.join()
         # print('escroc step is done.')
@@ -319,7 +319,6 @@ class OfflinePools(CrocO):
 
     def mb_run(self, largs):
         path = largs[0]
-        mbdir = largs[1]
         os.chdir(path)
         with open('offline.out', 'w') as f:
             subprocess.call('./offline.exe', stdout=f)
