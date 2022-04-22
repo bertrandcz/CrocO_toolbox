@@ -37,6 +37,8 @@ class CrocoParallel(CrocO):
         self.start_time = time.time()
         # call mother init
         CrocO.__init__(self, options)
+        if self.options.pf is None:
+            raise Exception('please specify a pf variant, or openloop')
         self.dump_options()
         # duplicate with offline pool... but cannot move to CrocO class yet (due tu the synth case removal)
         self.mblist = list(range(1, self.options.nmembers + 1))
@@ -161,12 +163,12 @@ class CrocoParallel(CrocO):
             idate = idd + 1
             [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/SURFOUT.nc',
                              mbdir + '/bg/PREP_' + date + '.nc') for mbdir in self.mbdirs]
-            if self.options.pf and self.options.pf != 'ol':
+            if self.options.pf != 'ol':
                 [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/PREP.nc',
                                  mbdir + '/an/PREP_' + self.options.stopdates[idate - 1] + '.nc') for mbdir in self.mbdirs]
             [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/ISBA_PROGNOSTIC.OUT.nc',
                              mbdir + '/pro/PRO_' + self.options.stopdates[idate - 1] + '_' + date + '.nc') for mbdir in self.mbdirs]
-        if self.options.pf and self.options.pf != 'ol':
+        if self.options.pf != 'ol':
             for date in self.options.stopdates[0:-1]:
                 shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/PART', 'workSODA/PART_' + date + '.txt')
                 shutil.copyfile('/'.join([self.xpiddir, date, 'workSODA']) + '/ALPHA', 'workSODA/ALPHA_' + date + '.txt')
