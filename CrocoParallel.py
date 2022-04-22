@@ -134,16 +134,19 @@ class CrocoParallel(CrocO):
     def archive(self):
         """
         archive simulation outputs. could be parallelized.
+        /!\Erases previous archives on the same path
         """
         start_time = time.time()
         if self.options.arch is None:
             print("putting the archive in xpid. Not recommended")
             self.options.arch = self.xpid
+
         print('archiving the outputs to ', self.options.arch)
-        if not os.path.exists(self.options.arch):
+        if os.path.exists(self.options.arch):
+            shutil.rmtree(self.options.arch)
             os.makedirs(self.options.arch)
         os.chdir(self.options.arch)
-        if not os.path.exists('mb0001/bg/'):
+
             for mbdir in self.mbdirs:
                 os.makedirs(mbdir + '/' + 'bg')
                 os.makedirs(mbdir + '/' + 'an')
