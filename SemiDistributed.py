@@ -310,9 +310,8 @@ class Real(Obs):
         else:
             # BC 30/03/20 change that could cause bugs
             # self.sodaName = sensordir + self.vortexname
-            # BC changed again jan 2021
-            # self.sodaName = options.xpiddir + '/' + date + '/workSODA/' + self.sodaName
-            self.sodaName = options.xpiddir + '/crocO/' + options.saverep + '/' + date + '/workSODA/' + self.sodaName
+            self.sodaName = options.xpiddir + '/' + date + '/workSODA/' + self.sodaName
+            # self.sodaName = options.xpiddir + '/crocO/' + options.saverep + '/' + date + '/workSODA/' + self.sodaName
             # overwrite vortexname
             self.vortexname = sensordir + self.vortexname
             self.path = self.vortexname
