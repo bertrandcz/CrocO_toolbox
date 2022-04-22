@@ -127,15 +127,10 @@ class CrocoPf(CrocO):
         """
         cwd = os.getcwd()
         os.chdir(path)
-        if not os.path.exists('PGD.nc'):
-            os.symlink(self.options.pathPgd, 'PGD.nc')
+        safe_create_link(self.options.pathPgd, 'PGD.nc')
         self.prepare_namelist()
+        check_namelist_soda(self.options)
 
-        # in the parallel case, the namelist is checked by CrocOparallel class
-        if self.options.todo != 'parallel':
-            check_namelist_soda(self.options)
-        else:
-            os.rename('OPTIONS_base.nam', 'OPTIONS.nam')
         if 'sxcen' not in self.machine:
             # prepare ecoclimap binaries
             if not os.path.exists('ecoclimapI_covers_param.bin'):
