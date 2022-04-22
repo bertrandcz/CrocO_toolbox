@@ -144,14 +144,14 @@ class CrocoParallel(CrocO):
         print('archiving the outputs to ', self.options.arch)
         if os.path.exists(self.options.arch):
             shutil.rmtree(self.options.arch)
-            os.makedirs(self.options.arch)
+        os.makedirs(self.options.arch)
         os.chdir(self.options.arch)
 
-            for mbdir in self.mbdirs:
-                os.makedirs(mbdir + '/' + 'bg')
-                os.makedirs(mbdir + '/' + 'an')
-                os.makedirs(mbdir + '/' + 'pro')
-            os.mkdir('workSODA/')
+        for mbdir in self.mbdirs:
+            os.makedirs(mbdir + '/' + 'bg')
+            os.makedirs(mbdir + '/' + 'an')
+            os.makedirs(mbdir + '/' + 'pro')
+        os.mkdir('workSODA/')
 
         # deal with first date
         date = self.options.stopdates[0]
