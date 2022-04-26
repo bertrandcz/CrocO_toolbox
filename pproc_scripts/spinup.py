@@ -45,14 +45,14 @@ commonoptions = " -o " + diroutput  + " -n " + pathName + ' -a ' + sweceil
 commandTG = ' -g'
 commandInit = shortcommand + commonoptions + commandTG
 print(commandInit)
-s2m.execute(commandInit.split())
+s2m(commandInit.split())
 
 # the rest of the years without -g arg
 for year in range(9):
     spincommand = ' -x ' + spinDate + ' -g'
     command = shortcommand + commonoptions + spincommand
     print(command)
-    s2m.execute(command.split())
+    s2m(command.split())
 
 
 # in the end, change the date and apply threshold on swe (dupli from snowtools_git/tests/test_thres_threshold.)

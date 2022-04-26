@@ -17,14 +17,10 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 
 
-massifs = [8, 9, 12, 13, 15, 16]
-year = 2013
-xpid = 'ref2'
+def super_PGD(massifs, year, xpidforcing, obsPath= os.environ['CROCOPATH']  + '/s2m/postes/obs_csv/bd-clim_ML/OBS_2009080100_2020080123_types13456789.csv', vconf = None):
 
-
-def super_PGD(massifs, year, xpidforcing, obsPath= os.environ['CROCOPATH']  + 's2m/postes/obs_csv/bd-clim_ML/OBS_2010080100_2020021023_types1346789.csv'):
-
-    vconf = '_'.join(['postes'] + list(map(str, massifs)) + ['csv'])
+    if vconf is None:
+        vconf = '_'.join(['postes'] + list(map(str, massifs)) + ['csv'])
     rootDir = os.environ['VORTEXPATH'] + '/s2m/' + vconf + '/spinup/'
     pgdPath = rootDir + '/pgd/PGD_' + vconf + '.nc'
     superpgdPath = rootDir + '/pgd/super_PGD_' + vconf + '.nc'
@@ -43,15 +39,22 @@ def super_PGD(massifs, year, xpidforcing, obsPath= os.environ['CROCOPATH']  + 's
     superpgd = netCDF4.Dataset(superpgdPath, 'a')
     station = f.variables['station']
     print('station', station[:])
-    # B. read the type  in the observations file
+    # B. read the type of post in the observations file
     df = pd.read_csv(obsPath, delimiter = ';')
 
     # B.1. PREPARE the Dataframe
-    df = df.pivot(index = 'Date UTC', columns = 'NUMPOST', values = 'type')
+    df1 = df.pivot(index = 'Date UTC', columns = 'NUMPOST', values = 'TYPE_NIVO')
+    df2 = df.pivot(index = 'Date UTC', columns = 'NUMPOST', values = 'TYPE_POSTE_ACTUEL')
+    df3 = df.pivot(index = 'Date UTC', columns = 'NUMPOST', values = 'RESEAU_POSTE_ACTUEL')
 
     # B.2 read the type
-    type_df = df.mean()
+    type_df = df1.mean()
     typestat = np.array([int(type_df[s]) for s in station[:]])
+
+    type_df = df2.mean()
+    typestat_poste_actuel = np.array([int(type_df[s]) for s in station[:]])
+    type_df = df3.mean()
+    typestat_reseau = np.array([int(type_df[s]) for s in station[:]])
 
     # C. read the massif number in the metadata file
 
@@ -65,10 +68,14 @@ def super_PGD(massifs, year, xpidforcing, obsPath= os.environ['CROCOPATH']  + 's
 
     # D. WRITE
     statPgd = superpgd.createVariable('station', 'int32', ('Number_of_points',), fill_value = station._FillValue)
-    typePgd = superpgd.createVariable('type', 'int32', ('Number_of_points',), fill_value = station._FillValue)
+    type_nivo = superpgd.createVariable('type_nivo', 'int32', ('Number_of_points',), fill_value = station._FillValue)
+    type_poste_actuel = superpgd.createVariable('type_poste_actuel', 'int32', ('Number_of_points',), fill_value = station._FillValue)
+    reseau_poste_actuel = superpgd.createVariable('reseau_poste_actuel', 'int32', ('Number_of_points',), fill_value = station._FillValue)
     massifPgd = superpgd.createVariable('massif', 'int32', ('Number_of_points',), fill_value = station._FillValue)
     statPgd[:] = station[:]
-    typePgd[:] = typestat
+    type_nivo[:] = typestat
+    type_poste_actuel[:] = typestat_poste_actuel
+    reseau_poste_actuel[:] = typestat_reseau
     massifPgd[:] = statmassif
     superpgd.close()
     return superpgdPath

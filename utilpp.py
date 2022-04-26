@@ -19,7 +19,7 @@ def read_part(options):
     gg3 = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
-            filename = dd + '/PART'
+            filename = dd + '/workSODA/PART'
             f = open(filename, 'rb')
         else:  # =='parallelpp'
             try:
@@ -38,7 +38,7 @@ def read_mask(options):
     imask = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
-            filename = dd + '/IMASK'
+            filename = dd + '/workSODA/IMASK'
             f = open(filename, 'r')
 
         else:  # =='parallelpp'
@@ -65,7 +65,7 @@ def read_BG(options):
     bg = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf':
-            filename = dd + '/BG_CORR'
+            filename = dd + '/workSODA/BG_CORR'
             f = open(filename, 'rb')
         else:  # =='parallelpp'
             try:
@@ -87,7 +87,7 @@ def read_alpha(options):
     alpha = dict()
     for dd in options.dates:
         if options.todo == 'pfpp' or options.todo == 'pf' or options.todo == 'pf':
-            filename = dd + '/ALPHA'
+            filename = dd + '/workSODA/ALPHA'
             f = open(filename, 'r')
         else:  # =='parallelpp'
             try:
@@ -142,6 +142,7 @@ def load_pickle2(pathPkl):
     with open(pathPkl, 'rb') as f:
         print('loading from pickle ! ', pathPkl)
         gg = pickle.load(f, encoding = 'latin1')  # @TODO: fix python2 compatibility (encoding does not exist)
+
     return gg
 
 
@@ -185,29 +186,36 @@ def RMSE(ens, truth, aggrTime = False, aggrDomain = True):
     """
     (aggrtime = False, aggrDomain = False): time-variant RMSE of an ensemble mean over a domain.
     (aggrtime = True, aggrDomain = False): domain variant, time averaged RMSE
-
+    BC Sept 20: BE CAREFUL: depending on the way the average is done, the same weight is given to each obs or not !
     IN: ens (ndate, npts, nmembers)
         truth    (ndate, npts)
     OUT: RMSE(ndate)
     """
     if aggrDomain:
         if not aggrTime:
-            return np.ma.sqrt(np.ma.mean(np.square(np.ma.mean(ens, axis = 2) - truth), axis = 1))
+            return np.ma.sqrt(np.ma.mean(np.square(np.ma.median(ens, axis = 2) - truth), axis = 1))
         else:
-            return np.ma.sqrt(np.ma.mean(np.ma.mean(np.square(np.ma.mean(ens, axis = 2) - truth), axis = 1)))
+            return np.ma.sqrt(np.ma.mean(np.square(np.ma.median(ens, axis = 2) - truth)))
     else:
         if not aggrTime:
-            return np.ma.sqrt(np.square(np.ma.mean(ens, axis = 2) - truth))
+            return np.ma.sqrt(np.square(np.ma.median(ens, axis = 2) - truth))
         else:
-            return np.ma.sqrt(np.ma.mean(np.square(np.ma.mean(ens, axis = 2) - truth), axis = 0))
+            return np.ma.sqrt(np.ma.mean(np.square(np.ma.median(ens, axis = 2) - truth), axis = 0))
 
 
-def spread(ens, aggrTime = False, aggrDomain = True):
+def spread(ens, truth = None, aggrTime = False, aggrDomain = True):
     """
     time-variant spread of an ensemble over a domain.
+    BC Sept 20: BE CAREFUL: depending on the way the average is done, the same weight is given to each obs or not !
     IN: ENSEMBLE (ndate, npts, nmembers)
-    OUT: spread(ndate)
+    OUT: spread(ndate) or(npts) or (ndate, npts) or ()
+
     """
+    if truth is not None:
+        # mask the ensemble where the truth is not defined:
+
+        ensMask = np.broadcast_to(np.expand_dims(~np.isnan(truth), axis = 2), ens.shape)
+        ens = np.ma.masked_array(ens, mask = ensMask)
     if aggrDomain:
         if not aggrTime:
             return np.ma.sqrt(np.ma.mean(np.ma.array(
@@ -215,10 +223,10 @@ def spread(ens, aggrTime = False, aggrDomain = True):
                  for (m, meanPt) in zip(np.rollaxis(ens, 1), np.ma.mean(ens, axis = 2).T)]
             ), axis = 0))
         else:
-            return np.ma.sqrt(np.ma.mean(np.ma.mean(np.ma.array(
+            return np.ma.sqrt(np.ma.mean(np.ma.array(
                 [np.ma.mean((m - np.ma.expand_dims(meanPt, axis = 1))**2, axis = 1)
                  for (m, meanPt) in zip(np.rollaxis(ens, 1), np.ma.mean(ens, axis = 2).T)]
-            ), axis = 0)))
+            )))
     else:
         if not aggrTime:
             return np.ma.sqrt(np.ma.array(
@@ -235,18 +243,53 @@ def bias(ens, truth, aggrTime = False, aggrDomain = True):
     """
     (aggrtime = False, aggrDomain = False): time-variant bias of an ensemble mean over a domain.
     (aggrtime = True, aggrDomain = False): domain variant, time averaged RMSE
-
+    BC Sept 20: BE CAREFUL: depending on the way the average is done, the same weight is given to each obs or not !
     IN: ens (ndate, npts, nmembers)
         truth    (ndate, npts)
     OUT: RMSE(ndate)
     """
     if aggrDomain:
         if not aggrTime:
-            return np.ma.mean(np.ma.mean(ens, axis = 2) - truth, axis = 1)
+            return np.ma.mean(np.ma.median(ens, axis = 2) - truth, axis = 1)
         else:
-            return np.ma.mean(np.ma.mean(np.ma.mean(ens, axis = 2) - truth, axis = 1))
+            return np.ma.mean(np.ma.median(ens, axis = 2) - truth)
     else:
         if not aggrTime:
-            return np.ma.mean(ens, axis = 2) - truth
+            return np.ma.median(ens, axis = 2) - truth
         else:
-            return np.ma.mean(np.ma.mean(ens, axis = 2) - truth, axis = 0)
+            return np.ma.mean(np.ma.median(ens, axis = 2) - truth, axis = 0)
+
+
+def moving_stats(x, a=3, weights = None):
+    """
+    compute the moving median and standard deviation of vector x along an even window of width a.
+    If specified, used weights for the values
+    """
+    if weights is not None:
+        print(weights.shape)
+
+    def startx(i, a):
+        return int(max(0, i - (a - 1) / 2))
+
+    def endx(i, x, a):
+        return int(min(i + (a - 1) / 2, len(x) - 1))
+
+    ret1 = np.array([np.ma.average(x[startx(i, a):endx(i, x, a)],
+                                   weights = weights[startx(i, a):endx(i, weights, a)]if weights is not None else None)
+                     for i in range(len(x))])
+    ret2 = np.array([np.ma.sqrt(
+        np.ma.average(
+            (x[startx(i, a):endx(i, x, a)] - np.ma.average(
+                x[startx(i, a):endx(i, x, a)],
+                weights = weights[startx(i, a):endx(i, weights, a)] if weights is not None else None)
+             )**2,
+            weights = weights[startx(i, a):endx(i, weights, a)]if weights is not None else None))
+
+        for i in range(len(x))])
+    # fix edge effects
+    ret1[0:int((a - 1) / 2)] = np.nan
+    ret1[-int((a - 1) / 2):] = np.nan
+    ret2[0:int((a - 1) / 2)] = np.nan
+    ret2[-int((a - 1) / 2):] = np.nan
+
+    return ret1, ret2

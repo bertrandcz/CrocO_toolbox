@@ -62,7 +62,7 @@ export CROCOPATH=<path>
 ## Getting started
 ---
 
-First of all, thouroughly read the documentation of CrocO within the snowtools module :[CrocO user doc](https://opensource.umr-cnrm.fr/projects/snowtools_git/wiki/CrocO_user_doc), in order to get familiar with the software environment. 
+First of all, thoroughly read the documentation of CrocO within the snowtools module :[CrocO user doc](https://opensource.umr-cnrm.fr/projects/snowtools_git/wiki/CrocO_user_doc), in order to get familiar with the software environment. 
 - Basically, the only inputs you need are a meteorological forcing and a set of observations. Forcings from SAFRAN reanalyses (_Vernay et al., (in prep)_) over French mountain ranges are available at https://doi.org/10.25326/37. Observations must be converted to the daily format specified in the doc. 
 - Use this forcing to generate a *spinup* (PGD.nc and PREP.nc files) using **snowtools** _s2m command_ (example in pproc_scripts/spinup.py) and an appropriate namelist (basic examples in snowtools_git/DATA/).
 - Apply stochastic perturbations on the forcing to generate an *ensemble of forcings* (snowtools/tools/makeForcingEnsemble.py or snowtools_git/tools/job_gener_pert_forcings.py)

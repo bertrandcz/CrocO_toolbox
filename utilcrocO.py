@@ -9,22 +9,18 @@ utils suited for crocO interface only
 '''
 
 from argparse import Namespace
-import copy
 import datetime
 from ftplib import FTP
 from netrc import netrc
-from optparse import Values
 import os
 import re
-import shutil
-import sys
 
 import six
 
 from bronx.datagrip.namelist import NamelistParser
 import netCDF4  # @UnresolvedImport
 import numpy as np
-from tasks.vortex_kitchen import vortex_conf_file
+from tasks.vortex_kitchen import Vortex_conf_file
 
 
 def dictsAspect():
@@ -191,8 +187,10 @@ class Pgd:
     def __init__(self, pathPGD):
         try:
             pgd = netCDF4.Dataset(pathPGD)
-        except RuntimeError or OSError:
-            raise OSError('PGD not found.')
+        except OSError:
+            raise OSError('PGD not found at' + os.getcwd() + '/' + pathPGD)
+        except RuntimeError:
+            raise OSError('PGD not found at' + os.getcwd() + '/' + pathPGD)
         bugfix = pgd.variables['BUG']
         if bugfix == 0:
             raise Exception(' Version of your PGD is deprecated (BUG==0) please update it by rerunning a spinup so that BUG>=1')
@@ -206,8 +204,13 @@ class Pgd:
         # in the case of postes geometries, a "SUPER" PGD (enhanced with numposts ('station') and type of postes) is put at pathPGD
         if 'station' in pgd.variables.keys():
             self.station = np.squeeze(pgd.variables['station'][:])
-            self.type = np.squeeze(pgd.variables['type'][:])
             self.massif = np.squeeze(pgd.variables['massif'][:])
+            # BC 11/20 type_nivo corresponds to the most recent file format and is not mandatory
+            # only used for post-processing so far
+            if 'type_nivo' in pgd.variables.keys():
+                self.type_nivo = np.squeeze(pgd.variables['type_nivo'][:])
+                self.type_poste_actuel = np.squeeze(pgd.variables['type_poste_actuel'][:])
+                self.reseau_poste_actuel = np.squeeze(pgd.variables['reseau_poste_actuel'][:])
         pgd.close()
 
 
@@ -396,48 +399,6 @@ def conf2obj(conf):
     return ConfObj1L(**dict1)
 
 
-"""
-def read_conf(pathconf, useVortex=True):
-    '''
-    B. Cluzet, april 2020
-    BC 15/05/20 : moved to snowtools_git/tools/read_conf.py.
-    @TODO: delete from here when agreement from Matthieu
-    '''
-    if not os.path.exists(pathconf):
-        if os.path.exists(pathconf[0:-4] + '.foo'):
-            shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
-        else:
-            raise IOError('no conf file at this path :', pathconf)
-
-    def open_conf_no_vtx(pathconf):
-        try:
-            from configparser import ConfigParser
-        except ImportError:
-            print('please install configparser or vortex in order to parse the conf file.')
-        conf = ConfigParser()
-        conf.read(pathconf)
-        conf = conf2obj(conf)
-        return conf
-    if useVortex is True:
-        try:
-            from vortex.layout.nodes import ConfigSet
-            from vortex.util.config import GenericConfigParser
-            iniparser = GenericConfigParser(pathconf)
-            thisconf  = iniparser.as_dict(merged=False)
-            updconf = thisconf.get('defaults', dict())
-            conf = ConfigSet()
-            conf.update(updconf)
-        except ImportError:
-            print("you asked vortex to parse conf file but vortex is not installed")
-            print("since it is not installed, we use the alternative config parser")
-            print("this alternative config parser may not appropriately parse complex vorte types")
-            conf = open_conf_no_vtx(pathconf)
-    else:
-        conf = open_conf_no_vtx(pathconf)
-    return conf
-"""
-
-
 def dump_conf(pathConf, options):
     """
     dump an options object into a conf file.
@@ -445,10 +406,10 @@ def dump_conf(pathConf, options):
     dirname = os.path.dirname(pathConf)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
-    conffile = vortex_conf_file(pathConf, mode = 'w')
-    conffile.new_class('DEFAULT')
+    conffile = Vortex_conf_file(options, pathConf, mode = 'w')
+    conffile.add_block('DEFAULT')
     for attr, value in options.__dict__.items():
-        conffile.write_field(attr, value)
+        conffile.set_field('DEFAULT', attr, value)
     conffile.close()
     return 0
 
@@ -545,7 +506,6 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     else:
         N = n.parse(pathIn)
     # LWRITE_TOPO must be false if we want ISBA_ANALYSIS.out to write
-    print('force LWRITE_TOPO to .FALSE.')
     N['NAM_IO_OFFLINE'].LWRITE_TOPO = False
 
     # update assim vars in the namelist
@@ -591,11 +551,9 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     if hasattr(N['NAM_ASSIM'], 'NLOC_PF'):
         # option deleted in june 2020
         print('be careful, old-formatted namelist !', 'NLOC_PF has been deleted.')
-        print('now, a localisation angle can be defined by setting XDLOC_PF (degrees) with the RLOCAL.')
+        print('now, a localisation angle can be defined by setting XDLOC_PF (degrees) with the {R,K}LOCAL.')
         print('let XDLOC_PF for a purely localised approach')
-        print('for the KLOCAL, NLOC_PF is not used as the max number')
-        print('of simultaneously assimilated obs per variable anymore')
-        print(' now this quantity is derived from the observations file itself')
+
         raise Exception
     if options.pf != 'ol':
         N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
@@ -716,16 +674,27 @@ def ftp_upload(localfile, remotefile, ftp):
     print("after upload " + localfile + " to " + remotefile)
 
 
+def safe_create_link(src, dst, exc_broken = True):
+    '''
+    create a symbolic link
+    issue a message if src does not exist and exc_broken = True
+    overwrites the link if exists or broken
+
+    '''
+    # remove preexisting-potentially broken link
+    if os.path.exists(dst) or os.path.islink(dst):
+        os.remove(dst)
+    os.symlink(src, dst)
+    if exc_broken:
+        if os.path.islink(dst) and not os.path.exists(dst):
+            # leave broken link (useful for debugging) but raise Exception
+            raise Exception('safe_create_link: {0} does not exist'.format(src))
+
+
 def merge_two_dicts(x, y):
     """
     source : https://stackoverflow.com/questions/38987/how-do-i-merge-two-dictionaries-in-a-single-expression-in-python"
     """
-#     if sys.version_info >= (3, 5):
-#         z = {**x, **y}
-#     else:
-#         z = x.copy()   # start with x's keys and values
-#         z.update(y)    # modifies z with y's keys and values & returns None
-#     return z
     for key, value in six.iteritems(y):
         x[key] = value
 

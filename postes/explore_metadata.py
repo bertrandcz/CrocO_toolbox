@@ -14,7 +14,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 
 
-def find_metadata(filepath = os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml', massifs = [12]):
+def find_metadata(filepath = os.environ['SNOWTOOLS_CEN'] + '/DATA/METADATA.xml', massifs = [12], exclude_corsica = True):
     '''
     BC 17/01/20
     Extract all metadata of postes (Sites) within the list of massifs.
@@ -51,7 +51,9 @@ def find_name_station(stations, filepath=os.environ['SNOWTOOLS_CEN'] + '/DATA/ME
     root = tree.getroot()
     ret = []
     # usually, stations is a numpy array or an int32...
-    if np.issubdtype(stations, np.integer):  # @TODO: still a bug here for int...
+    if isinstance(stations, list):
+        pass
+    elif np.issubdtype(stations, np.integer):  # @TODO: still a bug here for int...
         stations = [stations]
     for station in stations:
         for site in root[1].findall('Site'):
@@ -67,6 +69,37 @@ def find_name_station(stations, filepath=os.environ['SNOWTOOLS_CEN'] + '/DATA/ME
         return ret[0]
     else:
         return ret
+
+
+def find_duplicates(listp, listpnb, listpname, radius = 1000):
+    """
+    BC July 2020
+    finding the lat/lon duplicates within a 1km radius in a list of posts
+    """
+
+    listplatlon = [(float(p.find('lat').text.strip()), float(p.find('lon').text))  for p in listp]
+    names = dict()
+    numbers = dict()
+    dupes = set()
+    for _, ll in enumerate(listplatlon):
+        dists = distances(ll, listplatlon)
+        in_radius = np.where(dists < radius)[0]
+        # print(' in_radius', in_radius)
+        if len(in_radius) > 1:
+            in_radius = list(map(int, in_radius))
+            dupes.add(listplatlon[in_radius[0]])
+            names[in_radius[0]] = [listpname[ir] for ir in in_radius]
+            numbers[in_radius[0]] = [listpnb[ir] for ir in in_radius]
+    return names, numbers, dupes
+
+
+def distances(latlon, listplatlon):
+    """distance in m between latlon and each point of listplatlon"""
+    def dist_deg(ll1, ll2):
+        return np.sqrt((ll1[0] - ll2[0])**2 + (ll1[1] - ll2[1])**2)
+    R_t = 6371000  # earth's radius
+    dists = np.array([dist_deg(latlon, llp) for llp in listplatlon]) * R_t / 180. * np.pi
+    return dists
 
 
 def slice_file_listpnb(fileIn, fileOut, listpnb):

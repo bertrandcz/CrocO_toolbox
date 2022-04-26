@@ -15,6 +15,7 @@ import netCDF4  # @UnresolvedImport
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def set_conf_everydate(startY, assimilate_every, filepath, nens=40, endY = None):
@@ -87,3 +88,115 @@ class Mnt(object):
         self.y = np.squeeze(mnt.variables['y'][:])
         mnt.close()
         print('mnt loaded')
+
+
+def set_legend_mountain(pp, id_postes, ax, width, line):
+    # set the legend
+    # generate proxy scatter for legend entries:
+    s = []
+    l = []
+    for mountain in list(set(mountain_from_massif(pp.pgd.massif[id_postes]))):
+        gg = plt.scatter([], [],
+                         color=mountain_color([mountain]),
+                         )
+        s.append(gg)
+        l.append(mountain)
+
+    # generate a composite legend entry for line and envelope
+    # proxy for envelope:
+    p2 = ax.fill(np.NaN, np.NaN, color='C3', alpha=0.5)
+    s.append((p2[0], line[0]))
+    l.append(
+        '{0}-posts-width\nrolling median $\pm 1\sigma$'.format(width))
+    ax.legend(s, l, loc='lower_right')
+    return 0
+
+
+def set_itimes_posts(run):
+    """
+    set masks to put in common an ensemble (an or ol), its obs timeseries and the associated oper run.
+    """
+    if run.options.openloop == 'on':
+        timesEns = run.ensProOl['time']
+    else:
+        timesEns = run.ensProAn['time']
+    year = timesEns[0].year
+    mobs = [i for i, t in enumerate(run.obsTs['time'])
+            if (t.hour == 6 and ((t.year == year and t.month > 9) or (t.month < 7 and t.year == year + 1)))]
+    mens = [i for i, t in enumerate(run.ensProOl['time']) if (
+        t.hour == 6 and (t.month > 9 or t.month < 7))]
+    moper = [i for i, t in enumerate(run.oper['time']) if (
+        t.hour == 6 and (t.month > 9 or t.month < 7))]
+
+    return year, mobs, mens, moper
+
+#
+# def mountain_color(mountains):
+#     """
+#     return a color for each mountain.
+#     """
+#     cols = []
+#     if isinstance(mountains, str):
+#         mountains = [mountains]
+#     for mountain in mountains:
+#         if 'alpes' in mountain:
+#             cols.append('C0')
+#         elif 'pyrenees' in mountain:
+#             cols.append('C1')
+#         elif 'haute-ariege_andorre' in mountain:
+#             cols.append('C4')
+#         elif 'corse' in mountain:
+#             cols.append('C2')
+#         elif 'other' in mountain:
+#             cols.append('C5')
+#         else:
+#             print(mountain)
+#             print(type(mountain))
+#             raise Exception(' no color for this mountain at the moment sorry')
+#     return cols
+
+
+def mountain_color(mountains, highlight=['alpes', 'pyrenees']):
+    """
+    return a color for each mountain.
+    """
+    dict_cols = {'alpes': 'C0',
+                 'pyrenees': 'C1',
+                 'corse': 'C2',
+                 'beaufortain': 'C7',
+                 'haute-ariege_andorre': 'r',
+                 'other': 'C5',
+                 }
+    dcols = {h: dict_cols[h] for h in highlight}
+    if isinstance(mountains, str):
+        mountains = [mountains]
+    cols = [dcols[m] if m in dcols.keys() else 'C0' for m in mountains ]
+    return cols
+
+
+def mountain_from_massif(massifs):
+    """
+    Determine the mountain (alpes, pyrenees or corse) from the massif number
+    in: list
+    out:list
+    """
+    mountains = []
+    if isinstance(massifs, np.int32):
+        massifs = [massifs]
+    for massif in massifs:
+        #         if massif in [5]:
+        #             mountains.append('beaufortain')
+        #         elif massif in [17]:
+        #             mountains.append('haute-maurienne')
+        if massif <= 23:
+            mountains.append('alpes')
+        elif massif in [40, 41]:
+            mountains.append('corse')
+        # elif massif in [70, 71]:
+        #    mountains.append('haute-ariege_andorre')
+        elif massif > 91:
+            print(' No true massifs with num {0} exists'.format(massif))
+            mountains.append('other')
+        else:
+            mountains.append('pyrenees')
+    return mountains

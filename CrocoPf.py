@@ -9,12 +9,10 @@ from SemiDistributed import Synthetic, Real
 import os
 import shutil
 import subprocess
-from utilcrocO import convertdate, check_namelist_soda
-
+from utilcrocO import convertdate, check_namelist_soda, safe_create_link
 import matplotlib.pyplot as plt
 
 
-# import numpy as np
 class CrocO(object):
     '''
     Mother class for CROCO pf local tests, local CROCO runs and post-processing
@@ -28,7 +26,7 @@ class CrocO(object):
         self.xpiddir = options.xpiddir
 
         if not os.path.exists(self.xpiddir):
-            if self.options.todo == 'parallel'or (self.options.todo == 'generobs' and self.options.synth is None):
+            if self.options.todo == 'parallel' or (self.options.todo == 'generobs' and self.options.synth is None):
                 os.mkdir(self.xpiddir)
             else:
                 raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
@@ -62,6 +60,9 @@ class CrocO(object):
 
     def prepare_obs(self, date):
         """
+        * Retrieve obs (either real or synthetic)
+        * Prepare it (e.g. apply a mask, a noise,...)
+        * Archive "Raw" obs when necessary.
         """
         if self.options.synth is not None:
             # synthetic obs is generated from mbsynth at time date
@@ -78,7 +79,8 @@ class CrocO(object):
 
 class CrocoPf(CrocO):
     '''
-    class meant to perform LOCAL runs of the pf
+    class meant to run a LOCAL (i.e. not on MF supercomputer) PF ANALYSIS
+    (i.e. just th assimilation step on a given date, not the full assimilation sequence)
     '''
 
     def __init__(self, options, setup = True):
@@ -87,6 +89,7 @@ class CrocoPf(CrocO):
         # for the local soda PF, it is safer if mblist is a continous range (no removal of the synth mb but one mb less.
         # handling of the synth member is done in prepare_soda_env
         self.mblist = list(range(1, options.nmembers + 1))
+
         # setup all dirs
         if setup is True:
             self.setup()
@@ -104,13 +107,8 @@ class CrocoPf(CrocO):
 
         os.chdir(self.crocOdir + '/' + saverep)
         for dd in self.options.dates:
-            if self.options.todo == 'parallel':
-                if self.options.pf != 'ol':
-                    path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
-                else:  # no need to create workSODA in openloop case
-                    path = self.crocOdir + '/' + saverep + '/' + dd + '/'
-            else:
-                path = self.crocOdir + '/' + saverep + '/' + dd
+            path = self.crocOdir + '/' + saverep + '/' + dd + '/workSODA'
+
             if dd in self.options.dates:
                 if os.path.exists(path):
                     # bc slight change for local tests where it is painful to have the rep deleted each time. (pwd error)
@@ -132,15 +130,10 @@ class CrocoPf(CrocO):
         """
         cwd = os.getcwd()
         os.chdir(path)
-        if not os.path.exists('PGD.nc'):
-            os.symlink(self.options.pathPgd, 'PGD.nc')
+        safe_create_link(self.options.pathPgd, 'PGD.nc')
         self.prepare_namelist()
+        check_namelist_soda(self.options)
 
-        # in the parallel case, the namelist is checked by CrocOparallel class
-        if self.options.todo != 'parallel':
-            check_namelist_soda(self.options)
-        else:
-            os.rename('OPTIONS_base.nam', 'OPTIONS.nam')
         if 'sxcen' not in self.machine:
             # prepare ecoclimap binaries
             if not os.path.exists('ecoclimapI_covers_param.bin'):
@@ -173,7 +166,7 @@ class CrocoPf(CrocO):
                     self.build_link(mb + 1, mb, date, dateAssSoda)
             else:
                 self.build_link(mb, mb, date, dateAssSoda)
-        # a link fro PREP...1.nc to PREP.nc is also necessary for SODA
+        # a link from PREP...1.nc to PREP.nc is also necessary for SODA
         if not os.path.exists('PREP.nc'):
             os.symlink('PREP_' + dateAssSoda + '_PF_ENS1.nc', 'PREP.nc')
 
@@ -195,7 +188,7 @@ class CrocoPf(CrocO):
         """spawn soda in each date directory"""
         os.system('ulimit -s unlimited')
         for dd in self.options.dates:
-            os.chdir(dd)
+            os.chdir(dd + '/workSODA/')
             if self.options.todo != 'pfpython':
                 os.system('./soda.exe')
             else:
@@ -223,11 +216,11 @@ class CrocoPf(CrocO):
         """
         os.chdir(self.xpiddir + date + '/workSODA')
         self.prepare_preps(date)
-        # print('launching SODA on ', date)
+        print('launching SODA on ', date)
         with open('soda.out', 'w') as f:
             p = subprocess.call('./soda.exe', stdout=f)
             if p != 0:
-                raise RuntimeError('SODA crashed, check ', os.getcwd() + f)
+                raise RuntimeError('SODA crashed, check ', os.getcwd() + str(f))
         os.chdir('..')
 
 

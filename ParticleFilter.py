@@ -38,7 +38,6 @@ class ParticleFilter(object):
 
         self.pb = PrepEnsBg(self.options, self.dd)
         self.obs = Synthetic(self.xpiddir, self.dd, self.options)  # load pre-existing Synthetic (OR REAL), don't generate it.
-        self.pa = PrepEnsAn(self.options, self.dd)
         self.obs.load()
 
     def localize(self, k=None, errobs_factor = 1., plot = False):
@@ -201,6 +200,10 @@ class ParticleFilter(object):
                 matEns = np.ma.masked_invalid(np.vstack((matEns, np.take(self.pb.stack[var], sel[var], axis = 0))))    # take the sel[var] lines of stack
 
             R_1 = np.diag(r_1) / errobs_factor
+            # BC sep/oct 2020
+            # ugly forcing the covariance terms to be strong.
+            R_1[0, 1] = 0.99
+            R_1[1, 0] = 0.99
             # replace NaNs by 0.
             matEns[np.where(np.isnan(matEns))] = 0.
 

@@ -224,12 +224,12 @@ class CrocoPp(CrocO):
         else:
             fromArch = True
         # on beaufix, cannot straightforwardly parallelize the reading of preps
-        if 'beaufix' in os.uname()[1]:
+        # error: The "default" UnstructuredGeometry object does not exist yet"
+        # BC 30/09/20: don get what the hell happens on sxcen.
+        if 'beaufix' in os.uname()[1] or 'sxcen' in os.uname()[1] or 'belenos' in os.uname()[1]:
             if kind == 'bg':
                 locEns = {dd: PrepEnsBg(self.options, dd, fromArch=fromArch) for dd in self.options.dates}
             elif kind == 'an':
-                print('didodidodi', self.options.dates, self.datefin.strftime('%Y%m%d%H'), type(self.options.dates[0]), type(self.datefin.strftime('%Y%m%d%H')))
-
                 locEns = {dd: PrepEnsAn(self.options, dd, fromArch=fromArch) for dd in self.options.dates if dd != self.datefin.strftime('%Y%m%d%H')}
             else:
                 locEns = {dd: PrepEnsOl(self.options, dd, isOl=isOl, fromArch=fromArch) for dd in self.options.dates}
@@ -267,7 +267,7 @@ class CrocoPp(CrocO):
             try:
                 manager = multiprocessing.Manager()
                 locEns = manager.dict()
-                p = multiprocessing.Pool(min(multiprocessing.cpu_count(), len(self.options.dates)))
+                p = multiprocessing.Pool(min(max(multiprocessing.cpu_count() - 4, 1), len(self.options.dates)))
                 p.map(loadEnsPrepDate_parallel, [[self, locEns, dd, kind, isOl, fromArch] for dd in self.options.dates])
             except Exception as _:
                 p.close()
@@ -388,6 +388,7 @@ class CrocoPp(CrocO):
                 self.obsReal = {dd: Real(self.pathReal, dd, self.options) for dd in self.options.dates}
                 for dd in self.options.dates:
                     self.obsReal[dd].load()
+
                 pathObsTs = self.options.crocOpath + '/s2m/' + self.options.vconf + '/obs/' + self.options.sensor +\
                     '/obs_{0}_{1}_{2}100106_{3}063006.pkl'.format(self.options.sensor,
                                                                   self.options.vconf,
@@ -413,9 +414,16 @@ class CrocoPp(CrocO):
                                                                                                int(self.datedeb.strftime('%Y')) + 1
                                                                                                ),
                                        pathObsTs)
+                            self.obsTs = load_pickle2(pathObsTs)
                         except FileExistsError:
+                            try:
+                                self.obsTs = load_pickle2(pathObsTs)
+                            except FileNotFoundError:  # no obsTs file (makes some sense too.)
+                                pass
+                        except FileNotFoundError:  # no obsTs file (makes some sense too.)
                             pass
-                self.obsTs = load_pickle2(pathObsTs)
+                else:
+                    self.obsTs = load_pickle2(pathObsTs)
 
     def readOper(self):
         """

@@ -183,7 +183,6 @@ def callunits(value):
     """
     BC 09/06/20 : units converter for xdloc_pf.
     """
-    print(value)
     if type(value) is not float:
         ll = value.split(':')
         ll[0] = float(ll[0])
@@ -240,7 +239,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
     else:
         options.namelist_is_default = False
     if options.todo != 'generobs' and options.synth and options.sensor:
-        raise Exception(" ither you are running a synth experiment from scratch (--synth) or you are using pre-generated observations (--sensor), but not both !")
+        raise Exception(" either you are running a synth experiment from scratch (--synth) or you are using pre-generated observations (--sensor), but not both !")
     # load the PGD (mandatory), it is key to describe the working geometry.
     if pathPgd is None:
         try:
@@ -329,7 +328,7 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             conf.openloop = 'off'
         # in case the pf arg has not been provided, or in case of local test of the pf,
         # do not overwrite conf.openloop
-        if options.todo == 'parallelpp' and 'beaufix' not in os.uname()[1]:  # BC 07/2020 dirty patch
+        if options.todo == 'parallelpp' and 'beaufix' not in os.uname()[1] and 'belenos' not in os.uname()[1]:  # BC 07/2020 dirty patch
             options.openloop = conf.openloop
             if options.openloop != 'on':
                 options = read_opts_in_namelist(options)

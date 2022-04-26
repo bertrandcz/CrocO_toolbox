@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 '''
-Created on 10 may 2020
+Created on 10 May 2020
 @author: cluzetb.
-inspired on gener_pert_forcings.py (Croco.pproc_scripts)
 
 Launch LOCALLY the perturbation of the forcings using snowtools facilities
 (see snowtools.tools.job_gener_pert_forcings.py for a launch on beaufix)
-If you have access to beaufix, you'd better use snowtools_git/tools/job_pert_forcings.sh (parallelized)
+If you have access to beaufix, you'd better use snowtools_git/tools/job_pert_forcings.sh
+(parallelized + direct access to the archive via transfer jobs)
 '''
 from optparse import OptionParser
 import os
