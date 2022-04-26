@@ -10,11 +10,9 @@ import os
 import shutil
 import subprocess
 from utilcrocO import convertdate, check_namelist_soda, safe_create_link
-
 import matplotlib.pyplot as plt
 
 
-# import numpy as np
 class CrocO(object):
     '''
     Mother class for CROCO pf local tests, local CROCO runs and post-processing
@@ -28,7 +26,7 @@ class CrocO(object):
         self.xpiddir = options.xpiddir
 
         if not os.path.exists(self.xpiddir):
-            if self.options.todo == 'parallel'or (self.options.todo == 'generobs' and self.options.synth is None):
+            if self.options.todo == 'parallel' or (self.options.todo == 'generobs' and self.options.synth is None):
                 os.mkdir(self.xpiddir)
             else:
                 raise Exception('experiment ' + options.xpid  + 'does not exist at ' + self.xpiddir)
@@ -62,6 +60,9 @@ class CrocO(object):
 
     def prepare_obs(self, date):
         """
+        * Retrieve obs (either real or synthetic)
+        * Prepare it (e.g. apply a mask, a noise,...)
+        * Archive "Raw" obs when necessary.
         """
         if self.options.synth is not None:
             # synthetic obs is generated from mbsynth at time date
@@ -78,7 +79,8 @@ class CrocO(object):
 
 class CrocoPf(CrocO):
     '''
-    class meant to perform LOCAL runs of the pf
+    class meant to run a LOCAL (i.e. not on MF supercomputer) PF ANALYSIS
+    (i.e. just th assimilation step on a given date, not the full assimilation sequence)
     '''
 
     def __init__(self, options, setup = True):
@@ -87,6 +89,7 @@ class CrocoPf(CrocO):
         # for the local soda PF, it is safer if mblist is a continous range (no removal of the synth mb but one mb less.
         # handling of the synth member is done in prepare_soda_env
         self.mblist = list(range(1, options.nmembers + 1))
+
         # setup all dirs
         if setup is True:
             self.setup()

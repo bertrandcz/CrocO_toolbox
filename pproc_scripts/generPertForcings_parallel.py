@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-Created on 10 may 2020
+Created on 10 May 2020
 @author: cluzetb.
-
-DEPRECATED as of 22/07/20 due to updating of job_gener_pert_forcings: to delete in next commit !
-inspired on gener_pert_forcings.py (Croco.pproc_scripts)
 
 Launch LOCALLY the perturbation of the forcings using snowtools facilities
 (see snowtools.tools.job_gener_pert_forcings.py for a launch on beaufix)

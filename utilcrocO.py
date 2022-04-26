@@ -399,48 +399,6 @@ def conf2obj(conf):
     return ConfObj1L(**dict1)
 
 
-"""
-def read_conf(pathconf, useVortex=True):
-    '''
-    B. Cluzet, april 2020
-    BC 15/05/20 : moved to snowtools_git/tools/read_conf.py.
-    @TODO: delete from here when agreement from Matthieu
-    '''
-    if not os.path.exists(pathconf):
-        if os.path.exists(pathconf[0:-4] + '.foo'):
-            shutil.copyfile(pathconf[0:-4] + '.foo', pathconf)
-        else:
-            raise IOError('no conf file at this path :', pathconf)
-
-    def open_conf_no_vtx(pathconf):
-        try:
-            from configparser import ConfigParser
-        except ImportError:
-            print('please install configparser or vortex in order to parse the conf file.')
-        conf = ConfigParser()
-        conf.read(pathconf)
-        conf = conf2obj(conf)
-        return conf
-    if useVortex is True:
-        try:
-            from vortex.layout.nodes import ConfigSet
-            from vortex.util.config import GenericConfigParser
-            iniparser = GenericConfigParser(pathconf)
-            thisconf  = iniparser.as_dict(merged=False)
-            updconf = thisconf.get('defaults', dict())
-            conf = ConfigSet()
-            conf.update(updconf)
-        except ImportError:
-            print("you asked vortex to parse conf file but vortex is not installed")
-            print("since it is not installed, we use the alternative config parser")
-            print("this alternative config parser may not appropriately parse complex vorte types")
-            conf = open_conf_no_vtx(pathconf)
-    else:
-        conf = open_conf_no_vtx(pathconf)
-    return conf
-"""
-
-
 def dump_conf(pathConf, options):
     """
     dump an options object into a conf file.
@@ -593,11 +551,9 @@ def check_namelist_soda(options, pathIn= None, pathOut = None):
     if hasattr(N['NAM_ASSIM'], 'NLOC_PF'):
         # option deleted in june 2020
         print('be careful, old-formatted namelist !', 'NLOC_PF has been deleted.')
-        print('now, a localisation angle can be defined by setting XDLOC_PF (degrees) with the RLOCAL.')
+        print('now, a localisation angle can be defined by setting XDLOC_PF (degrees) with the {R,K}LOCAL.')
         print('let XDLOC_PF for a purely localised approach')
-        print('for the KLOCAL, NLOC_PF is not used as the max number')
-        print('of simultaneously assimilated obs per variable anymore')
-        print(' now this quantity is derived from the observations file itself')
+
         raise Exception
     if options.pf != 'ol':
         N['NAM_ASSIM'].CPF_CROCUS = options.pf.upper()
@@ -739,12 +695,6 @@ def merge_two_dicts(x, y):
     """
     source : https://stackoverflow.com/questions/38987/how-do-i-merge-two-dictionaries-in-a-single-expression-in-python"
     """
-#     if sys.version_info >= (3, 5):
-#         z = {**x, **y}
-#     else:
-#         z = x.copy()   # start with x's keys and values
-#         z.update(y)    # modifies z with y's keys and values & returns None
-#     return z
     for key, value in six.iteritems(y):
         x[key] = value
 

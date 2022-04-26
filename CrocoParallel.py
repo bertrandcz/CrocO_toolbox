@@ -2,7 +2,7 @@
 '''
 Created on 26 mars 2020
 
-@author: cluzetb\
+@author: cluzetb
 
 The aim of CrocoParallel class is to provide an alternative to vortex to perform CROCO parallalized runs.
 Many of its features are similar to snowtools_git/tasks/crocO* files
@@ -49,16 +49,15 @@ class CrocoParallel(CrocO):
         self.setup()
 
     def dump_options(self):
-        """
+        '''
         rough dump of :
         - options into conf file in conf dir
         - namelist copy into conf dir
-        """
+        '''
         _ = dump_conf(self.xpiddir + '/conf/s2m_' + self.options.vconf + '.ini', self.options)
 
         # the namelist is roughly copied and receives
         # common necessary modifications (updateloc ?)
-        # a check for SODA
         shutil.copyfile(self.options.namelist, self.xpiddir + '/conf/OPTIONS_base.nam')
         cwd = os.getcwd()
         os.chdir(self.xpiddir + '/conf/')
@@ -73,6 +72,7 @@ class CrocoParallel(CrocO):
             no_caution = True,
             cselect = self.options.provars
         )
+        # Even though this namelist is not used by soda, it must be compatible with the subsequent SODA run.
         os.chdir(cwd)
         check_namelist_soda(self.options, self.xpiddir + '/conf/OPTIONS_base.nam', self.xpiddir + '/conf/OPTIONS_base.nam')
 
@@ -89,14 +89,15 @@ class CrocoParallel(CrocO):
         shutil.move(spinup_prepfile, self.xpiddir + '/spinup/prep/PREP.nc')
 
     def setup(self):
-
-        # setup all the simulation dirs (all dates at once !)
-        # (same simulation architecture as on beaufix (a little bit simpler maybe)
-        # feed them with the constants
-        # prepare the observations and put it into the dirs
-        # => CrocoPf is used to prepare all that (it can be fed with a list of dates !!)
-        # however, the links to prep must be done just before the soda run itself
-        # hence, they are encapsulated inside run_parallel() class method
+        '''
+        setup all the simulation dirs (all dates at once !)
+        (same simulation architecture as on beaufix (a little bit simpler maybe)
+        feed them with the constants
+        prepare the observations and put it into the dirs
+        => CrocoPf is used to prepare all that (it can be fed with a list of dates !!)
+        however, the links to prep must be done just before the soda run itself
+        hence, they are encapsulated inside run_parallel() class method
+        '''
         self.sodas = CrocoPf(self.options)  # first because prepare the directories.
         self.soda_time = time.time() - self.start_time
         self.escrocs = OfflinePools(self.options)
@@ -108,7 +109,7 @@ class CrocoParallel(CrocO):
 
     def run(self, cleanup=False):
         '''
-        run
+        run, archive, and (optionally) cleanup.
         '''
         # progress_bar
         pbar = tqdm(self.options.assimdates + [self.options.datefin])
@@ -132,10 +133,10 @@ class CrocoParallel(CrocO):
             self.cleanup()
 
     def archive(self):
-        """
+        '''
         archive simulation outputs. could be parallelized.
         /!\Erases previous archives on the same path
-        """
+        '''
         start_time = time.time()
         if self.options.arch is None:
             print("putting the archive in xpid. Not recommended")
@@ -203,20 +204,19 @@ class OfflinePools(CrocO):
     def __init__(self, options):
         CrocO.__init__(self, options)
 
-        # B 26/03/20 CAREFUL WITH SYNTHETIC RUNS
         self.mblist = list(range(1, self.options.nmembers + 1))
         self.mbdirs = ['mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
 
         # setup
         self.setup()
-        # setup the workers (i.e 1 "worker" function that will be mapped on a list of list of arguments.
 
     def setup(self):
-
+        '''
+        Setup the execution directory for every member, every date.
+        Implies time-consuming editing of the namelists for OFFLINE.
+        For that reason, this process is parallelised.
+        '''
         # prepare escroc configurations
-        # BC bugfix 03/06/20:
-        # self.mblist instead of self.options.members_id
-        # (was running with the 40 first members of E1_notartes....)
         self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.options.members_id)
         p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates)))
         p.map(self.mb_prepare, [[date, idate, mbdir, mb]for idate, date in enumerate(self.options.stopdates)
@@ -226,9 +226,9 @@ class OfflinePools(CrocO):
         os.chdir(self.xpiddir)
 
     def prepare_offline_env(self, date, idate, mbdir, mb):
-        """
+        '''
         set offline environment for each date (=path): -PGD, links to preps, namelist, ecoclimap etc.
-        """
+        '''
         if not os.path.exists('/'.join([self.xpiddir, date, mbdir])):
             os.makedirs('/'.join([self.xpiddir, date, mbdir]))
         os.chdir('/'.join([self.xpiddir, date, mbdir]))
@@ -254,9 +254,9 @@ class OfflinePools(CrocO):
         self.prepare_namelist_offline(date, idate, mb)
 
     def prepare_namelist_offline(self, date, idate, mb):
-        """
+        '''
         prepare the namelist (begin/end date, escroc configuration and check DA settings)
-        """
+        '''
         self.prepare_namelist()
 
         # Prepare the escroc namelist
@@ -275,8 +275,6 @@ class OfflinePools(CrocO):
             no_caution = True,
         )
         shutil.copyfile("OPTIONS_base.nam", "OPTIONS.nam")
-        # check is useless (done uin the mother namelist)
-        # check_namelist_soda(self.options)
 
     def prepare_prep(self, date, dateprev, mb):
         '''
@@ -290,6 +288,10 @@ class OfflinePools(CrocO):
             self.link_build(mb, dateprev)
 
     def link_build(self, mb, dateprev):
+        '''
+        SODA: The SURFOUT{1..NENS}.nc from the previous run are used as init for the next timestep
+        openloop case: take initial states from the corresponding previous mb run.
+        '''
         # this links are broken on creation, but exist once SURFOUT have been created.
         if self.options.pf != 'ol':
             safe_create_link(
@@ -302,15 +304,18 @@ class OfflinePools(CrocO):
                 'PREP.nc', exc_broken = False)
 
     def run(self, date):
-        # print('launching escroc until ', date)
+        '''
+        Proper parallelized OFFLINE run for a given date.
+        '''
         p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers))
         p.map(self.mb_run, [['/'.join([self.xpiddir, date, mbdir])] for mbdir in self.mbdirs])
         p.close()
         p.join()
-        # print('escroc step is done.')
 
     def mb_prepare(self, largs):
-        "'' parallelized preparation since it takes sooo much time to edit namelists..."""
+        '''
+        parallelized preparation since it takes sooo much time to edit namelists...
+        '''
         date = largs[0]
         idate = largs[1]
         mbdir = largs[2]
