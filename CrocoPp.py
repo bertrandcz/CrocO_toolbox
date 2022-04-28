@@ -8,8 +8,8 @@ Created on 12 juin 2019
 import datetime
 import multiprocessing
 import os
-from utils.dates import check_and_convert_date
-from utils.prosimu import prosimu
+from snowtools.utils.dates import check_and_convert_date
+from snowtools.utils.prosimu import prosimu
 
 from CrocoPf import CrocO
 from Ensemble import PrepEnsBg, PrepEnsAn
@@ -23,7 +23,7 @@ from utilpp import read_alpha, read_part, read_mask, read_BG, load_pickle2
 
 
 def loadEnsPrepDate_parallel(largs):
-    """ 
+    """
     BC 24/06/20 externalized this fucntion for python2 compatibility (if class method, throws this exception):
     https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-multiprocessing-pool-map/7309686#7309686
     """

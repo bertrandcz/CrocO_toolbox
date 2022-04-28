@@ -14,7 +14,7 @@ from utilcrocO import Pgd, convertdate
 from utilcrocO import area
 from utilcrocO import setlistvars_obs, setlistvars_var, setSubsetclasses,\
     dictvarsPrep
-from utils.prosimu import prosimu
+from snowtools.utils.prosimu import prosimu
 
 import netCDF4  # @UnresolvedImport
 import numpy as np
@@ -103,7 +103,7 @@ class Obs(SemiDistributed):
                 self.close()
         else:
             # if no masking/modif is needed, just link the file:
-            if not os.path.exists(self.sodaName): # or not os.path.islink(self.sodaName):
+            if not os.path.exists(self.sodaName):  # or not os.path.islink(self.sodaName):
                 try:
                     os.symlink(self.path, self.sodaName)
                 except FileNotFoundError:

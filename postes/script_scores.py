@@ -4,11 +4,11 @@ Created on 13 mai 2020
 @author: cluzetb
 '''
 
-from scores.ensemble import EnsembleScores
+from snowtools.scores.ensemble import EnsembleScores
 
 import numpy as np
 from utilpp import RMSE, spread, bias
-from scores.generic import rankDiagram
+from snowtools.scores.generic import rankDiagram
 
 
 def compute_CRPSS_ol_oper(runs, xps, selMassif, alwaysXclude=[]):
@@ -244,7 +244,7 @@ def RMSE_spread_bias_ol_oper(run, classesId=None, aggrSpace = False, aggrTime = 
 
 
 def compute_rankdiag(run, nbins=None):
-    year, mobs, mens, _ = set_itimes_posts(run)
+    _, mobs, mens, _ = set_itimes_posts(run)
     if nbins is None:
         nbins = run.options.nmembers + 1
     if run.options.openloop == 'on':

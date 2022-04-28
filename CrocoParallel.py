@@ -14,10 +14,10 @@ import os
 import shutil
 import subprocess
 import time
-from tools.change_prep import prep_tomodify
-from tools.update_namelist import update_surfex_namelist_file
-from utils.ESCROCsubensembles import ESCROC_subensembles
-from utils.dates import get_list_dates_files
+from snowtools.tools.change_prep import prep_tomodify
+from snowtools.tools.update_namelist import update_surfex_namelist_file
+from snowtools.utils.ESCROCsubensembles import ESCROC_subensembles
+from snowtools.utils.dates import get_list_dates_files
 
 from tqdm import tqdm
 

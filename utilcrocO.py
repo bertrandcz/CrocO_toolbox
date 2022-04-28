@@ -20,7 +20,7 @@ import six
 from bronx.datagrip.namelist import NamelistParser
 import netCDF4  # @UnresolvedImport
 import numpy as np
-from tasks.vortex_kitchen import Vortex_conf_file
+from snowtools.tasks.vortex_kitchen import Vortex_conf_file
 
 
 def dictsAspect():

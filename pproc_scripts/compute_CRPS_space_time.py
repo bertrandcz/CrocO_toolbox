@@ -11,7 +11,7 @@ from consts import CROCO
 from crocO import set_options
 import os
 from plotcrocO import Pie
-from scores.ensemble import EnsembleScores
+from snowtools.scores.ensemble import EnsembleScores
 import time
 from utilcrocO import setSubsetclasses
 from utilplot import set_colors, set_title

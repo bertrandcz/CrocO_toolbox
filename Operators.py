@@ -8,7 +8,7 @@ Objects manipulating ensemble of Prep files
 
 from Ensemble import PrepEnsAbs
 from SemiDistributed import PrepAbs
-from scores.ensemble import EnsembleScores
+from snowtools.scores.ensemble import EnsembleScores
 
 import numpy as np
 

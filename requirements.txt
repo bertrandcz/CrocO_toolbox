@@ -10,5 +10,3 @@ scipy==1.8.0
 seaborn==0.11.2
 six==1.14.0
 tqdm==4.64.0
-Surfex_Git2: branch cen
-snowtools_git: branch cen_assim

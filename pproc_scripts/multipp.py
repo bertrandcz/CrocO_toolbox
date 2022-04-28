@@ -6,7 +6,7 @@ This pproc_scripts:
 - loads these pickle files
 - compute scores into pandas dataframe.
 '''
-from scores.ensemble import EnsembleScores
+from snowtools.scores.ensemble import EnsembleScores
 import sys
 import time
 

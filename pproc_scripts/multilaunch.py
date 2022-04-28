@@ -6,7 +6,7 @@ Created on 15 oct. 2019
 '''
 import os
 # @TODO: update with the new vortex conf object
-from tasks.vortex_kitchen import Vortex_conf_file
+from snowtools.tasks.vortex_kitchen import Vortex_conf_file
 
 from consts import CROCO
 from crocO import set_options

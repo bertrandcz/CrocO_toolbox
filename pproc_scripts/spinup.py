@@ -13,10 +13,10 @@ apply a swe threshold across the summer.
 import datetime
 import os
 import shutil
-from tools.change_prep import prep_tomodify
-from utils.dates import check_and_convert_date
+from snowtools.tools.change_prep import prep_tomodify
+from snowtools.utils.dates import check_and_convert_date
 
-import tasks.s2m_command as s2m
+import snowtools.tasks.s2m_command as s2m
 from utilcrocO import area
 
 

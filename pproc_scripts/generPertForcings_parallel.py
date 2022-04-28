@@ -12,7 +12,7 @@ from optparse import OptionParser
 import os
 from shutil import copyfile
 import sys
-from tools.job_gener_pert_forcings import multiprocess
+from snowtools.tools.job_gener_pert_forcings import multiprocess
 from utilcrocO import split_list
 
 
