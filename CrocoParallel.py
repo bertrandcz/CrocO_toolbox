@@ -98,13 +98,15 @@ class CrocoParallel(CrocO):
         however, the links to prep must be done just before the soda run itself
         hence, they are encapsulated inside run_parallel() class method
         '''
-        self.sodas = CrocoPf(self.options)  # first because prepare the directories.
+        if self.options.pf != 'ol':
+            self.sodas = CrocoPf(self.options)  # first because prepare the directories.
         self.soda_time = time.time() - self.start_time
         self.escrocs = OfflinePools(self.options)
         self.escroc_time = time.time() - self.start_time - self.soda_time
         self.setup_time = time.time() - self.start_time
         print('setup duration:', self.setup_time)
-        print('|         soda:', self.soda_time)
+        if self.options.pf != 'ol':
+            print('|         soda:', self.soda_time)
         print('|       escroc:', self.escroc_time)
 
     def run(self, cleanup=False):
@@ -112,9 +114,9 @@ class CrocoParallel(CrocO):
         run, archive, and (optionally) cleanup.
         '''
         # progress_bar
-        pbar = tqdm(self.options.assimdates + [self.options.datefin])
+        pbar = tqdm(self.options.stopdates)
         for dd in pbar:
-            pbar.set_description('Ensemble simulation until ' + dd)
+            pbar.set_description('ESCROC simulation until ' + dd)
             #  - spawn offline
             self.escrocs.run(dd)
 
@@ -162,8 +164,8 @@ class CrocoParallel(CrocO):
                          mbdir + '/pro/PRO_' + self.options.datedeb + '_' + date + '.nc') for mbdir in self.mbdirs]
         # following dates
         for idd, date in enumerate(self.options.stopdates[1:]):
-            # trap here !! idate starts at 0 instaed of 1.
-            # @TODO :integration tes should check the PREP dates correspond to their names.
+            # trap here !! idate starts at 0 instead of 1.
+            # @TODO :integration test should check the PREP dates correspond to their names.
             idate = idd + 1
             [shutil.copyfile('/'.join([self.xpiddir, date, mbdir]) + '/SURFOUT.nc',
                              mbdir + '/bg/PREP_' + date + '.nc') for mbdir in self.mbdirs]
@@ -218,7 +220,8 @@ class OfflinePools(CrocO):
         '''
         # prepare escroc configurations
         self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.options.members_id)
-        p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates)))
+        size_setpool = min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates))
+        p = multiprocessing.Pool(size_setpool)
         p.map(self.mb_prepare, [[date, idate, mbdir, mb]for idate, date in enumerate(self.options.stopdates)
                                 for (mb, mbdir) in zip(self.mblist, self.mbdirs)])
         p.close()
@@ -307,7 +310,9 @@ class OfflinePools(CrocO):
         '''
         Proper parallelized OFFLINE run for a given date.
         '''
-        p = multiprocessing.Pool(min(multiprocessing.cpu_count(), self.options.nmembers))
+        size_process_pool = min(multiprocessing.cpu_count(), self.options.nmembers)
+        print('number of cores used:', size_process_pool)
+        p = multiprocessing.Pool(size_process_pool)
         p.map(self.mb_run, [['/'.join([self.xpiddir, date, mbdir])] for mbdir in self.mbdirs])
         p.close()
         p.join()
@@ -329,4 +334,6 @@ class OfflinePools(CrocO):
         path = largs[0]
         os.chdir(path)
         with open('offline.out', 'w') as f:
-            subprocess.call('./offline.exe', stdout=f)
+            gg = subprocess.call('./offline.exe', stdout=f, stderr=f)
+        if gg != 0:
+            print('an ESCROC member crashed, check:', largs[0], 'offline.out')

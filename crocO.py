@@ -294,11 +294,13 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
         # set some important parameters:
 
         # ensure assimdates is a list of string
-        # assimdates is always set.
-        if type(conf.assimdates) is str:
-            conf.assimdates = [str(conf.assimdates)]
+        if hasattr(conf, 'assimdates'):
+            if type(conf.assimdates) is str:
+                conf.assimdates = [str(conf.assimdates)]
+            else:
+                conf.assimdates = list(map(str, conf.assimdates))
         else:
-            conf.assimdates = list(map(str, conf.assimdates))
+            conf.assimdates = []
         if hasattr(conf, 'stopdates'):
             if type(conf.stopdates) is str:
                 conf.stopdates = [str(conf.stopdates)]

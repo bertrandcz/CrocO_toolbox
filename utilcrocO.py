@@ -82,7 +82,8 @@ def set_sensor(options):
             + '_E' + ''.join(options.classes_e) + '_A' + ''.join(options.classes_a) \
             + '_S' + ''.join(options.classes_s) + '_N' + str(options.noise)
     except TypeError:
-        print('if you dont specify obs, please specify a synth member to draw')
+        if options.pf != 'ol':
+            print('if you dont specify obs, please specify a synth member to draw')
     return options
 
 
