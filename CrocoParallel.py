@@ -208,7 +208,10 @@ class OfflinePools(CrocO):
 
         self.mblist = list(range(1, self.options.nmembers + 1))
         self.mbdirs = ['mb{0:04d}'.format(mb) + '/' for mb in self.mblist]
-
+        # some times we may want to use less forcings than members
+        # (e.g.: 1 2 3 1 2 3 1 2 3, nforcing=3, nmembers = 9).
+        self.mbdirs_forc = ['mb{0:04d}'.format(((mb - 1) % self.options.nforcing) + 1) + '/' for mb in self.mblist]
+        print('toto', self.mbdirs_forc)
         # setup
         self.setup()
 
@@ -222,13 +225,13 @@ class OfflinePools(CrocO):
         self.escroc_confs = ESCROC_subensembles(self.options.escroc, self.options.members_id)
         size_setpool = min(multiprocessing.cpu_count(), self.options.nmembers * len(self.options.stopdates))
         p = multiprocessing.Pool(size_setpool)
-        p.map(self.mb_prepare, [[date, idate, mbdir, mb]for idate, date in enumerate(self.options.stopdates)
-                                for (mb, mbdir) in zip(self.mblist, self.mbdirs)])
+        p.map(self.mb_prepare, [[date, idate, mbdir, mb, mbdirs_forc] for idate, date in enumerate(self.options.stopdates)
+                                for (mb, mbdir, mbdirs_forc) in zip(self.mblist, self.mbdirs, self.mbdirs_forc)])
         p.close()
         p.join()
         os.chdir(self.xpiddir)
 
-    def prepare_offline_env(self, date, idate, mbdir, mb):
+    def prepare_offline_env(self, date, idate, mbdir, mb, mbdirs_forc):
         '''
         set offline environment for each date (=path): -PGD, links to preps, namelist, ecoclimap etc.
         '''
@@ -242,7 +245,7 @@ class OfflinePools(CrocO):
             'yearly')  # return lists with only one item
         date_begin_forc = date_begin_forc[0]  # replace one-item list by item.
         date_end_forc = date_end_forc[0]
-        safe_create_link(self.options.forcing + '/' + mbdir + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
+        safe_create_link(self.options.forcing + '/' + mbdirs_forc + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
                          'FORCING.nc')
         # prepare ecoclimap binaries
 
@@ -325,7 +328,8 @@ class OfflinePools(CrocO):
         idate = largs[1]
         mbdir = largs[2]
         mb = largs[3]
-        self.prepare_offline_env(date, idate, mbdir, mb)
+        mbdirs_forc = largs[4]
+        self.prepare_offline_env(date, idate, mbdir, mb, mbdirs_forc)
         # prepare the pgd and prep files.
         # in Local parallel sequence, must be done only once the corresponding SODA run has produced the files
         self.prepare_prep(date, self.options.stopdates[idate - 1], mb)

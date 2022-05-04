@@ -55,6 +55,9 @@ def parse_args(arguments):
     parser.add_argument("--nmembers",
                         action = 'store', type = int, dest='nmembers', default = None,
                         help= 'specify the number of members.')
+    parser.add_argument("--nforcing",
+                        action = 'store', type = int, dest='nforcing', default = None,
+                        help= 'specify the number of forcings to use.')
     parser.add_argument("--vars", type=callvars, default = 'all',
                         help="specify assimilation variables separated by commas : B1,...,B7 for MODIS bands, SCF, DEP for snow depth, SWE for snow water equivalent")
     parser.add_argument("--ppvars", type=callvars, default = [],
