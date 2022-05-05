@@ -689,7 +689,7 @@ def safe_create_link(src, dst, exc_broken = True):
     if exc_broken:
         if os.path.islink(dst) and not os.path.exists(dst):
             # leave broken link (useful for debugging) but raise Exception
-            raise Exception('safe_create_link: {0} does not exist'.format(src))
+            raise IOError('safe_create_link: {0} does not exist'.format(src))
 
 
 def merge_two_dicts(x, y):
