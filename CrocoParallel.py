@@ -245,8 +245,14 @@ class OfflinePools(CrocO):
             'yearly')  # return lists with only one item
         date_begin_forc = date_begin_forc[0]  # replace one-item list by item.
         date_end_forc = date_end_forc[0]
-        safe_create_link(self.options.forcing + '/' + mbdirs_forc + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
-                         'FORCING.nc')
+        try:
+            safe_create_link(self.options.forcing + '/' + mbdirs_forc + '/meteo/FORCING_' + date_begin_forc.strftime('%Y%m%d%H') + '_' + date_end_forc.strftime('%Y%m%d%H') + '.nc',
+                             'FORCING.nc')
+        except IOError:
+            # BC dirty fix to load forcings with custom begin/end dates.
+            safe_create_link(glob.glob(self.options.forcing + '/' + mbdirs_forc + '/meteo/*')[0],
+                             'FORCING.nc')
+
         # prepare ecoclimap binaries
 
         safe_create_link(self.exesurfex + '/../MY_RUN/ECOCLIMAP/ecoclimapI_covers_param.bin', 'ecoclimapI_covers_param.bin')
