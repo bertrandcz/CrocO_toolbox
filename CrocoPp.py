@@ -24,7 +24,7 @@ from utilpp import read_alpha, read_part, read_mask, read_BG, load_pickle2
 
 def loadEnsPrepDate_parallel(largs):
     """
-    BC 24/06/20 externalized this fucntion for python2 compatibility (if class method, throws this exception):
+    BC 24/06/20 externalized this funtion for python2 compatibility (if class method, throws this exception):
     https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-multiprocessing-pool-map/7309686#7309686
     """
     pp = largs[0]
@@ -40,7 +40,7 @@ def loadEnsPrepDate_parallel(largs):
     else:
         local = PrepEnsOl(pp.options, dd, isOl=isOl, fromArch=fromArch)
     if (kind == 'ol' and isOl is False):
-        pathPkl = pp.xpidoldir + '/crampon/' + pp.options.saverep + '/' +\
+        pathPkl = pp.xpidoldir + '/crocO/' + pp.options.saverep + '/' +\
             kind + '_' + dd + '.pkl'
     else:
         pathPkl = kind + '_' + dd + '.pkl'

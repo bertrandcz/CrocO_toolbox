@@ -151,7 +151,7 @@ def parse_args(arguments):
                         help='path to the pgd and prep files')
     parser.add_argument("--provars",
                         type=callvars, dest = 'provars', default = ['all_notartes'],
-                        help = 'specify the list of variables to write down into the PRO files. (CSELECT in the namelist\n\
+                        help = 'specify the list of variables to write down into the PRO files. (CSELECT in the namelist)\n\
                       Default : TALB_ISBA (albedo), TS_ISBA (Snow Surface temperature), DSN_T_ISBA (Snow Depth) and WSN_T_ISBA (Snow Water Equivalent).')
     parser.add_argument("--pathConf",
                         action="store", type=str, dest="pathConf", default=None,
