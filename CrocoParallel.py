@@ -211,7 +211,7 @@ class OfflinePools(CrocO):
         # some times we may want to use less forcings than members
         # (e.g.: 1 2 3 1 2 3 1 2 3, nforcing=3, nmembers = 9).
         self.mbdirs_forc = ['mb{0:04d}'.format(((mb - 1) % self.options.nforcing) + 1) + '/' for mb in self.mblist]
-        print('toto', self.mbdirs_forc)
+
         # setup
         self.setup()
 
