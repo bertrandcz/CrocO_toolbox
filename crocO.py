@@ -214,6 +214,15 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
     - pathPgd : help finding the pgd file.
     - mutable : NOT RECOMMENDED: if True, return a mutable option object (lazy useful solution for pp on beaufix)
     """
+
+    # check that all args are correctly formatted as strings, not e.g. int
+    isstr = [not isinstance(arg, str) for arg in args]
+    if sum(isstr) > 0:
+        print('badly formatted args:')
+        print([(', ').join(str(arg)) for i, arg in enumerate(args) if isstr[i] != 0])
+        raise Exception('crocO.py: please format the above mentioned args as strings.')
+
+    # parse args.
     options, no_default_opts = parse_args(args[1:])
     if 'CROCOPATH' not in list(os.environ.keys()):
         raise Exception('you must export CROCOPATH to the root of your local experiments.')
