@@ -219,7 +219,10 @@ def convertdate(date):
     '''
     YYYYMMDDHH to datetime.datetime
     '''
-    return datetime.datetime(int(date[0:4]), int(date[4:6]), int(date[6:8]), int(date[8:10]), 0, 0)
+    try:
+        return datetime.datetime(int(date[0:4]), int(date[4:6]), int(date[6:8]), int(date[8:10]), 0, 0)
+    except ValueError:
+        raise Exception('convertdate:: date:', date, ' is badly formatted')
 
 
 '''
