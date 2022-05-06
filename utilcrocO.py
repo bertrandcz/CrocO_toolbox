@@ -219,7 +219,10 @@ def convertdate(date):
     '''
     YYYYMMDDHH to datetime.datetime
     '''
-    return datetime.datetime(int(date[0:4]), int(date[4:6]), int(date[6:8]), int(date[8:10]), 0, 0)
+    try:
+        return datetime.datetime(int(date[0:4]), int(date[4:6]), int(date[6:8]), int(date[8:10]), 0, 0)
+    except ValueError:
+        raise Exception('convertdate:: date:', date, ' is badly formatted')
 
 
 '''
@@ -689,7 +692,7 @@ def safe_create_link(src, dst, exc_broken = True):
     if exc_broken:
         if os.path.islink(dst) and not os.path.exists(dst):
             # leave broken link (useful for debugging) but raise Exception
-            raise Exception('safe_create_link: {0} does not exist'.format(src))
+            raise IOError('safe_create_link: {0} does not exist'.format(src))
 
 
 def merge_two_dicts(x, y):

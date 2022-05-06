@@ -57,7 +57,7 @@ def parse_args(arguments):
                         help= 'specify the number of members.')
     parser.add_argument("--nforcing",
                         action = 'store', type = int, dest='nforcing', default = None,
-                        help= 'specify the number of forcings to use.')
+                        help= 'specify the number of forcings to use. Set by default to options.nmembers.')
     parser.add_argument("--vars", type=callvars, default = 'all',
                         help="specify assimilation variables separated by commas : B1,...,B7 for MODIS bands, SCF, DEP for snow depth, SWE for snow water equivalent")
     parser.add_argument("--ppvars", type=callvars, default = [],
@@ -151,7 +151,7 @@ def parse_args(arguments):
                         help='path to the pgd and prep files')
     parser.add_argument("--provars",
                         type=callvars, dest = 'provars', default = ['all_notartes'],
-                        help = 'specify the list of variables to write down into the PRO files. (CSELECT in the namelist\n\
+                        help = 'specify the list of variables to write down into the PRO files. (CSELECT in the namelist)\n\
                       Default : TALB_ISBA (albedo), TS_ISBA (Snow Surface temperature), DSN_T_ISBA (Snow Depth) and WSN_T_ISBA (Snow Water Equivalent).')
     parser.add_argument("--pathConf",
                         action="store", type=str, dest="pathConf", default=None,
@@ -214,6 +214,15 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
     - pathPgd : help finding the pgd file.
     - mutable : NOT RECOMMENDED: if True, return a mutable option object (lazy useful solution for pp on beaufix)
     """
+
+    # check that all args are correctly formatted as strings, not e.g. int
+    isstr = [not isinstance(arg, str) for arg in args]
+    if sum(isstr) > 0:
+        print('badly formatted args:')
+        print([(', ').join(str(arg)) for i, arg in enumerate(args) if isstr[i] != 0])
+        raise Exception('crocO.py: please format the above mentioned args as strings.')
+
+    # parse args.
     options, no_default_opts = parse_args(args[1:])
     if 'CROCOPATH' not in list(os.environ.keys()):
         raise Exception('you must export CROCOPATH to the root of your local experiments.')
@@ -381,6 +390,11 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             if options.synth in options.mblist:
                 options.mblist.remove(options.synth)
         options.nmembers = len(options.mblist)
+
+        # enforce a 1-1 forcing-to-member by default.
+        if options.nforcing is None:
+            options.nforcing = options.nmembers
+
         # merge options and conf into an immutable object.
         # conf file values are overwritten by options
         # do not overwrite with None:

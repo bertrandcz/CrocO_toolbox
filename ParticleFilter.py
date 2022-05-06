@@ -6,7 +6,7 @@ Created on 14 mars 2019
 Emulator to develop a localized particle filter in a friendly environment.
 '''
 
-from Ensemble import PrepEnsBg, PrepEnsAn
+from Ensemble import PrepEnsBg
 from Operators import AnalysisOperator
 from Operators import PrepEnsOperator
 from SemiDistributed import Synthetic

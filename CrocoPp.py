@@ -24,7 +24,7 @@ from utilpp import read_alpha, read_part, read_mask, read_BG, load_pickle2
 
 def loadEnsPrepDate_parallel(largs):
     """
-    BC 24/06/20 externalized this fucntion for python2 compatibility (if class method, throws this exception):
+    BC 24/06/20 externalized this funtion for python2 compatibility (if class method, throws this exception):
     https://stackoverflow.com/questions/1816958/cant-pickle-type-instancemethod-when-using-multiprocessing-pool-map/7309686#7309686
     """
     pp = largs[0]
@@ -40,7 +40,7 @@ def loadEnsPrepDate_parallel(largs):
     else:
         local = PrepEnsOl(pp.options, dd, isOl=isOl, fromArch=fromArch)
     if (kind == 'ol' and isOl is False):
-        pathPkl = pp.xpidoldir + '/crampon/' + pp.options.saverep + '/' +\
+        pathPkl = pp.xpidoldir + '/crocO/' + pp.options.saverep + '/' +\
             kind + '_' + dd + '.pkl'
     else:
         pathPkl = kind + '_' + dd + '.pkl'
@@ -77,8 +77,14 @@ class CrocoPp(CrocO):
         CrocO.__init__(self, options)
         if self.options.synth:
             self.mbsynth = int(self.options.synth) - 1  # be careful to id offset
+
+        # overwrite with the archive path if it exists
+        if hasattr(self.options, 'arch'):
+            self.xpiddir = self.options.arch
+            self.crocOdir = self.options.arch
         self.mblist = self.options.mblist
         self.initial_context = os.getcwd()
+
         # setup + loading
         self.setup()
         self.read(readpro = not self.options.notreadpro, readprep=self.options.readprep,
@@ -292,6 +298,8 @@ class CrocoPp(CrocO):
                     os.symlink(pathpklbeauf, pathPkl)
                 except FileExistsError:
                     pass
+
+        # convert to pkl or load.
         if not os.path.exists(pathPkl):
             locPro = self.nc_to_pkl(pathPkl, kind, catPro = catPro, isOl = isOl)
         else:
@@ -493,8 +501,10 @@ class CrocoPp(CrocO):
                         locPro[var] = np.concatenate((locPro[var], np.expand_dims(datahtn.read('SPECMOD')[:, int(var[-1]) - 1, :], axis=2)), axis = 2)
 
             datahtn.close()
+
         # SAVING
         with open(pathPkl, 'wb') as f:
             print(('saaving ensPro' + kind + ' to pickle !'))
+            print(pathPkl)
             pickle.dump(locPro, f, protocol=pickle.HIGHEST_PROTOCOL)
         return locPro
