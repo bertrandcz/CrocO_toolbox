@@ -43,7 +43,7 @@ def parse_classes(options):
     BC, June 2020: consider also classes_id
     """
 
-    # check for conf file (not necessarily defined in old conf files
+    # check for conf file (not necessarily defined in old conf files)
     for attr in ['classes_e', 'classes_a', 'classes_s', 'classes_id']:
         if not hasattr(options, attr):
             options.__setattr__(attr, None)
@@ -52,7 +52,10 @@ def parse_classes(options):
         if options.classes_e is not None or options.classes_a is not None or options.classes_s is not None:
             gdef = False
         if options.classes_e == 'all' or options.classes_e is None:
-            options.classes_e = sorted(np.unique(list(map(str, map(int, options.pgd.elev)))))
+            try:
+                options.classes_e = sorted(np.unique(list(map(str, map(int, options.pgd.elev)))))
+            except TypeError:
+                options.classes_e = sorted(np.unique(list(map(str, map(int, [options.pgd.elev])))))
         if options.classes_a == 'all' or options.classes_a is None:
             options.classes_a = sorted(list(dictsAspect()[0].keys()))
         if options.classes_s == 'all' or options.classes_s is None:
