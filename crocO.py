@@ -280,6 +280,8 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
                 confPath = options.xpiddir + '/conf/' + options.vapp + '_' + options.vconf + '.ini'
                 print('opening conf file : ', confPath)
                 conf = read_conf(confPath, useVortex = useVortex)
+                if len(conf.__dict__) < 1:
+                    raise Exception('crocO: empty/corrupted configuration file.')
             except IOError:
                 raise Exception('I could not find the conf file by myself', 'help me with pathConf=<path to conf file>')
         else:
