@@ -57,7 +57,7 @@ def parse_args(arguments):
                         help= 'specify the number of members.')
     parser.add_argument("--nforcing",
                         action = 'store', type = int, dest='nforcing', default = None,
-                        help= 'specify the number of forcings to use.')
+                        help= 'specify the number of forcings to use. Set by default to options.nmembers.')
     parser.add_argument("--vars", type=callvars, default = 'all',
                         help="specify assimilation variables separated by commas : B1,...,B7 for MODIS bands, SCF, DEP for snow depth, SWE for snow water equivalent")
     parser.add_argument("--ppvars", type=callvars, default = [],
@@ -390,6 +390,11 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
             if options.synth in options.mblist:
                 options.mblist.remove(options.synth)
         options.nmembers = len(options.mblist)
+
+        # enforce a 1-1 forcing-to-member by default.
+        if options.nforcing is None:
+            options.nforcing = options.nmembers
+
         # merge options and conf into an immutable object.
         # conf file values are overwritten by options
         # do not overwrite with None:

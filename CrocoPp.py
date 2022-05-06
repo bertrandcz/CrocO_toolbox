@@ -77,7 +77,7 @@ class CrocoPp(CrocO):
         CrocO.__init__(self, options)
         if self.options.synth:
             self.mbsynth = int(self.options.synth) - 1  # be careful to id offset
-        
+
         # overwrite with the archive path if it exists
         if hasattr(self.options, 'arch'):
             self.xpiddir = self.options.arch
