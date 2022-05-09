@@ -3,12 +3,16 @@
 Spyder Editor
 
 This is a temporary script file.
+
 """
+
 from netCDF4 import Dataset
 import glob
 import re
 import os
-### 
+
+##########################################################
+##########################################################
 
 # combining ensemble of SURFEX outputs into a single outputfile 
 # with additional dimension for ensemble memer
@@ -29,6 +33,7 @@ data = Dataset(files[0], 'r')
 
 variables = data.variables.keys()
 
+#------------------------------------------------------------#
 #------------------------------------------------------------#
 
 outname = re.split('(/)', files[0])[-1]
@@ -51,7 +56,6 @@ for d in data.dimensions.keys():
     temp = new_output.createDimension(d, data.dimensions[d].size)
 
 new_output.createDimension('Ensemble_members', len(files))
-
 
 list_of_variables = list(data.variables.keys())
 list_of_variable_units = []
@@ -89,31 +93,36 @@ for i in range(len(list_of_variables)):
         output_var.units = units
     output_var.long_name = longname
 
+##-----------------------------------##
 
-##------------------
+#import matplotlib.pyplot as plt
+#import numpy as np
 
 # looping over the files to read data into right dimensions
 
-for j in range(len(files)):
-    member = j
-    file = files[j]
-    print(member)
-    tempfile = Dataset(file, 'r')
-    for e in range(len(files)):
-        
-        for i in list_of_variables:
-            if tempfile[i].dimensions != ():
-                dimensionlen = len(list(tempfile[i].dimensions))
-            else:
-                dimensionlen = 0
-            if dimensionlen == 4:
-                new_output[i][:,:,:,:,e] = tempfile[i][:,:,:,:]
-            elif dimensionlen == 3:
-                new_output[i][:,:,:,e] = tempfile[i][:,:,:]            
-            elif dimensionlen == 2:
-                new_output[i][:,:,e] = tempfile[i][:,:]       
-            elif dimensionlen == 1:
-                new_output[i][:,e] = tempfile[i][:]       
+for member in range(len(files)):
+    file = files[member]
+    print('Filling ensemble member:', member)
+    tempfile = Dataset(file, 'r')        
+    for key in list_of_variables:
+        if tempfile[key].dimensions != ():
+            dimensionlen = len(list(tempfile[key].dimensions))
+        else:
+            dimensionlen = 0
+        if dimensionlen == 4:
+            new_output[key][:,:,:,:,member] = tempfile[key][:,:,:,:]
+        elif dimensionlen == 3:
+            new_output[key][:,:,:,member] = tempfile[key][:,:,:]            
+        elif dimensionlen == 2:
+            new_output[key][:,:,member] = tempfile[key][:,:]       
+        elif dimensionlen == 1:
+            new_output[key][:,member] = tempfile[key][:]
+    #plt.plot(np.nansum(tempfile['SNOWDZ'], axis=2)[:,0,0], alpha=1)
+    #plt.plot(tempfile['LE_ISBA'][:,0], alpha=1)
+    #plt.title(f'{file}')
+    #plt.show()
+    tempfile.close()
+
     
     
     
