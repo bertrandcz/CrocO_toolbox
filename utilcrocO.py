@@ -707,7 +707,7 @@ def merge_two_dicts(x, y):
     return x
 
 
-def combine_memberfiles(parentfolder):
+def combine_memberfiles(parentfolder, keep_open=False):
     ''' 
     Combining ensemble of SURFEX outputs into a single outputfile 
     with additional dimension for ensemble members 
@@ -812,4 +812,8 @@ def combine_memberfiles(parentfolder):
             elif dimensionlen == 1:
                 new_output[key][:,member] = tempfile[key][:]
         tempfile.close()
-    new_output.close()
+    
+    if keep_open == True:
+        return new_output
+    else:
+        new_output.close()
