@@ -22,7 +22,8 @@ from CrocoPf import CrocoPf, CrocoObs
 from CrocoPp import CrocoPp
 import numpy as np
 from utilcrocO import Opt, ImmutableOpt, Pgd, area, parse_classes,\
-    read_opts_in_namelist, set_sensor, set_provars, merge_two_dicts
+    read_opts_in_namelist, set_sensor, set_provars, merge_two_dicts,\
+    list_of_strings
 from snowtools.tools.read_conf import read_conf
 
 # from optparse import OptionParser, Values
@@ -309,17 +310,11 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
 
         # ensure assimdates is a list of string
         if hasattr(conf, 'assimdates'):
-            if type(conf.assimdates) is str:
-                conf.assimdates = [str(conf.assimdates)]
-            else:
-                conf.assimdates = list(map(str, conf.assimdates))
+            conf.assimdates = list_of_strings(conf.assimdates)
         else:
             conf.assimdates = []
         if hasattr(conf, 'stopdates'):
-            if type(conf.stopdates) is str:
-                conf.stopdates = [str(conf.stopdates)]
-            else:
-                conf.stopdates = list(map(str, conf.stopdates))
+            conf.stopdates = list_of_strings(conf.stopdates)
 
         # in the case we are pping, and options.dates =='all', we must set options.dates to the assimdates of the conf file
         if options.dates and 'all' in options.dates:

@@ -306,6 +306,14 @@ def dump_conf(pathConf, options):
     return 0
 
 
+def list_of_strings(assumed_list):
+    if type(assumed_list) is str:
+        assumed_list = [str(assumed_list)]
+    else:
+        assumed_list = list(map(str, assumed_list))
+    return assumed_list
+
+
 def dictErrors():
     """
     default observation error variances
