@@ -218,9 +218,10 @@ class CrocoPf(CrocO):
         self.prepare_preps(date)
         print('launching SODA on ', date)
         with open('soda.out', 'w') as f:
-            p = subprocess.call('./soda.exe', stdout=f)
-            if p != 0:
-                raise RuntimeError('SODA crashed, check ', os.getcwd() + str(f))
+            p = subprocess.run('./soda.exe', stderr=f)  # BC somehow with FORTRAN we cannot easily redirect stdout to file.
+            if p.returncode != 0:
+                raise RuntimeError('SODA crashed, check traceback: ' + os.getcwd() + '/' + f.name)
+
         os.chdir('..')
 
 
