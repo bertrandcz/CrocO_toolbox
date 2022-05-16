@@ -86,7 +86,7 @@ def parse_args(arguments):
     parser.add_argument("--lloo_pf",
                         action = "store_true", dest = 'lloo_pf', default = False,
                         help = "activate leave-one-out experiments for the localised PFs.")
-    parser.add_argument("--neff", action = 'store', dest = 'neff', default = 0, type = int,
+    parser.add_argument("--neff", action = 'store', dest = 'neff', default = 1, type = int,
                         help='set the Neff target value for the inflation factor. 1 to deactivate localization.')
     parser.add_argument('--synth',
                         action = 'store', dest = 'synth', type = int, default = None,
