@@ -780,7 +780,10 @@ def combine_memberfiles(parentfolder, keep_open=False):
         except AttributeError:
             units = False
         dtype = data[variable].dtype
-        dimensions = data[variable].dimensions + ('Ensemble_members',)
+        if variable == 'time':
+            dimensions = data[variable].dimensions
+        else:
+            dimensions = data[variable].dimensions + ('Ensemble_members',)
         longname = list_of_variable_longnames[i]
         try:
             fill_value = data[variable]._FillValue
@@ -810,7 +813,7 @@ def combine_memberfiles(parentfolder, keep_open=False):
             elif dimensionlen == 2:
                 new_output[key][:,:,member] = tempfile[key][:,:]       
             elif dimensionlen == 1:
-                new_output[key][:,member] = tempfile[key][:]
+                new_output[key][:] = tempfile[key][:]
         tempfile.close()
     
     if keep_open == True:
