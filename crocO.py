@@ -22,7 +22,8 @@ from CrocoPf import CrocoPf, CrocoObs
 from CrocoPp import CrocoPp
 import numpy as np
 from utilcrocO import Opt, ImmutableOpt, Pgd, area, parse_classes,\
-    read_opts_in_namelist, set_sensor, set_provars, merge_two_dicts
+    read_opts_in_namelist, set_sensor, set_provars, merge_two_dicts,\
+    list_of_strings
 from snowtools.tools.read_conf import read_conf
 
 # from optparse import OptionParser, Values
@@ -85,7 +86,7 @@ def parse_args(arguments):
     parser.add_argument("--lloo_pf",
                         action = "store_true", dest = 'lloo_pf', default = False,
                         help = "activate leave-one-out experiments for the localised PFs.")
-    parser.add_argument("--neff", action = 'store', dest = 'neff', default = 0, type = int,
+    parser.add_argument("--neff", action = 'store', dest = 'neff', default = 1, type = int,
                         help='set the Neff target value for the inflation factor. 1 to deactivate localization.')
     parser.add_argument('--synth',
                         action = 'store', dest = 'synth', type = int, default = None,
@@ -280,6 +281,8 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
                 confPath = options.xpiddir + '/conf/' + options.vapp + '_' + options.vconf + '.ini'
                 print('opening conf file : ', confPath)
                 conf = read_conf(confPath, useVortex = useVortex)
+                if len(conf.__dict__) < 1:
+                    raise Exception('crocO: empty/corrupted configuration file.')
             except IOError:
                 raise Exception('I could not find the conf file by myself', 'help me with pathConf=<path to conf file>')
         else:
@@ -307,17 +310,11 @@ def set_options(args, readConf = True, useVortex = True, pathConf = None, pathPg
 
         # ensure assimdates is a list of string
         if hasattr(conf, 'assimdates'):
-            if type(conf.assimdates) is str:
-                conf.assimdates = [str(conf.assimdates)]
-            else:
-                conf.assimdates = list(map(str, conf.assimdates))
+            conf.assimdates = list_of_strings(conf.assimdates)
         else:
             conf.assimdates = []
         if hasattr(conf, 'stopdates'):
-            if type(conf.stopdates) is str:
-                conf.stopdates = [str(conf.stopdates)]
-            else:
-                conf.stopdates = list(map(str, conf.stopdates))
+            conf.stopdates = list_of_strings(conf.stopdates)
 
         # in the case we are pping, and options.dates =='all', we must set options.dates to the assimdates of the conf file
         if options.dates and 'all' in options.dates:

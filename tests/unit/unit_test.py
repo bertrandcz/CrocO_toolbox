@@ -5,7 +5,7 @@ Created on 30 mars 2020
 '''
 # content of test_sample.py
 import os
-from utilcrocO import unpack_conf
+from snowtools.tools.read_conf import unpack_conf
 import pytest
 
 

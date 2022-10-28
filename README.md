@@ -31,7 +31,7 @@ CrocO can be run without the present package **CrocO_toolbox**, but only on Mét
 
 ## Dependencies
 ---
-- **Python libraries**: The code is developped on latest stable version of python3, and has been tested with python 3.5.2. [Required libraries](https://github.com/bertrandcz/CrocO_toolbox/blob/master/requirements.txt): matplotlib, numpy, pandas, scipy, netCDF4, seaborn, pytest, configobj. Installation inside a conda virtual environment is recommended.
+- **Python libraries**: The code is developped on the latest stable version of python3, and a minimal version of 3.8.13 is required. [Required libraries](https://github.com/bertrandcz/CrocO_toolbox/blob/master/requirements.txt): matplotlib, numpy, pandas, scipy, netCDF4, seaborn, pytest, configobj. Installation inside a conda virtual environment is recommended.
 - **snowtools**: open-source python package used to pre/post process SURFEX-Crocus outputs and launch simulations on Météo-France HPC environment. Used for operational snowpack modelling at Météo-France. The present package is highly inspired on snowtools and will be included in it in the future. Please carefully check snowtools documentation (in particular the [wiki](https://opensource.umr-cnrm.fr/projects/snowtools_git/wiki/Wiki) and its [CrocO user doc](https://opensource.umr-cnrm.fr/projects/snowtools_git/wiki/CrocO_user_doc)) as it includes detailed information on the installation procedure and the simulation environment.
 Download, documentation and instructions : https://opensource.umr-cnrm.fr/projects/snowtools_git/ Manuscript version: tag *CrocO_v1.0*
 - **SURFEX** : open-source Land Surface Model, including FORTRAN sources of CrocO snowpack model (SURFEX-ISBA-Crocus) and the Particle Filter.
