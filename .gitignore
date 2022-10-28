@@ -8,3 +8,4 @@ tests/output*
 *.bak
 *.py.orig
 .ipynb*
+.spyproject/
